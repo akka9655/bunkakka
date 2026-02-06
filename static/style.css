@@ -1,0 +1,1203 @@
+        :root {
+            --bg-color: #000000;
+            --primary: #6366f1;
+            --accent: #a855f7;
+            --safe-bottom: env(safe-area-inset-bottom, 20px);
+            --spring-easing: cubic-bezier(0.32, 0.72, 0, 1);
+            --bounce-easing: cubic-bezier(0.34, 1.56, 0.64, 1);
+            --smooth-easing: cubic-bezier(0.4, 0, 0.2, 1);
+            /* Material Design smooth */
+
+            /* --- LOW PERFORMANCE (Solid & Fast) --- */
+            /* Optimized for Speed: No blurs, no aurora, solid backgrounds */
+            --panel-bg: #121212;
+            --card-bg: #18181b;
+            --nav-bg: #000000;
+            --border-color: rgba(255, 255, 255, 0.15);
+            /* Higher contrast */
+            --glass-filter: none;
+            /* KEY: No blur = Huge CPU save */
+            --noise-opacity: 0;
+            --shadow-intensity: 0;
+            --aurora-visibility: hidden;
+            /* Hide heavy background */
+        }
+
+        /* --- HIGH PERFORMANCE OVERRIDES (Flagship Beauty) --- */
+        html[data-perf="high"] :root {
+            --panel-bg: rgba(18, 18, 24, 0.65);
+            --card-bg: rgba(30, 30, 35, 0.5);
+            --nav-bg: rgba(22, 22, 24, 0.75);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --glass-filter: blur(15px) saturate(140%);
+            --noise-opacity: 0.03;
+            --shadow-intensity: 0.6;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+            height: 100dvh;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overscroll-behavior-y: none;
+            touch-action: manipulation;
+
+            /* Smoothness optimizations */
+            will-change: scroll-position;
+            backface-visibility: hidden;
+            perspective: 1000px;
+            transform: translateZ(0);
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Hardware acceleration for all interactive elements */
+        * {
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            -webkit-perspective: 1000;
+            perspective: 1000;
+        }
+
+        /* Optimize scroll containers */
+        .overflow-y-auto,
+        .overflow-auto {
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+            scroll-margin: 20px;
+        }
+
+        /* --- BACKGROUND --- */
+        .aurora-container {
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            background: var(--bg-color);
+            overflow: hidden;
+            transform: translateZ(0);
+            will-change: transform;
+        }
+
+        /* Noise only visible in High Perf via var */
+        .aurora-container::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E");
+            opacity: var(--noise-opacity);
+            pointer-events: none;
+            mix-blend-mode: overlay;
+        }
+
+        .aurora-blob {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.4;
+            animation: float 25s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
+        }
+
+        /* Hide Aurora blobs when NOT in High Performance mode */
+        html:not([data-perf="high"]) .aurora-blob {
+            display: none !important;
+        }
+
+        /* AGGRESSIVE OPTIMIZATION: Stop animations in low mode */
+        html[data-perf="low"] .aurora-blob {
+            opacity: 0.15;
+            animation: none;
+            /* Stops the expensive repaint cycle */
+        }
+
+        .blob-1 {
+            top: -10%;
+            left: -20%;
+            width: 100vw;
+            height: 100vw;
+            background: radial-gradient(circle, rgba(67, 56, 202, 0.6) 0%, transparent 70%);
+            animation-delay: 0s;
+        }
+
+        .blob-2 {
+            bottom: -20%;
+            right: -20%;
+            width: 120vw;
+            height: 120vw;
+            background: radial-gradient(circle, rgba(124, 58, 237, 0.5) 0%, transparent 70%);
+            animation-delay: -5s;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translate3d(0, 0, 0) scale(1);
+            }
+
+            100% {
+                transform: translate3d(30px, -30px, 0) scale(1.1);
+            }
+        }
+
+        /* --- GLOWING TEXT --- */
+        .bunker-glow {
+            color: #ffffff;
+            transition: all 0.3s ease;
+        }
+
+        /* Low Performance: Static Text Shadow (Cheap) */
+        html[data-perf="low"] .bunker-glow {
+            animation: none;
+            filter: none;
+            text-shadow: 0 0 25px rgba(99, 102, 241, 0.8);
+        }
+
+        /* High Performance: Animated Filter Drop-Shadow (Beautiful) */
+        html[data-perf="high"] .bunker-glow {
+            text-shadow: none;
+            filter: drop-shadow(0 0 15px rgba(99, 102, 241, 0.4)) drop-shadow(0 0 40px rgba(99, 102, 241, 0.2));
+            animation: textPulse 5s ease-in-out infinite alternate;
+        }
+
+        @keyframes textPulse {
+            0% {
+                opacity: 0.9;
+                transform: scale(1);
+                filter: drop-shadow(0 0 15px rgba(99, 102, 241, 0.4)) drop-shadow(0 0 30px rgba(99, 102, 241, 0.2));
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1.02);
+                filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.6)) drop-shadow(0 0 50px rgba(99, 102, 241, 0.5));
+            }
+        }
+
+        /* --- COMPONENTS --- */
+        .glass-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 30px 60px -15px rgba(0, 0, 0, var(--shadow-intensity));
+            transition: transform 0.4s var(--spring-easing), opacity 0.3s ease;
+            backdrop-filter: var(--glass-filter);
+            -webkit-backdrop-filter: var(--glass-filter);
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            transform: translateZ(0);
+            will-change: transform;
+            /* GPU Layering */
+            transition: transform 0.2s var(--spring-easing), background-color 0.2s;
+            backdrop-filter: var(--glass-filter);
+            -webkit-backdrop-filter: var(--glass-filter);
+        }
+
+        .glass-card:active {
+            transform: scale(0.97);
+        }
+
+        /* Inputs */
+        .glass-input {
+            width: 100%;
+            background: #111;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 18px;
+            padding: 18px 18px 18px 50px;
+            color: white;
+            font-size: 15px;
+            font-weight: 500;
+            outline: none;
+            transition: all 0.3s ease;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        .glass-input:focus {
+            background: #181818;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px var(--primary), 0 0 30px rgba(99, 102, 241, 0.2);
+        }
+
+        /* Remove heavy shadow on focus in low mode */
+        html[data-perf="low"] .glass-input:focus {
+            box-shadow: 0 0 0 1px var(--primary);
+        }
+
+        /* Autofill Styling Fix */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px #111 inset !important;
+            -webkit-text-fill-color: white !important;
+            caret-color: white;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.6);
+            pointer-events: none;
+            font-size: 16px;
+            transition: all 0.3s var(--smooth-easing);
+        }
+
+        .input-group:focus-within .input-icon {
+            color: var(--primary);
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        /* --- NAVIGATION --- */
+        .nav-dock-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+            padding: 0 20px calc(var(--safe-bottom) + 24px) 20px;
+            pointer-events: none;
+            display: flex;
+            justify-content: center;
+        }
+
+        .nav-dock {
+            pointer-events: auto;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-evenly;
+            width: 100%;
+            max-width: 300px;
+            background: var(--nav-bg);
+            backdrop-filter: var(--glass-filter);
+            -webkit-backdrop-filter: var(--glass-filter);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 999px;
+            padding: 6px;
+            height: 64px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+            /* GPU Acceleration */
+            will-change: transform;
+            transform: translateZ(0);
+        }
+
+        /* Remove Nav Shadow on Low Perf */
+        html[data-perf="low"] .nav-dock {
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .nav-item {
+            position: relative;
+            z-index: 10;
+            width: 52px;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.5);
+            transition: all 0.4s var(--bounce-easing);
+            cursor: pointer;
+            border-radius: 50%;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .nav-item i {
+            font-size: 22px;
+            transition: transform 0.4s var(--bounce-easing);
+        }
+
+        .nav-item:active {
+            transform: scale(0.85);
+        }
+
+        .nav-item.active {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+
+        html[data-perf="high"] .nav-item.active {
+            background: rgba(99, 102, 241, 0.15);
+            box-shadow: inset 0 0 20px rgba(99, 102, 241, 0.1);
+        }
+
+        .nav-item.active i {
+            transform: scale(1.15);
+            text-shadow: 0 0 15px var(--primary);
+            color: var(--primary);
+        }
+
+        .nav-item::after {
+            display: none;
+        }
+
+        /* Utilities */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tab-content {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tab-content.active {
+            display: block;
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-out-down {
+            animation: fadeOutDown 0.2s ease-out forwards;
+        }
+
+        @keyframes fadeOutDown {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            to {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+        }
+
+        /* Optimized transition classes for smooth 60fps */
+        .transition-smooth {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform, opacity;
+        }
+
+        .transition-smooth-fast {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform, opacity;
+        }
+
+        @keyframes progressIndeterminate {
+            0% {
+                transform: translateX(-100%) scaleX(0.2);
+            }
+
+            50% {
+                transform: translateX(0%) scaleX(0.5);
+            }
+
+            100% {
+                transform: translateX(100%) scaleX(0.2);
+            }
+        }
+
+        @keyframes floatIcon {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-4px);
+            }
+        }
+
+        @keyframes bell-ring {
+
+            0%,
+            100% {
+                transform: rotate(0deg);
+            }
+
+            10%,
+            30% {
+                transform: rotate(-10deg);
+            }
+
+            20%,
+            40% {
+                transform: rotate(10deg);
+            }
+
+            50% {
+                transform: rotate(0deg);
+            }
+        }
+
+        .btn-liquid {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+        }
+
+        .btn-liquid:active {
+            transform: scale(0.96);
+            box-shadow: 0 5px 15px -5px rgba(99, 102, 241, 0.4);
+            filter: brightness(1.1);
+        }
+
+        /* Disable heavy button shadows in low mode */
+        html[data-perf="low"] .btn-liquid {
+            box-shadow: none;
+        }
+
+        /* Widgets */
+        .widget-badge {
+            font-size: 9px;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 99px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .pulse-ring {
+            position: absolute;
+            inset: 0;
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            border-radius: 32px;
+            animation: pulseBorder 2s infinite;
+            pointer-events: none;
+        }
+
+        @keyframes pulseBorder {
+            0% {
+                transform: scale(1);
+                opacity: 0.3;
+            }
+
+            100% {
+                transform: scale(1.05);
+                opacity: 0;
+            }
+        }
+
+        html[data-perf="low"] .pulse-ring {
+            animation: none;
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* --- THEMES --- */
+        /* Exam */
+        .theme-exam {
+            background: linear-gradient(145deg, rgba(30, 10, 15, 0.9), rgba(20, 20, 20, 0.9));
+            border-color: rgba(225, 29, 72, 0.3);
+        }
+
+        .badge-exam {
+            background: rgba(244, 63, 94, 0.15);
+            color: #fda4af;
+            border: 1px solid rgba(244, 63, 94, 0.25);
+        }
+
+        /* National (Independence, Republic, Gandhi) */
+        .theme-national {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.8), rgba(20, 83, 45, 0.8));
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .badge-national {
+            background: rgba(96, 165, 250, 0.15);
+            color: #93c5fd;
+            border: 1px solid rgba(96, 165, 250, 0.25);
+        }
+
+        .flag-wave {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, rgba(255, 153, 51, 0.1) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(19, 136, 8, 0.1) 100%);
+            animation: flagShimmer 3s infinite linear;
+        }
+
+        @keyframes flagShimmer {
+            0% {
+                background-position: -200% 0;
+            }
+
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        /* Diwali */
+        .theme-diwali {
+            background: linear-gradient(135deg, rgba(69, 26, 3, 0.85), rgba(66, 32, 6, 0.85));
+            border-color: rgba(251, 146, 60, 0.3);
+        }
+
+        .badge-diwali {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.25);
+        }
+
+        /* Ugadi (Telugu New Year) */
+        .theme-ugadi {
+            background: linear-gradient(135deg, rgba(20, 83, 45, 0.8), rgba(63, 98, 18, 0.8));
+            border-color: rgba(132, 204, 22, 0.3);
+        }
+
+        .badge-ugadi {
+            background: rgba(163, 230, 53, 0.15);
+            color: #bef264;
+            border: 1px solid rgba(163, 230, 53, 0.3);
+        }
+
+        /* Onam */
+        .theme-onam {
+            background: linear-gradient(135deg, rgba(124, 45, 18, 0.8), rgba(234, 88, 12, 0.2));
+            border-color: rgba(253, 186, 116, 0.3);
+        }
+
+        .badge-onam {
+            background: rgba(251, 146, 60, 0.15);
+            color: #fdba74;
+            border: 1px solid rgba(251, 146, 60, 0.3);
+        }
+
+        /* Holi */
+        .theme-holi {
+            background: linear-gradient(135deg, rgba(88, 28, 135, 0.8), rgba(219, 39, 119, 0.4));
+            border-color: rgba(232, 121, 249, 0.3);
+        }
+
+        .badge-holi {
+            background: rgba(232, 121, 249, 0.15);
+            color: #e879f9;
+            border: 1px solid rgba(232, 121, 249, 0.3);
+        }
+
+        .splash-item {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            filter: blur(20px);
+            opacity: 0.6;
+            animation: pulse 3s infinite alternate;
+        }
+
+        /* Rakhi */
+        .theme-rakhi {
+            background: linear-gradient(135deg, rgba(153, 27, 27, 0.8), rgba(180, 83, 9, 0.4));
+            border-color: rgba(252, 165, 165, 0.3);
+        }
+
+        .badge-rakhi {
+            background: rgba(252, 165, 165, 0.15);
+            color: #fca5a5;
+            border: 1px solid rgba(252, 165, 165, 0.3);
+        }
+
+        /* Guru Nanak */
+        .theme-guru {
+            background: linear-gradient(135deg, rgba(234, 88, 12, 0.3), rgba(30, 58, 138, 0.8));
+            border-color: rgba(147, 197, 253, 0.3);
+        }
+
+        .badge-guru {
+            background: rgba(147, 197, 253, 0.15);
+            color: #93c5fd;
+            border: 1px solid rgba(147, 197, 253, 0.3);
+        }
+
+        /* --- NEW MISSING THEMES --- */
+
+        /* Pongal / Tamil New Year */
+        .theme-pongal {
+            background: linear-gradient(135deg, rgba(20, 83, 45, 0.9), rgba(234, 179, 8, 0.3));
+            /* Green/Gold */
+            border-color: rgba(253, 224, 71, 0.3);
+        }
+
+        .badge-pongal {
+            background: rgba(253, 224, 71, 0.15);
+            color: #fef08a;
+            border: 1px solid rgba(253, 224, 71, 0.3);
+        }
+
+        /* Christmas */
+        .theme-christmas {
+            background: linear-gradient(135deg, rgba(185, 28, 28, 0.9), rgba(20, 83, 45, 0.9));
+            /* Red/Green */
+            border-color: rgba(252, 165, 165, 0.3);
+        }
+
+        .badge-christmas {
+            background: rgba(254, 202, 202, 0.15);
+            color: #fca5a5;
+            border: 1px solid rgba(252, 165, 165, 0.3);
+        }
+
+        /* Eid / Muharram */
+        .theme-eid {
+            background: linear-gradient(135deg, rgba(17, 24, 39, 0.9), rgba(6, 78, 59, 0.8));
+            /* Dark Green/Night */
+            border-color: rgba(52, 211, 153, 0.3);
+        }
+
+        .badge-eid {
+            background: rgba(110, 231, 183, 0.15);
+            color: #6ee7b7;
+            border: 1px solid rgba(52, 211, 153, 0.3);
+        }
+
+        /* Krishna */
+        .theme-krishna {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.9), rgba(59, 130, 246, 0.4));
+            /* Deep Blue */
+            border-color: rgba(147, 197, 253, 0.3);
+        }
+
+        .badge-krishna {
+            background: rgba(191, 219, 254, 0.15);
+            color: #bfdbfe;
+            border: 1px solid rgba(147, 197, 253, 0.3);
+        }
+
+        /* Ganesh / Vinayakar */
+        .theme-ganesh {
+            background: linear-gradient(135deg, rgba(234, 88, 12, 0.8), rgba(253, 186, 116, 0.3));
+            /* Orange/Peach */
+            border-color: rgba(253, 186, 116, 0.3);
+        }
+
+        .badge-ganesh {
+            background: rgba(254, 215, 170, 0.15);
+            color: #fed7aa;
+            border: 1px solid rgba(253, 186, 116, 0.3);
+        }
+
+        /* Pooja / Navami / Thaipoosam */
+        .theme-pooja {
+            background: linear-gradient(135deg, rgba(190, 24, 93, 0.8), rgba(244, 63, 94, 0.4));
+            /* Pink/Rose */
+            border-color: rgba(249, 168, 212, 0.3);
+        }
+
+        .badge-pooja {
+            background: rgba(251, 207, 232, 0.15);
+            color: #fbcfe8;
+            border: 1px solid rgba(249, 168, 212, 0.3);
+        }
+
+        /* Mahavir Jayanti */
+        .theme-mahavir {
+            background: linear-gradient(135deg, rgba(124, 45, 18, 0.8), rgba(251, 191, 36, 0.3));
+            /* Brown/Gold */
+            border-color: rgba(253, 230, 138, 0.3);
+        }
+
+        .badge-mahavir {
+            background: rgba(253, 230, 138, 0.15);
+            color: #fde68a;
+            border: 1px solid rgba(253, 230, 138, 0.3);
+        }
+
+        /* Ambedkar */
+        .theme-ambedkar {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.9), rgba(124, 58, 237, 0.4));
+            /* Blue/Purple */
+            border-color: rgba(167, 139, 250, 0.3);
+        }
+
+        .badge-ambedkar {
+            background: rgba(196, 181, 253, 0.15);
+            color: #c4b5fd;
+            border: 1px solid rgba(167, 139, 250, 0.3);
+        }
+
+        /* Good Friday */
+        .theme-goodfriday {
+            background: linear-gradient(135deg, rgba(23, 23, 23, 0.95), rgba(64, 64, 64, 0.8));
+            /* Black/Grey */
+            border-color: rgba(163, 163, 163, 0.3);
+        }
+
+        .badge-goodfriday {
+            background: rgba(212, 212, 212, 0.15);
+            color: #d4d4d4;
+            border: 1px solid rgba(163, 163, 163, 0.3);
+        }
+
+        /* May Day / Labour */
+        .theme-labour {
+            background: linear-gradient(135deg, rgba(153, 27, 27, 0.9), rgba(127, 29, 29, 0.8));
+            /* Red/Brick */
+            border-color: rgba(252, 165, 165, 0.3);
+        }
+
+        .badge-labour {
+            background: rgba(254, 202, 202, 0.15);
+            color: #fca5a5;
+            border: 1px solid rgba(252, 165, 165, 0.3);
+        }
+
+        /* New Year */
+        .theme-newyear {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.9), rgba(236, 72, 153, 0.8));
+            /* Indigo/Pink Party */
+            border-color: rgba(244, 114, 182, 0.3);
+        }
+
+        .badge-newyear {
+            background: rgba(249, 168, 212, 0.15);
+            color: #fbcfe8;
+            border: 1px solid rgba(244, 114, 182, 0.3);
+        }
+
+        .sparkle-dot {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            animation: sparkleAnim 2s ease-in-out infinite;
+            opacity: 0;
+        }
+
+        @keyframes sparkleAnim {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1.5);
+                opacity: 0.8;
+                box-shadow: 0 0 10px gold;
+            }
+
+            100% {
+                transform: scale(0);
+                opacity: 0;
+            }
+        }
+
+        /* Christmas */
+        .theme-christmas {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.85), rgba(69, 10, 10, 0.85));
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .badge-christmas {
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.25);
+        }
+
+        .snow-flake {
+            position: absolute;
+            color: white;
+            opacity: 0.8;
+            top: -10px;
+            animation: snowfall linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes snowfall {
+            to {
+                transform: translateY(150px) rotate(180deg);
+            }
+        }
+
+        /* Pongal / Harvest */
+        .theme-pongal {
+            background: linear-gradient(135deg, rgba(63, 98, 18, 0.85), rgba(26, 46, 5, 0.85));
+            border-color: rgba(132, 204, 22, 0.3);
+        }
+
+        .badge-pongal {
+            background: rgba(132, 204, 22, 0.15);
+            color: #bef264;
+            border: 1px solid rgba(132, 204, 22, 0.25);
+        }
+
+        .harvest-item {
+            position: absolute;
+            font-size: 1.5rem;
+            animation: floatHarvest 4s ease-in-out infinite;
+            opacity: 0.5;
+        }
+
+        @keyframes floatHarvest {
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(5deg);
+            }
+
+            50% {
+                transform: translateY(-10px) rotate(-5deg);
+            }
+        }
+
+        /* Islamic (Eid, Muharram, etc) */
+        .theme-eid {
+            background: linear-gradient(135deg, rgba(6, 78, 59, 0.85), rgba(14, 116, 144, 0.85));
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-eid {
+            background: rgba(52, 211, 153, 0.15);
+            color: #6ee7b7;
+            border: 1px solid rgba(52, 211, 153, 0.25);
+        }
+
+        .moon-star {
+            position: absolute;
+            font-size: 1.5rem;
+            animation: swingMoon 5s ease-in-out infinite;
+            opacity: 0.6;
+            color: #fbbf24;
+        }
+
+        @keyframes swingMoon {
+
+            0%,
+            100% {
+                transform: rotate(10deg);
+            }
+
+            50% {
+                transform: rotate(-10deg);
+            }
+        }
+
+        /* Ganesh / Vinayakar */
+        .theme-ganesh {
+            background: linear-gradient(135deg, rgba(131, 24, 67, 0.85), rgba(124, 45, 18, 0.85));
+            border-color: rgba(236, 72, 153, 0.3);
+        }
+
+        .badge-ganesh {
+            background: rgba(244, 114, 182, 0.15);
+            color: #f9a8d4;
+            border: 1px solid rgba(244, 114, 182, 0.25);
+        }
+
+        .flower-spin {
+            position: absolute;
+            font-size: 2rem;
+            animation: spinFlower 10s linear infinite;
+            opacity: 0.4;
+        }
+
+        @keyframes spinFlower {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* New Year */
+        .theme-newyear {
+            background: linear-gradient(135deg, rgba(76, 29, 149, 0.85), rgba(219, 39, 119, 0.85));
+            border-color: rgba(219, 39, 119, 0.3);
+        }
+
+        .badge-newyear {
+            background: rgba(219, 39, 119, 0.15);
+            color: #f472b6;
+            border: 1px solid rgba(219, 39, 119, 0.25);
+        }
+
+        /* Krishna Jayanthi */
+        .theme-krishna {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.85), rgba(14, 165, 233, 0.85));
+            border-color: rgba(14, 165, 233, 0.3);
+        }
+
+        .badge-krishna {
+            background: rgba(14, 165, 233, 0.15);
+            color: #7dd3fc;
+            border: 1px solid rgba(14, 165, 233, 0.25);
+        }
+
+        /* Pooja / Navami / Thaipoosam */
+        .theme-pooja {
+            background: linear-gradient(135deg, rgba(190, 24, 93, 0.85), rgba(251, 191, 36, 0.85));
+            border-color: rgba(251, 191, 36, 0.3);
+        }
+
+        .badge-pooja {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fcd34d;
+            border: 1px solid rgba(251, 191, 36, 0.25);
+        }
+
+        /* Ambedkar */
+        .theme-ambedkar {
+            background: linear-gradient(135deg, rgba(30, 64, 175, 0.85), rgba(59, 130, 246, 0.85));
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .badge-ambedkar {
+            background: rgba(59, 130, 246, 0.15);
+            color: #93c5fd;
+            border: 1px solid rgba(59, 130, 246, 0.25);
+        }
+
+        /* Good Friday */
+        .theme-goodfriday {
+            background: linear-gradient(135deg, rgba(46, 16, 101, 0.9), rgba(0, 0, 0, 0.9));
+            border-color: rgba(167, 139, 250, 0.3);
+        }
+
+        .badge-goodfriday {
+            background: rgba(167, 139, 250, 0.15);
+            color: #ddd6fe;
+            border: 1px solid rgba(167, 139, 250, 0.25);
+        }
+
+        /* May Day */
+        .theme-labour {
+            background: linear-gradient(135deg, rgba(153, 27, 27, 0.85), rgba(239, 68, 68, 0.85));
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .badge-labour {
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.25);
+        }
+
+        /* Mahavir (White/Orange - Peaceful) */
+        .theme-mahavir {
+            background: linear-gradient(135deg, rgba(234, 88, 12, 0.8), rgba(255, 255, 255, 0.1));
+            border-color: rgba(253, 186, 116, 0.3);
+        }
+
+        .badge-mahavir {
+            background: rgba(255, 237, 213, 0.1);
+            color: #fdba74;
+            border: 1px solid rgba(253, 186, 116, 0.25);
+        }
+
+        /* Default */
+        .theme-default {
+            background: linear-gradient(135deg, rgba(49, 46, 129, 0.85), rgba(76, 29, 149, 0.85));
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .badge-default {
+            background: rgba(167, 139, 250, 0.15);
+            color: #c4b5fd;
+            border: 1px solid rgba(167, 139, 250, 0.25);
+        }
+
+        #pegtopone {
+            width: 80px;
+            height: 80px;
+            animation: spinTop 3s linear infinite;
+        }
+
+        @keyframes spinTop {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .doll-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 0;
+        }
+
+        .ghost {
+            animation: floatGhost 3s ease-in-out infinite;
+        }
+
+        .ghost-body {
+            fill: #eef2ff;
+            filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.3));
+        }
+
+        .ghost-eyes {
+            fill: #1e1b4b;
+            animation: blink 4s infinite;
+        }
+
+        .ghost-shadow {
+            fill: rgba(0, 0, 0, 0.3);
+            animation: shadowScale 3s ease-in-out infinite;
+            transform-origin: center;
+        }
+
+        @keyframes floatGhost {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-15px);
+            }
+        }
+
+        @keyframes shadowScale {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.3;
+            }
+
+            50% {
+                transform: scale(0.8);
+                opacity: 0.1;
+            }
+        }
+
+        @keyframes blink {
+
+            0%,
+            96%,
+            100% {
+                transform: scaleY(1);
+            }
+
+            98% {
+                transform: scaleY(0.1);
+            }
+        }
+
+        /* Premium Floating Animations */
+        @keyframes floatSmooth {
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            50% {
+                transform: translateY(-15px) rotate(5deg);
+            }
+        }
+
+        @keyframes floatReverse {
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            50% {
+                transform: translateY(-10px) rotate(-5deg);
+            }
+        }
+
+        @keyframes driftSide {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            50% {
+                transform: translateX(10px);
+            }
+        }
+
+        .float-item {
+            position: absolute;
+            font-size: 2rem;
+            opacity: 0.6;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+            animation: floatSmooth 6s ease-in-out infinite;
+            /* GPU Acceleration */
+            will-change: transform;
+            transform: translateZ(0);
+        }
+
+        .float-item.delay-1 {
+            animation-delay: 1s;
+            animation-duration: 7s;
+        }
+
+        .float-item.delay-2 {
+            animation-delay: 2s;
+            animation-duration: 5s;
+        }
+
+        .float-item.reverse {
+            animation-name: floatReverse;
+        }
+
+        /* Specific Decor Overrides */
+        .harvest-item {
+            position: absolute;
+            font-size: 2.2rem;
+            opacity: 0.8;
+            animation: floatSmooth 5s ease-in-out infinite;
+            filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.3));
+        }
+
+        .snow-flake {
+            position: absolute;
+            color: white;
+            opacity: 0.6;
+            animation: floatSmooth 4s ease-in-out infinite;
+        }
+
+        .moon-star {
+            position: absolute;
+            color: #fbbf24;
+            opacity: 0.8;
+            animation: floatSmooth 5s ease-in-out infinite;
+        }
+
+        /* PERFORMANCE OPTIMIZATIONS (RAM Based / Toggle Based) */
+        html[data-perf="low"] .float-item,
+        html[data-perf="low"] .harvest-item,
+        html[data-perf="low"] .snow-flake,
+        html[data-perf="low"] .moon-star,
+        html[data-perf="low"] .sparkle-dot,
+        html[data-perf="low"] .flag-wave,
+        html[data-perf="low"] .splash-item {
+            animation: none !important;
+            transform: none !important;
+            filter: none !important;
+            /* Remove expensive drop-shadows */
+            opacity: 0.4;
+            /* Static fallback opacity */
+        }
+
+        /* Ghost animation enabled on ALL devices */

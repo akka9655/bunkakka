@@ -1,0 +1,58 @@
+{
+    "name": "Bunker.",
+    "short_name": "Bunker.",
+    "description": "Smart attendance and bunk planner for PSG Tech students",
+    "display": "standalone",
+    "background_color": "#000000",
+    "theme_color": "#000000",
+    "orientation": "portrait",
+    "scope": "/",
+    "start_url": "/",
+    "launch_handler": {
+        "client_mode": "focus-existing"
+    },
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "/static/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/static/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": [
+        "education",
+        "productivity",
+        "utilities"
+    ],
+    "shortcuts": [
+        {
+            "name": "Check Attendance",
+            "short_name": "Attendance",
+            "url": "/",
+            "icons": [
+                {
+                    "src": "/static/icon.png",
+                    "sizes": "144x149"
+                }
+            ]
+        },
+        {
+            "name": "Open Planner",
+            "short_name": "Planner",
+            "url": "/",
+            "icons": [
+                {
+                    "src": "/static/icon.png",
+                    "sizes": "144x149"
+                }
+            ]
+        }
+    ]
+}

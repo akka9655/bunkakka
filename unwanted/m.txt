@@ -1,0 +1,31 @@
+Performance Optimization Plan for Smart Bunker
+The current application is a Single Page Application (SPA) served as one large file. While simple, it prevents the browser from caching code effectively. Here are the best ways to make it significantly faster.
+
+1. Code Splitting & Caching (Highest Impact) 🚀
+Problem: Currently, 
+index.html
+ contains ALL the CSS (styles) and JavaScript (logic). Effect: Every time the user visits, they download the entire app code again, even if nothing changed. Solution:
+
+Move CSS to static/style.css.
+Move JS to static/app.js.
+Keep only structure in 
+index.html
+. Benefit: Browser caches the CSS/JS. Second load is instant (0ms download).
+2. Server-Side Compression (Fastest Win) ⚡
+Problem: Text files (HTML/JS/CSS) are sent "raw". Solution: Enable Gzip/Brotli Compression in Flask. Benefit: Reduces file size by ~70%. The 100KB app becomes ~30KB, loading 3x faster on mobile data.
+
+3. Server-Side API Caching 💾
+Problem: Every login fetches the Calendar from the external college server. Solution: Cache the calendar data on your server (in memory) for 24 hours. Benefit: Login becomes nearly instant for repeat users or shared schedules, bypassing the slow external college server.
+
+4. Resource Loading Optimization 🎨
+Problem: External libraries (Tailwind, FontAwesome, Anime.js) block rendering. Solution:
+
+Use defer attribute for scripts.
+Preconnect to CDN domains.
+Self-host critical fonts/icons if possible. Benefit: The screen paints "First Content" much faster.
+5. PWA Service Worker Caching (Offline Speed) 📱
+Problem: Current SW is basic (just caching manifest). Solution: Configure Service Worker to aggressively cache the UI shell (
+index.html
+, style.css, app.js). Benefit: The app loads instantly from disk, even with flaky internet.
+
+Recommendation: Start with #1 (Code Splitting) and #2 (Compression) for the biggest immediate gains.

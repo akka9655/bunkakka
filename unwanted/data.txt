@@ -1,0 +1,1208 @@
+also i attach some data like in https://academicschedule.psgtech.ac.in/api/calendar/2025   this is for 2025-2026.  this link we get  {"year":2025,"holidays":[{"date":"2025-08-14T18:30:00.000Z","name":"Independence Day"},{"date":"2025-08-26T18:30:00.000Z","name":"Ganesh Chaturthi"},{"date":"2025-09-04T18:30:00.000Z","name":"Eid e Milad"},{"date":"2025-09-30T18:30:00.000Z","name":"Maha Navami"},{"date":"2025-10-01T18:30:00.000Z","name":"Gandhi Jayanthi"},{"date":"2025-10-19T18:30:00.000Z","name":"Diwali"},{"date":"2025-12-24T18:30:00.000Z","name":"Christmas"},{"date":"2025-12-31T18:30:00.000Z","name":"New year"},{"date":"2026-01-13T18:30:00.000Z","name":"Pongal"},{"date":"2026-01-14T18:30:00.000Z","name":"Pongal"},{"date":"2026-01-15T18:30:00.000Z","name":"Pongal"},{"date":"2026-01-25T18:30:00.000Z","name":"Republic Day"},{"date":"2026-03-19T18:30:00.000Z","name":"Telugu New Year"},{"date":"2026-03-30T18:30:00.000Z","name":"Mahavir Jayanti"},{"date":"2026-04-02T18:30:00.000Z","name":"Good Friday"},{"date":"2026-04-13T18:30:00.000Z","name":"\tTamil New Year"},{"date":"2026-04-30T18:30:00.000Z","name":"May Day"},{"date":"2026-05-26T18:30:00.000Z","name":"Bakrid / Eid al Adha"},{"date":"2026-06-25T18:30:00.000Z","name":"Muharram"},{"date":"2026-08-24T18:30:00.000Z","name":"\tEid e Milad"}],"planner":[{"id":21,"name":"Fourth year BE/BTech and Fifth year BE (SW)","startDate":"2025-06-29T18:30:00.000Z","lastDate":"2025-10-30T18:30:00.000Z","totalWorkingDays":83,"calendarYear":2025},{"id":22,"name":"Fourth year BE (SW)","startDate":"2025-08-03T18:30:00.000Z","lastDate":"2025-10-30T18:30:00.000Z","totalWorkingDays":58,"calendarYear":2025},{"id":23,"name":"Third Year BE/BTech (Reg. & SW), Second  Year ME/MTech/MCA, All BSc and All MSc","startDate":"2025-06-29T18:30:00.000Z","lastDate":"2025-10-26T18:30:00.000Z","totalWorkingDays":79,"calendarYear":2025},{"id":25,"name":"First Year BE/BTech (Reg. &SW) & FIRST YEAR ME/MTech","startDate":"2025-08-17T18:30:00.000Z","lastDate":"2025-12-08T18:30:00.000Z","totalWorkingDays":76,"calendarYear":2025},{"id":24,"name":"SECOND Year BE/BTech (Reg. & SW) including Lateral Entry and First year MCA","startDate":"2025-08-03T18:30:00.000Z","lastDate":"2025-12-01T18:30:00.000Z","totalWorkingDays":80,"calendarYear":2025},{"id":26,"name":"FOURTH Year BE/BTech (Reg. &SW) and FIFTH Year BE (SW) - EVEN Semester","startDate":"2025-12-07T18:30:00.000Z","lastDate":"2025-12-07T18:30:00.000Z","totalWorkingDays":0,"calendarYear":2025},{"id":27,"name":"FOURTH Year BE/BTech (Reg. &SW) and FIFTH Year BE (SW) - EVEN Semester","startDate":"2025-12-07T18:30:00.000Z","lastDate":"2025-12-07T18:30:00.000Z","totalWorkingDays":0,"calendarYear":2025},{"id":28,"name":"FOURTH Year BE/BTech (Reg. &SW) and FIFTH Year BE (SW) - EVEN Semester","startDate":"2025-12-07T18:30:00.000Z","lastDate":"2026-04-14T18:30:00.000Z","totalWorkingDays":82,"calendarYear":2025},{"id":29,"name":"THIRD Year BE/BTech (Reg. &SW), 2nd Year ME/MTech/MCA, All BSc and All MSc - EVEN Semester","startDate":"2025-12-07T18:30:00.000Z","lastDate":"2026-04-08T18:30:00.000Z","totalWorkingDays":79,"calendarYear":2025},{"id":30,"name":"SECOND Year BE/BTech (Reg. &SW) and FIRST YEAR MCA  - EVEN Semester","startDate":"2026-01-04T18:30:00.000Z","lastDate":"2026-05-06T18:30:00.000Z","totalWorkingDays":79,"calendarYear":2025},{"id":31,"name":"First Year BE/BTech (Reg. &SW) & FIRST YEAR ME/MTech - EVEN Semester","startDate":"2026-01-18T18:30:00.000Z","lastDate":"2026-05-17T18:30:00.000Z","totalWorkingDays":79,"calendarYear":2025}]}   like this each year vary   and for 2024 https://academicschedule.psgtech.ac.in/api/calendar/2024  this is 2024-2025 calenders.  gives {"year":2024,"holidays":[{"date":"2024-07-16T18:30:00.000Z","name":"Muharram"},{"date":"2024-08-14T18:30:00.000Z","name":"Independence Day"},{"date":"2024-08-25T18:30:00.000Z","name":"Krishna Jayanthi"},{"date":"2024-09-06T18:30:00.000Z","name":"Vinayakar Chathurthi"},{"date":"2024-09-15T18:30:00.000Z","name":"Milad-un-Nabi"},{"date":"2024-10-01T18:30:00.000Z","name":"Gandhi Jayanthi"},{"date":"2024-10-10T18:30:00.000Z","name":"Ayutha Pooja"},{"date":"2024-10-11T18:30:00.000Z","name":"Vijaya Dasami"},{"date":"2024-10-30T18:30:00.000Z","name":"Deepavali"},{"date":"2024-12-24T18:30:00.000Z","name":"Christmas"},{"date":"2024-12-31T18:30:00.000Z","name":"New Year"},{"date":"2025-01-13T18:30:00.000Z","name":"Pongal"},{"date":"2025-01-14T18:30:00.000Z","name":"Thiruvalluvar Day"},{"date":"2025-01-15T18:30:00.000Z","name":"Uzhavar Thirunal"},{"date":"2025-01-25T18:30:00.000Z","name":"Republic Day"},{"date":"2025-02-10T18:30:00.000Z","name":"Thaipoosam"},{"date":"2025-03-30T18:30:00.000Z","name":"Ramzon"},{"date":"2025-04-09T18:30:00.000Z","name":"Mahaveer Jayanthi"},{"date":"2025-04-13T18:30:00.000Z","name":"Ambedkar Birthday"},{"date":"2025-04-17T18:30:00.000Z","name":"Good Friday"},{"date":"2025-04-30T18:30:00.000Z","name":"May day"},{"date":"2025-08-14T18:30:00.000Z","name":"Independence Day"}],"planner":[{"id":20,"name":"First year BE / BTech (Reg & SW)","startDate":"2025-02-16T18:30:00.000Z","lastDate":"2025-06-16T18:30:00.000Z","totalWorkingDays":81,"calendarYear":2024},{"id":13,"name":"All years B.Sc, M.Sc (2 year), M.Sc (5 year) and II year ME/MTech/MCA","startDate":"2024-06-18T18:30:00.000Z","lastDate":"2024-10-15T18:30:00.000Z","totalWorkingDays":79,"calendarYear":2024},{"id":12,"name":"III, IV year BE / BTech, III, V year BE (SW) and IV year BTech (PT)","startDate":"2024-06-18T18:30:00.000Z","lastDate":"2024-10-20T18:30:00.000Z","totalWorkingDays":82,"calendarYear":2024},{"id":15,"name":"Fourth year BE SW ","startDate":"2024-08-04T18:30:00.000Z","lastDate":"2024-12-15T18:30:00.000Z","totalWorkingDays":89,"calendarYear":2024},{"id":16,"name":"First year BE/BTech/BE SW","startDate":"2024-08-18T18:30:00.000Z","lastDate":"2025-01-06T18:30:00.000Z","totalWorkingDays":94,"calendarYear":2024},{"id":14,"name":"Second year BE/BTech/BE SW and First year ME/MTech/MCA","startDate":"2024-08-06T18:30:00.000Z","lastDate":"2024-12-16T18:30:00.000Z","totalWorkingDays":88,"calendarYear":2024},{"id":18,"name":"lll, lV year BE / BTech and III, IV, V year BE(SW)","startDate":"2024-12-01T18:30:00.000Z","lastDate":"2025-04-10T18:30:00.000Z","totalWorkingDays":86,"calendarYear":2024},{"id":17,"name":"All years B.Sc, M.Sc (2 year), M.Sc (5 year) and Il year ME/MTech/MCA","startDate":"2024-12-01T18:30:00.000Z","lastDate":"2025-04-03T18:30:00.000Z","totalWorkingDays":82,"calendarYear":2024},{"id":19,"name":"Second year BE/ BTech / BE SW and First year ME/ MTech / MCA","startDate":"2025-01-19T18:30:00.000Z","lastDate":"2025-05-19T18:30:00.000Z","totalWorkingDays":80,"calendarYear":2024}]}   and when we go inside link with id    Request URL
+https://academicschedule.psgtech.ac.in/api/calendar/2025/planner/31
+    {
+    "id": 31,
+    "name": "First Year BE/BTech (Reg. &SW) & FIRST YEAR ME/MTech - EVEN Semester",
+    "startDate": "2026-01-18T18:30:00.000Z",
+    "lastDate": "2026-05-17T18:30:00.000Z",
+    "totalWorkingDays": 79,
+    "calendarYear": 2025,
+    "activities": [
+        {
+            "id": 543,
+            "name": "Re-opening for Students (Even Semester 2025-26)",
+            "type": "RELATIVE",
+            "relativeDays": 0,
+            "relativeDate": null,
+            "date": "2026-01-18T18:30:00.000Z",
+            "order": 0,
+            "plannerId": 31,
+            "relativeToStart": 0
+        },
+        {
+            "id": 550,
+            "name": "Intermediate Feedback 1",
+            "type": "RELATIVE",
+            "relativeDays": 19,
+            "relativeDate": null,
+            "date": "2026-02-15T18:30:00.000Z",
+            "order": 1,
+            "plannerId": 31,
+            "relativeToStart": 19
+        },
+        {
+            "id": 542,
+            "name": "Assessment Tutorial 1 ( for 1st Yr BE/BTech only)",
+            "type": "RELATIVE",
+            "relativeDays": 8,
+            "relativeDate": null,
+            "date": "2026-02-25T18:30:00.000Z",
+            "order": 2,
+            "plannerId": 31,
+            "relativeToStart": 27
+        },
+        {
+            "id": 554,
+            "name": "Practice Test 1 ( for 1st Yr BE/BTech only)",
+            "type": "RELATIVE",
+            "relativeDays": 10,
+            "relativeDate": null,
+            "date": "2026-03-11T18:30:00.000Z",
+            "order": 3,
+            "plannerId": 31,
+            "relativeToStart": 37
+        },
+        {
+            "id": 545,
+            "name": "CA 1 From",
+            "type": "RELATIVE",
+            "relativeDays": 2,
+            "relativeDate": null,
+            "date": "2026-03-15T18:30:00.000Z",
+            "order": 4,
+            "plannerId": 31,
+            "relativeToStart": 39
+        },
+        {
+            "id": 547,
+            "name": "Attendance Review 1",
+            "type": "RELATIVE",
+            "relativeDays": 1,
+            "relativeDate": null,
+            "date": "2026-03-16T18:30:00.000Z",
+            "order": 5,
+            "plannerId": 31,
+            "relativeToStart": 40
+        },
+        {
+            "id": 548,
+            "name": "CA 1 Mark Entry",
+            "type": "RELATIVE",
+            "relativeDays": 9,
+            "relativeDate": null,
+            "date": "2026-03-31T18:30:00.000Z",
+            "order": 6,
+            "plannerId": 31,
+            "relativeToStart": 49
+        },
+        {
+            "id": 551,
+            "name": "Intermediate Feedback 2",
+            "type": "RELATIVE",
+            "relativeDays": 3,
+            "relativeDate": null,
+            "date": "2026-04-06T18:30:00.000Z",
+            "order": 7,
+            "plannerId": 31,
+            "relativeToStart": 52
+        },
+        {
+            "id": 555,
+            "name": "Assessment Tutorial 2 ( for 1st  Yr BE/BTech only)",
+            "type": "RELATIVE",
+            "relativeDays": 8,
+            "relativeDate": null,
+            "date": "2026-04-19T18:30:00.000Z",
+            "order": 8,
+            "plannerId": 31,
+            "relativeToStart": 60
+        },
+        {
+            "id": 556,
+            "name": "End Semester Feedback Entry from",
+            "type": "RELATIVE",
+            "relativeDays": 5,
+            "relativeDate": null,
+            "date": "2026-04-26T18:30:00.000Z",
+            "order": 9,
+            "plannerId": 31,
+            "relativeToStart": 65
+        },
+        {
+            "id": 557,
+            "name": "Practice Test 2 ( for 1st  Yr BE/BTech only)",
+            "type": "RELATIVE",
+            "relativeDays": 5,
+            "relativeDate": null,
+            "date": "2026-05-04T18:30:00.000Z",
+            "order": 10,
+            "plannerId": 31,
+            "relativeToStart": 70
+        },
+        {
+            "id": 558,
+            "name": "Last Working Day",
+            "type": "RELATIVE",
+            "relativeDays": 9,
+            "relativeDate": null,
+            "date": "2026-05-17T18:30:00.000Z",
+            "order": 11,
+            "plannerId": 31,
+            "relativeToStart": 79
+        },
+        {
+            "id": 544,
+            "name": "CA 2 From",
+            "type": "RELATIVE",
+            "relativeDays": 1,
+            "relativeDate": null,
+            "date": "2026-05-18T18:30:00.000Z",
+            "order": 12,
+            "plannerId": 31,
+            "relativeToStart": 80
+        },
+        {
+            "id": 553,
+            "name": "Attendance Review - Final",
+            "type": "RELATIVE",
+            "relativeDays": 2,
+            "relativeDate": null,
+            "date": "2026-05-20T18:30:00.000Z",
+            "order": 13,
+            "plannerId": 31,
+            "relativeToStart": 82
+        },
+        {
+            "id": 559,
+            "name": "Final Laboratory Examination",
+            "type": "RELATIVE",
+            "relativeDays": 1,
+            "relativeDate": null,
+            "date": "2026-05-21T18:30:00.000Z",
+            "order": 14,
+            "plannerId": 31,
+            "relativeToStart": 83
+        },
+        {
+            "id": 549,
+            "name": "CA 2 Mark Entry",
+            "type": "RELATIVE",
+            "relativeDays": 6,
+            "relativeDate": null,
+            "date": "2026-06-01T18:30:00.000Z",
+            "order": 15,
+            "plannerId": 31,
+            "relativeToStart": 89
+        },
+        {
+            "id": 552,
+            "name": "End Semester Exam",
+            "type": "RELATIVE",
+            "relativeDays": 0,
+            "relativeDate": null,
+            "date": "2026-06-01T18:30:00.000Z",
+            "order": 16,
+            "plannerId": 31,
+            "relativeToStart": 89
+        },
+        {
+            "id": 546,
+            "name": "Re-opening for Students of  ME/MTech (ODD Semester 2026-27)",
+            "type": "RELATIVE",
+            "relativeDays": 18,
+            "relativeDate": null,
+            "date": "2026-06-28T18:30:00.000Z",
+            "order": 17,
+            "plannerId": 31,
+            "relativeToStart": 107
+        },
+        {
+            "id": 560,
+            "name": "Re-opening for Students of  BE/BTech    (ODD Semester 2026-27)",
+            "type": "RELATIVE",
+            "relativeDays": 25,
+            "relativeDate": null,
+            "date": "2026-08-02T18:30:00.000Z",
+            "order": 18,
+            "plannerId": 31,
+            "relativeToStart": 132
+        }
+    ],
+    "calendar": {
+        "year": 2025,
+        "holidays": [
+            {
+                "date": "2025-08-14T18:30:00.000Z",
+                "name": "Independence Day"
+            },
+            {
+                "date": "2025-08-26T18:30:00.000Z",
+                "name": "Ganesh Chaturthi"
+            },
+            {
+                "date": "2025-09-04T18:30:00.000Z",
+                "name": "Eid e Milad"
+            },
+            {
+                "date": "2025-09-30T18:30:00.000Z",
+                "name": "Maha Navami"
+            },
+            {
+                "date": "2025-10-01T18:30:00.000Z",
+                "name": "Gandhi Jayanthi"
+            },
+            {
+                "date": "2025-10-19T18:30:00.000Z",
+                "name": "Diwali"
+            },
+            {
+                "date": "2025-12-24T18:30:00.000Z",
+                "name": "Christmas"
+            },
+            {
+                "date": "2025-12-31T18:30:00.000Z",
+                "name": "New year"
+            },
+            {
+                "date": "2026-01-13T18:30:00.000Z",
+                "name": "Pongal"
+            },
+            {
+                "date": "2026-01-14T18:30:00.000Z",
+                "name": "Pongal"
+            },
+            {
+                "date": "2026-01-15T18:30:00.000Z",
+                "name": "Pongal"
+            },
+            {
+                "date": "2026-01-25T18:30:00.000Z",
+                "name": "Republic Day"
+            },
+            {
+                "date": "2026-03-19T18:30:00.000Z",
+                "name": "Telugu New Year"
+            },
+            {
+                "date": "2026-03-30T18:30:00.000Z",
+                "name": "Mahavir Jayanti"
+            },
+            {
+                "date": "2026-04-02T18:30:00.000Z",
+                "name": "Good Friday"
+            },
+            {
+                "date": "2026-04-13T18:30:00.000Z",
+                "name": "\tTamil New Year"
+            },
+            {
+                "date": "2026-04-30T18:30:00.000Z",
+                "name": "May Day"
+            },
+            {
+                "date": "2026-05-26T18:30:00.000Z",
+                "name": "Bakrid / Eid al Adha"
+            },
+            {
+                "date": "2026-06-25T18:30:00.000Z",
+                "name": "Muharram"
+            },
+            {
+                "date": "2026-08-24T18:30:00.000Z",
+                "name": "\tEid e Milad"
+            }
+        ]
+    },
+    "remainingDays": 92
+}        like this ,more examples {
+    "id": 30,
+    "name": "SECOND Year BE/BTech (Reg. &SW) and FIRST YEAR MCA  - EVEN Semester",
+    "startDate": "2026-01-04T18:30:00.000Z",
+    "lastDate": "2026-05-06T18:30:00.000Z",
+    "totalWorkingDays": 79,
+    "calendarYear": 2025,
+    "activities": [
+        {
+            "id": 532,
+            "name": "Re-opening for Students (Even Semester 2025-26)",
+            "type": "RELATIVE",
+            "relativeDays": 0,
+            "relativeDate": null,
+            "date": "2026-01-04T18:30:00.000Z",
+            "order": 0,
+            "plannerId": 30,
+            "relativeToStart": 0
+        },
+        {
+            "id": 535,
+            "name": "Intermediate Feedback 1",
+            "type": "RELATIVE",
+            "relativeDays": 21,
+            "relativeDate": null,
+            "date": "2026-02-08T18:30:00.000Z",
+            "order": 1,
+            "plannerId": 30,
+            "relativeToStart": 21
+        },
+        {
+            "id": 536,
+            "name": "Assessment Tutorial 1 ( for 2nd Yr BE/BTech only)",
+            "type": "RELATIVE",
+            "relativeDays": 11,
+            "relativeDate": null,
+            "date": "2026-02-23T18:30:00.000Z",
+            "order": 2,
+            "plannerId": 30,
+            "relativeToStart": 32
+        },
+        {
+            "id": 537,
+            "name": "Practice Test 1 ( for 2nd Yr BE/BTech only)",
+            "type": "RELATIVE",
+            "relativeDays": 7,
+            "relativeDate": null,
+            "date": "2026-03-04T18:30:00.000Z",
+            "order": 3,
+            "plannerId": 30,
+            "relativeToStart": 39
+        },
+        {
+            "id": 527,
+            "name": "CA 1 From",
+            "type": "RELATIVE",
+            "relativeDays": 3,
+            "relativeDate": null,
+            "date": "2026-03-09T18:30:00.000Z",
+            "order": 4,
+            "plannerId": 30,
+            "relativeToStart": 42
+        },
+        {
+            "id": 530,
+            "name": "Attendance Review 1",
+            "type": "RELATIVE",
+            "relativeDays": 1,
+            "relativeDate": null,
+            "date": "2026-03-10T18:30:00.000Z",
+            "order": 5,
+            "plannerId": 30,
+            "relativeToStart": 43
+        },
+        {
+            "id": 529,
+            "name": "CA 1 Mark Entry",
+            "type": "RELATIVE",
+            "relativeDays": 9,
+            "relativeDate": null,
+            "date": "2026-03-24T18:30:00.000Z",
+            "order": 6,
+            "plannerId": 30,
+            "relativeToStart": 52
+        },
+        {
+            "id": 526,
+            "name": "Intermediate Feedback 2",
+            "type": "RELATIVE",
+            "relativeDays": 5,
+            "relativeDate": null,
+            "date": "2026-04-01T18:30:00.000Z",
+            "order": 7,
+            "plannerId": 30,
+            "relativeToStart": 57
+        },
+        {
+            "id": 538,
+            "name": "Assessment Tutorial 2 ( for 2nd Yr BE/BTech only)",
+            "type": "RELATIVE",
+            "relativeDays": 9,
+            "relativeDate": null,
+            "date": "2026-04-16T18:30:00.000Z",
+            "order": 8,
+            "plannerId": 30,
+            "relativeToStart": 66
+        },
+        {
+            "id": 539,
+            "name": "End Semester Feedback Entry from",
+            "type": "RELATIVE",
+            "relativeDays": 3,
+            "relativeDate": null,
+            "date": "2026-04-21T18:30:00.000Z",
+            "order": 9,
+            "plannerId": 30,
+            "relativeToStart": 69
+        },
+        {
+            "id": 540,
+            "name": "Practice Test 2 ( for 2nd Yr BE/BTech only)",
+            "type": "RELATIVE",
+            "relativeDays": 7,
+            "relativeDate": null,
+            "date": "2026-05-03T18:30:00.000Z",
+            "order": 10,
+            "plannerId": 30,
+            "relativeToStart": 76
+        },
+        {
+            "id": 541,
+            "name": "Last Working Day",
+            "type": "RELATIVE",
+            "relativeDays": 3,
+            "relativeDate": null,
+            "date": "2026-05-06T18:30:00.000Z",
+            "order": 11,
+            "plannerId": 30,
+            "relativeToStart": 79
+        },
+        {
+            "id": 533,
+            "name": "CA 2 From",
+            "type": "RELATIVE",
+            "relativeDays": 1,
+            "relativeDate": null,
+            "date": "2026-05-07T18:30:00.000Z",
+            "order": 12,
+            "plannerId": 30,
+            "relativeToStart": 80
+        },
+        {
+            "id": 525,
+            "name": "Attendance Review - Final",
+            "type": "RELATIVE",
+            "relativeDays": 1,
+            "relativeDate": null,
+            "date": "2026-05-10T18:30:00.000Z",
+            "order": 13,
+            "plannerId": 30,
+            "relativeToStart": 81
+        },
+        {
+            "id": 528,
+            "name": "Final Laboratory Examination",
+            "type": "RELATIVE",
+            "relativeDays": 1,
+            "relativeDate": null,
+            "date": "2026-05-11T18:30:00.000Z",
+            "order": 14,
+            "plannerId": 30,
+            "relativeToStart": 82
+        },
+        {
+            "id": 531,
+            "name": "End Semester Exam",
+            "type": "RELATIVE",
+            "relativeDays": 8,
+            "relativeDate": null,
+            "date": "2026-05-21T18:30:00.000Z",
+            "order": 15,
+            "plannerId": 30,
+            "relativeToStart": 90
+        },
+        {
+            "id": 534,
+            "name": "CA Test 2 -  Assessment Tutorial2/ Objective Test2/Miniproject2/ Assignment / Assignment Presentation - last date for mark entry ",
+            "type": "RELATIVE",
+            "relativeDays": 0,
+            "relativeDate": null,
+            "date": "2026-05-21T18:30:00.000Z",
+            "order": 16,
+            "plannerId": 30,
+            "relativeToStart": 90
+        },
+        {
+            "id": 524,
+            "name": "Re-opening for Students (ODD Semester 2026-27)",
+            "type": "RELATIVE",
+            "relativeDays": 24,
+            "relativeDate": null,
+            "date": "2026-06-28T18:30:00.000Z",
+            "order": 17,
+            "plannerId": 30,
+            "relativeToStart": 114
+        }
+    ],
+    "calendar": {
+        "year": 2025,
+        "holidays": [
+            {
+                "date": "2025-08-14T18:30:00.000Z",
+                "name": "Independence Day"
+            },
+            {
+                "date": "2025-08-26T18:30:00.000Z",
+                "name": "Ganesh Chaturthi"
+            },
+            {
+                "date": "2025-09-04T18:30:00.000Z",
+                "name": "Eid e Milad"
+            },
+            {
+                "date": "2025-09-30T18:30:00.000Z",
+                "name": "Maha Navami"
+            },
+            {
+                "date": "2025-10-01T18:30:00.000Z",
+                "name": "Gandhi Jayanthi"
+            },
+            {
+                "date": "2025-10-19T18:30:00.000Z",
+                "name": "Diwali"
+            },
+            {
+                "date": "2025-12-24T18:30:00.000Z",
+                "name": "Christmas"
+            },
+            {
+                "date": "2025-12-31T18:30:00.000Z",
+                "name": "New year"
+            },
+            {
+                "date": "2026-01-13T18:30:00.000Z",
+                "name": "Pongal"
+            },
+            {
+                "date": "2026-01-14T18:30:00.000Z",
+                "name": "Pongal"
+            },
+            {
+                "date": "2026-01-15T18:30:00.000Z",
+                "name": "Pongal"
+            },
+            {
+                "date": "2026-01-25T18:30:00.000Z",
+                "name": "Republic Day"
+            },
+            {
+                "date": "2026-03-19T18:30:00.000Z",
+                "name": "Telugu New Year"
+            },
+            {
+                "date": "2026-03-30T18:30:00.000Z",
+                "name": "Mahavir Jayanti"
+            },
+            {
+                "date": "2026-04-02T18:30:00.000Z",
+                "name": "Good Friday"
+            },
+            {
+                "date": "2026-04-13T18:30:00.000Z",
+                "name": "\tTamil New Year"
+            },
+            {
+                "date": "2026-04-30T18:30:00.000Z",
+                "name": "May Day"
+            },
+            {
+                "date": "2026-05-26T18:30:00.000Z",
+                "name": "Bakrid / Eid al Adha"
+            },
+            {
+                "date": "2026-06-25T18:30:00.000Z",
+                "name": "Muharram"
+            },
+            {
+                "date": "2026-08-24T18:30:00.000Z",
+                "name": "\tEid e Milad"
+            }
+        ]
+    },
+    "remainingDays": 85
+}  the id is 30 and Request URL
+https://academicschedule.psgtech.ac.in/api/calendar/2025/planner/28
+    for this {
+    "id": 28,
+    "name": "FOURTH Year BE/BTech (Reg. &SW) and FIFTH Year BE (SW) - EVEN Semester",
+    "startDate": "2025-12-07T18:30:00.000Z",
+    "lastDate": "2026-04-14T18:30:00.000Z",
+    "totalWorkingDays": 82,
+    "calendarYear": 2025,
+    "activities": [
+        {
+            "id": 472,
+            "name": "Reopening for the EVEN Semester of the Academic year 2025-26",
+            "type": "RELATIVE",
+            "relativeDays": 0,
+            "relativeDate": null,
+            "date": "2025-12-07T18:30:00.000Z",
+            "order": 0,
+            "plannerId": 28,
+            "relativeToStart": 0
+        },
+        {
+            "id": 483,
+            "name": "Intermediate Feedback 1",
+            "type": "RELATIVE",
+            "relativeDays": 18,
+            "relativeDate": null,
+            "date": "2026-01-04T18:30:00.000Z",
+            "order": 1,
+            "plannerId": 28,
+            "relativeToStart": 18
+        },
+        {
+            "id": 475,
+            "name": "CA 1 From",
+            "type": "RELATIVE",
+            "relativeDays": 12,
+            "relativeDate": null,
+            "date": "2026-01-26T18:30:00.000Z",
+            "order": 2,
+            "plannerId": 28,
+            "relativeToStart": 30
+        },
+        {
+            "id": 477,
+            "name": "CA 1 Mark Entry",
+            "type": "RELATIVE",
+            "relativeDays": 11,
+            "relativeDate": null,
+            "date": "2026-02-10T18:30:00.000Z",
+            "order": 3,
+            "plannerId": 28,
+            "relativeToStart": 41
+        },
+        {
+            "id": 476,
+            "name": "Intermediate Feedback 2",
+            "type": "RELATIVE",
+            "relativeDays": 4,
+            "relativeDate": null,
+            "date": "2026-02-16T18:30:00.000Z",
+            "order": 4,
+            "plannerId": 28,
+            "relativeToStart": 45
+        },
+        {
+            "id": 474,
+            "name": "Attendance Review 1",
+            "type": "RELATIVE",
+            "relativeDays": 4,
+            "relativeDate": null,
+            "date": "2026-02-22T18:30:00.000Z",
+            "order": 5,
+            "plannerId": 28,
+            "relativeToStart": 49
+        },
+        {
+            "id": 481,
+            "name": "CA 2 From",
+            "type": "RELATIVE",
+            "relativeDays": 6,
+            "relativeDate": null,
+            "date": "2026-03-02T18:30:00.000Z",
+            "order": 6,
+            "plannerId": 28,
+            "relativeToStart": 55
+        },
+        {
+            "id": 499,
+            "name": "End Semester Feedback Entry from",
+            "type": "RELATIVE",
+            "relativeDays": 10,
+            "relativeDate": null,
+            "date": "2026-03-16T18:30:00.000Z",
+            "order": 7,
+            "plannerId": 28,
+            "relativeToStart": 65
+        },
+        {
+            "id": 478,
+            "name": "CA Test  2/Assessment Tutorial1/ Objective Test1/Miniproject 1 - last date for Mark entry",
+            "type": "RELATIVE",
+            "relativeDays": 1,
+            "relativeDate": null,
+            "date": "2026-03-17T18:30:00.000Z",
+            "order": 8,
+            "plannerId": 28,
+            "relativeToStart": 66
+        },
+        {
+            "id": 500,
+            "name": "Last Working Day",
+            "type": "RELATIVE",
+            "relativeDays": 16,
+            "relativeDate": null,
+            "date": "2026-04-14T18:30:00.000Z",
+            "order": 9,
+            "plannerId": 28,
+            "relativeToStart": 82
+        },
+        {
+            "id": 480,
+            "name": "CA 3 From",
+            "type": "RELATIVE",
+            "relativeDays": 1,
+            "relativeDate": null,
+            "date": "2026-04-15T18:30:00.000Z",
+            "order": 10,
+            "plannerId": 28,
+            "relativeToStart": 83
+        },
+        {
+            "id": 482,
+            "name": "Attendance Review - Final",
+            "type": "RELATIVE",
+            "relativeDays": 1,
+            "relativeDate": null,
+            "date": "2026-04-16T18:30:00.000Z",
+            "order": 11,
+            "plannerId": 28,
+            "relativeToStart": 84
+        },
+        {
+            "id": 501,
+            "name": "Laboratory Final Examinations from",
+            "type": "RELATIVE",
+            "relativeDays": 1,
+            "relativeDate": null,
+            "date": "2026-04-19T18:30:00.000Z",
+            "order": 12,
+            "plannerId": 28,
+            "relativeToStart": 85
+        },
+        {
+            "id": 502,
+            "name": "CA Test 3 -  Assessment Tutorial2/ Objective Test2/Miniproject2/ Assignment / Assignment Presentation - last date for mark entry ",
+            "type": "RELATIVE",
+            "relativeDays": 5,
+            "relativeDate": null,
+            "date": "2026-04-26T18:30:00.000Z",
+            "order": 13,
+            "plannerId": 28,
+            "relativeToStart": 90
+        },
+        {
+            "id": 486,
+            "name": "End Semester Exam",
+            "type": "RELATIVE",
+            "relativeDays": 0,
+            "relativeDate": null,
+            "date": "2026-04-26T18:30:00.000Z",
+            "order": 14,
+            "plannerId": 28,
+            "relativeToStart": 90
+        },
+        {
+            "id": 503,
+            "name": "Last Date for Viva-Voce examination for Final Years",
+            "type": "RELATIVE",
+            "relativeDays": 5,
+            "relativeDate": null,
+            "date": "2026-05-04T18:30:00.000Z",
+            "order": 15,
+            "plannerId": 28,
+            "relativeToStart": 95
+        },
+        {
+            "id": 484,
+            "name": "Re-opening for Students (ODD  Semester 2026-27)",
+            "type": "RELATIVE",
+            "relativeDays": 37,
+            "relativeDate": null,
+            "date": "2026-06-28T18:30:00.000Z",
+            "order": 16,
+            "plannerId": 28,
+            "relativeToStart": 132
+        }
+    ],
+    "calendar": {
+        "year": 2025,
+        "holidays": [
+            {
+                "date": "2025-08-14T18:30:00.000Z",
+                "name": "Independence Day"
+            },
+            {
+                "date": "2025-08-26T18:30:00.000Z",
+                "name": "Ganesh Chaturthi"
+            },
+            {
+                "date": "2025-09-04T18:30:00.000Z",
+                "name": "Eid e Milad"
+            },
+            {
+                "date": "2025-09-30T18:30:00.000Z",
+                "name": "Maha Navami"
+            },
+            {
+                "date": "2025-10-01T18:30:00.000Z",
+                "name": "Gandhi Jayanthi"
+            },
+            {
+                "date": "2025-10-19T18:30:00.000Z",
+                "name": "Diwali"
+            },
+            {
+                "date": "2025-12-24T18:30:00.000Z",
+                "name": "Christmas"
+            },
+            {
+                "date": "2025-12-31T18:30:00.000Z",
+                "name": "New year"
+            },
+            {
+                "date": "2026-01-13T18:30:00.000Z",
+                "name": "Pongal"
+            },
+            {
+                "date": "2026-01-14T18:30:00.000Z",
+                "name": "Pongal"
+            },
+            {
+                "date": "2026-01-15T18:30:00.000Z",
+                "name": "Pongal"
+            },
+            {
+                "date": "2026-01-25T18:30:00.000Z",
+                "name": "Republic Day"
+            },
+            {
+                "date": "2026-03-19T18:30:00.000Z",
+                "name": "Telugu New Year"
+            },
+            {
+                "date": "2026-03-30T18:30:00.000Z",
+                "name": "Mahavir Jayanti"
+            },
+            {
+                "date": "2026-04-02T18:30:00.000Z",
+                "name": "Good Friday"
+            },
+            {
+                "date": "2026-04-13T18:30:00.000Z",
+                "name": "\tTamil New Year"
+            },
+            {
+                "date": "2026-04-30T18:30:00.000Z",
+                "name": "May Day"
+            },
+            {
+                "date": "2026-05-26T18:30:00.000Z",
+                "name": "Bakrid / Eid al Adha"
+            },
+            {
+                "date": "2026-06-25T18:30:00.000Z",
+                "name": "Muharram"
+            },
+            {
+                "date": "2026-08-24T18:30:00.000Z",
+                "name": "\tEid e Milad"
+            }
+        ]
+    },
+    "remainingDays": 70
+}   and Request URL
+https://academicschedule.psgtech.ac.in/api/calendar/2025/planner/25  and   {
+    "id": 25,
+    "name": "First Year BE/BTech (Reg. &SW) & FIRST YEAR ME/MTech",
+    "startDate": "2025-08-17T18:30:00.000Z",
+    "lastDate": "2025-12-08T18:30:00.000Z",
+    "totalWorkingDays": 76,
+    "calendarYear": 2025,
+    "activities": [
+        {
+            "id": 445,
+            "name": "Reopening for the Academic year 2025-26 (First year BE/BTech only)",
+            "type": "RELATIVE",
+            "relativeDays": 0,
+            "relativeDate": null,
+            "date": "2025-08-17T18:30:00.000Z",
+            "order": 0,
+            "plannerId": 25,
+            "relativeToStart": 0
+        },
+        {
+            "id": 457,
+            "name": "Reopening for the Academic year 2025-26 (First year ME/MTech)",
+            "type": "RELATIVE",
+            "relativeDays": 3,
+            "relativeDate": null,
+            "date": "2025-08-20T18:30:00.000Z",
+            "order": 1,
+            "plannerId": 25,
+            "relativeToStart": 3
+        },
+        {
+            "id": 449,
+            "name": "Intermediate Feedback 1",
+            "type": "RELATIVE",
+            "relativeDays": 20,
+            "relativeDate": null,
+            "date": "2025-09-21T18:30:00.000Z",
+            "order": 2,
+            "plannerId": 25,
+            "relativeToStart": 23
+        },
+        {
+            "id": 458,
+            "name": "Assessment Tutorial 1 ( for first year BE/BTech only)",
+            "type": "RELATIVE",
+            "relativeDays": 13,
+            "relativeDate": null,
+            "date": "2025-10-12T18:30:00.000Z",
+            "order": 3,
+            "plannerId": 25,
+            "relativeToStart": 36
+        },
+        {
+            "id": 459,
+            "name": "Practice Test 1 ( for first year BE/BTech only)",
+            "type": "RELATIVE",
+            "relativeDays": 4,
+            "relativeDate": null,
+            "date": "2025-10-16T18:30:00.000Z",
+            "order": 4,
+            "plannerId": 25,
+            "relativeToStart": 40
+        },
+        {
+            "id": 448,
+            "name": "CA 1 From",
+            "type": "RELATIVE",
+            "relativeDays": 2,
+            "relativeDate": null,
+            "date": "2025-10-21T18:30:00.000Z",
+            "order": 5,
+            "plannerId": 25,
+            "relativeToStart": 42
+        },
+        {
+            "id": 452,
+            "name": "CA 1 Mark Entry",
+            "type": "RELATIVE",
+            "relativeDays": 11,
+            "relativeDate": null,
+            "date": "2025-11-05T18:30:00.000Z",
+            "order": 6,
+            "plannerId": 25,
+            "relativeToStart": 53
+        },
+        {
+            "id": 446,
+            "name": "Intermediate Feedback 2",
+            "type": "RELATIVE",
+            "relativeDays": 1,
+            "relativeDate": null,
+            "date": "2025-11-06T18:30:00.000Z",
+            "order": 7,
+            "plannerId": 25,
+            "relativeToStart": 54
+        },
+        {
+            "id": 460,
+            "name": "End Semester Feedback",
+            "type": "RELATIVE",
+            "relativeDays": 15,
+            "relativeDate": null,
+            "date": "2025-11-27T18:30:00.000Z",
+            "order": 8,
+            "plannerId": 25,
+            "relativeToStart": 69
+        },
+        {
+            "id": 456,
+            "name": "Assessment Tutorial 2 ( for first year BE/BTech only)",
+            "type": "RELATIVE",
+            "relativeDays": 1,
+            "relativeDate": null,
+            "date": "2025-11-30T18:30:00.000Z",
+            "order": 9,
+            "plannerId": 25,
+            "relativeToStart": 70
+        },
+        {
+            "id": 454,
+            "name": "Practice Test 2 ( for first year BE/BTech only)",
+            "type": "RELATIVE",
+            "relativeDays": 5,
+            "relativeDate": null,
+            "date": "2025-12-07T18:30:00.000Z",
+            "order": 10,
+            "plannerId": 25,
+            "relativeToStart": 75
+        },
+        {
+            "id": 462,
+            "name": "Last Working Day",
+            "type": "RELATIVE",
+            "relativeDays": 4,
+            "relativeDate": null,
+            "date": "2025-12-11T18:30:00.000Z",
+            "order": 11,
+            "plannerId": 25,
+            "relativeToStart": 79
+        },
+        {
+            "id": 450,
+            "name": "CA 2 From",
+            "type": "RELATIVE",
+            "relativeDays": 1,
+            "relativeDate": null,
+            "date": "2025-12-14T18:30:00.000Z",
+            "order": 12,
+            "plannerId": 25,
+            "relativeToStart": 80
+        },
+        {
+            "id": 451,
+            "name": "Attendance Review - Final",
+            "type": "RELATIVE",
+            "relativeDays": 1,
+            "relativeDate": null,
+            "date": "2025-12-15T18:30:00.000Z",
+            "order": 13,
+            "plannerId": 25,
+            "relativeToStart": 81
+        },
+        {
+            "id": 461,
+            "name": "Final Laboratory Examination",
+            "type": "RELATIVE",
+            "relativeDays": 2,
+            "relativeDate": null,
+            "date": "2025-12-17T18:30:00.000Z",
+            "order": 14,
+            "plannerId": 25,
+            "relativeToStart": 83
+        },
+        {
+            "id": 447,
+            "name": "CA Test 2 Assessment - mark entry",
+            "type": "RELATIVE",
+            "relativeDays": 9,
+            "relativeDate": null,
+            "date": "2026-01-01T18:30:00.000Z",
+            "order": 15,
+            "plannerId": 25,
+            "relativeToStart": 92
+        },
+        {
+            "id": 453,
+            "name": "End Semester Exam",
+            "type": "RELATIVE",
+            "relativeDays": 0,
+            "relativeDate": null,
+            "date": "2026-01-01T18:30:00.000Z",
+            "order": 16,
+            "plannerId": 25,
+            "relativeToStart": 92
+        },
+        {
+            "id": 455,
+            "name": "Commencement of Classes for Even Semester",
+            "type": "RELATIVE",
+            "relativeDays": 8,
+            "relativeDate": null,
+            "date": "2026-01-18T18:30:00.000Z",
+            "order": 17,
+            "plannerId": 25,
+            "relativeToStart": 100
+        }
+    ],
+    "calendar": {
+        "year": 2025,
+        "holidays": [
+            {
+                "date": "2025-08-14T18:30:00.000Z",
+                "name": "Independence Day"
+            },
+            {
+                "date": "2025-08-26T18:30:00.000Z",
+                "name": "Ganesh Chaturthi"
+            },
+            {
+                "date": "2025-09-04T18:30:00.000Z",
+                "name": "Eid e Milad"
+            },
+            {
+                "date": "2025-09-30T18:30:00.000Z",
+                "name": "Maha Navami"
+            },
+            {
+                "date": "2025-10-01T18:30:00.000Z",
+                "name": "Gandhi Jayanthi"
+            },
+            {
+                "date": "2025-10-19T18:30:00.000Z",
+                "name": "Diwali"
+            },
+            {
+                "date": "2025-12-24T18:30:00.000Z",
+                "name": "Christmas"
+            },
+            {
+                "date": "2025-12-31T18:30:00.000Z",
+                "name": "New year"
+            },
+            {
+                "date": "2026-01-13T18:30:00.000Z",
+                "name": "Pongal"
+            },
+            {
+                "date": "2026-01-14T18:30:00.000Z",
+                "name": "Pongal"
+            },
+            {
+                "date": "2026-01-15T18:30:00.000Z",
+                "name": "Pongal"
+            },
+            {
+                "date": "2026-01-25T18:30:00.000Z",
+                "name": "Republic Day"
+            },
+            {
+                "date": "2026-03-19T18:30:00.000Z",
+                "name": "Telugu New Year"
+            },
+            {
+                "date": "2026-03-30T18:30:00.000Z",
+                "name": "Mahavir Jayanti"
+            },
+            {
+                "date": "2026-04-02T18:30:00.000Z",
+                "name": "Good Friday"
+            },
+            {
+                "date": "2026-04-13T18:30:00.000Z",
+                "name": "\tTamil New Year"
+            },
+            {
+                "date": "2026-04-30T18:30:00.000Z",
+                "name": "May Day"
+            },
+            {
+                "date": "2026-05-26T18:30:00.000Z",
+                "name": "Bakrid / Eid al Adha"
+            },
+            {
+                "date": "2026-06-25T18:30:00.000Z",
+                "name": "Muharram"
+            },
+            {
+                "date": "2026-08-24T18:30:00.000Z",
+                "name": "\tEid e Milad"
+            }
+        ]
+    },
+    "remainingDays": 0
+}  and i also the html section for main web and the the calader or template web   .<body>
+  <noscript>You need to enable JavaScript to run this app.</noscript>
+  <div id="root"><div class="w-screen h-screen text-center overflow-x-hidden p-5"><h1 class="text-2xl text-center mb-10">PSG College of Technology</h1><h1 class="mb-8 text-2xl font-bold">Calendars for Even Semester (2025-2026)</h1><div class="flex flex-col items-center text-center text-lg"><a href="/eyJ5ZWFyIjoiMjAyNSIsImlkIjoiMzAifQ=="><div class="px-4 py-2 bg-secondary rounded-lg mb-4">SECOND Year BE/BTech (Reg. &amp;SW) and FIRST YEAR MCA - EVEN Semester</div></a><a href="/eyJ5ZWFyIjoiMjAyNSIsImlkIjoiMzEifQ=="><div class="px-4 py-2 bg-secondary rounded-lg mb-4">First Year BE/BTech (Reg. &amp;SW) &amp; FIRST YEAR ME/MTech - EVEN Semester</div></a><a href="/eyJ5ZWFyIjoiMjAyNSIsImlkIjoiMjkifQ=="><div class="px-4 py-2 bg-secondary rounded-lg mb-4">THIRD Year BE/BTech (Reg. &amp;SW), 2nd Year ME/MTech/MCA, All BSc and All MSc - EVEN Semester</div></a><a href="/eyJ5ZWFyIjoiMjAyNSIsImlkIjoiMjgifQ=="><div class="px-4 py-2 bg-secondary rounded-lg mb-4">FOURTH Year BE/BTech (Reg. &amp;SW) and FIFTH Year BE (SW) - EVEN Semester</div></a></div><h1 class="mb-8 text-2xl font-bold">Calendars for Odd Semester (2025-2026)</h1><div class="flex flex-col items-center text-center text-lg"><a href="/eyJ5ZWFyIjoiMjAyNSIsImlkIjoiMjUifQ=="><div class="px-4 py-2 bg-secondary rounded-lg mb-4">First Year BE/BTech (Reg. &amp;SW) &amp; FIRST YEAR ME/MTech</div></a><a href="/eyJ5ZWFyIjoiMjAyNSIsImlkIjoiMjQifQ=="><div class="px-4 py-2 bg-secondary rounded-lg mb-4">SECOND Year BE/BTech (Reg. &amp; SW) including Lateral Entry and First year MCA</div></a><a href="/eyJ5ZWFyIjoiMjAyNSIsImlkIjoiMjMifQ=="><div class="px-4 py-2 bg-secondary rounded-lg mb-4">Third Year BE/BTech (Reg. &amp; SW), Second Year ME/MTech/MCA, All BSc and All MSc</div></a><a href="/eyJ5ZWFyIjoiMjAyNSIsImlkIjoiMjIifQ=="><div class="px-4 py-2 bg-secondary rounded-lg mb-4">Fourth year BE (SW)</div></a><a href="/eyJ5ZWFyIjoiMjAyNSIsImlkIjoiMjEifQ=="><div class="px-4 py-2 bg-secondary rounded-lg mb-4">Fourth year BE/BTech and Fifth year BE (SW)</div></a></div><h1 class="mb-8 text-2xl font-bold">Calendars for Even Semester (2024-2025)</h1><div class="flex flex-col items-center text-center text-lg"><a href="/eyJ5ZWFyIjoiMjAyNCIsImlkIjoiMjAifQ=="><div class="px-4 py-2 bg-secondary rounded-lg mb-4">First year BE / BTech (Reg &amp; SW)</div></a><a href="/eyJ5ZWFyIjoiMjAyNCIsImlkIjoiMTkifQ=="><div class="px-4 py-2 bg-secondary rounded-lg mb-4">Second year BE/ BTech / BE SW and First year ME/ MTech / MCA</div></a><a href="/eyJ5ZWFyIjoiMjAyNCIsImlkIjoiMTcifQ=="><div class="px-4 py-2 bg-secondary rounded-lg mb-4">All years B.Sc, M.Sc (2 year), M.Sc (5 year) and Il year ME/MTech/MCA</div></a><a href="/eyJ5ZWFyIjoiMjAyNCIsImlkIjoiMTgifQ=="><div class="px-4 py-2 bg-secondary rounded-lg mb-4">III, IV year BE / BTech and III, IV, V year BE(SW)</div></a></div><h1 class="mb-8 text-2xl font-bold">Calendars for Odd Semester (2024-2025)</h1><div class="flex flex-col items-center text-center text-lg"><a href="/eyJ5ZWFyIjoiMjAyNCIsImlkIjoiMTYifQ=="><div class="px-4 py-2 bg-secondary rounded-lg mb-4">FIRST BE/BTECH (REGULAR &amp; SANDWICH)</div></a><a href="/eyJ5ZWFyIjoiMjAyNCIsImlkIjoiMTQifQ=="><div class="px-4 py-2 bg-secondary rounded-lg mb-4">Second year BE/BTech/BE SW and First year ME/MTech/MCA</div></a><a href="/eyJ5ZWFyIjoiMjAyNCIsImlkIjoiMTUifQ=="><div class="px-4 py-2 bg-secondary rounded-lg mb-4">Fourth year BE SW</div></a><a href="/eyJ5ZWFyIjoiMjAyNCIsImlkIjoiMTMifQ=="><div class="px-4 py-2 bg-secondary rounded-lg mb-4">All years B.Sc, M.Sc (2 year), M.Sc (5 year) and II year ME/MTech/MCA</div></a><a href="/eyJ5ZWFyIjoiMjAyNCIsImlkIjoiMTIifQ=="><div class="px-4 py-2 bg-secondary rounded-lg mb-4">III, IV year BE / BTech, III, V year BE (SW) and IV year BTech (PT)</div></a></div><h1 class="mb-8 text-2xl font-bold">Calendars for Even Semester (2023-2024)</h1><div class="flex flex-col items-center text-center text-lg"><a href="/eyJ5ZWFyIjoiMjAyMyIsImlkIjoiOCJ9"><div class="px-4 py-2 bg-secondary rounded-lg mb-4">First Year BE / BTech (Reg &amp; SW)</div></a><a href="/eyJ5ZWFyIjoiMjAyMyIsImlkIjoiMTEifQ=="><div class="px-4 py-2 bg-secondary rounded-lg mb-4">First year ME/MTech &amp; MCA</div></a><a href="/eyJ5ZWFyIjoiMjAyMyIsImlkIjoiMTAifQ=="><div class="px-4 py-2 bg-secondary rounded-lg mb-4">SECOND YEAR BE/BTech (Reg &amp; SW ) including SECOND YEAR Lateral entry</div></a><a href="/eyJ5ZWFyIjoiMjAyMyIsImlkIjoiMiJ9"><div class="px-4 py-2 bg-secondary rounded-lg mb-4">Two CA Group Even Semester (All Years BSc, MSc (2year), MSc (5 year Integrated)</div></a><a href="/eyJ5ZWFyIjoiMjAyMyIsImlkIjoiNCJ9"><div class="px-4 py-2 bg-secondary rounded-lg mb-4">3 CA Group EVEN Semester (THIRD Year BE/BTech (Reg&amp;SW), FOURTH Year BE/BTech (Reg&amp;SW), FIFTH Year BE (SW) and THIRD Year BTech (PT))</div></a></div><h1 class="my-8 text-2xl font-bold">Calendars for Odd Semester (2023-2024)</h1><div class="flex flex-col items-center text-center text-lg"><a href="/eyJ5ZWFyIjoiMjAyMyIsImlkIjoiOSJ9"><div class="px-4 py-2 bg-secondary rounded-lg mb-4">First year BE/ BTech / BE SW</div></a><a href="/eyJ5ZWFyIjoiMjAyMyIsImlkIjoiNyJ9"><div class="px-4 py-2 bg-secondary rounded-lg mb-4">First year MCA/ME/MTech</div></a></div><p class="text-gray-600">*Please click the link above to see the respective tentative academic schedule.</p></div></div>
+  <!--
+      This HTML file is a template.
+      If you open it directly in the browser, you will see an empty page.
+
+      You can add webfonts, meta tags, or analytics to this file.
+      The build step will place the bundled scripts into the <body> tag.
+
+      To begin the development, run `npm start` or `yarn start`.
+      To create a production bundle, use `npm run build` or `yarn build`.
+    -->
+
+
+</body>   and <body>
+  <noscript>You need to enable JavaScript to run this app.</noscript>
+  <div id="root"><div class="w-screen h-screen flex flex-col overflow-x-hidden"><div class="p-6"><div class="mb-8 w-full flex flex-row justify-between px-4"><div><div class="mb-3 flex flex-row space-x-4"><h1 class="text-3xl font-semibold text-primary"><span class="text-secondary">2025</span> Calendar</h1></div><h1 class="text-3xl font-semibold text-primary">First Year BE/BTech (Reg. &amp;SW) &amp; FIRST YEAR ME/MTech - EVEN Semester</h1></div><div class="flex flex-row space-x-10"><div class="text-center"><h1 class="font-pragati text-4xl text-gray-500 mb-2">Total Working days</h1><h2 class="text-2xl text-primary">79</h2></div><div class="text-center"><h1 class="font-pragati text-4xl text-gray-500 mb-2">Start date</h1><h2 class="text-2xl text-primary">Mon Jan 19 2026</h2></div></div></div><div class="flex flex-row"><div class="flex-1"><table class="table-fixed w-full"><thead class="bg-secondary text-white border-secondary border-t-2 border-x-2"><tr><th class="py-3">ACTIVITY NAME</th><th class="py-3">DAYS/DATE</th><th class="py-3">DAYS FROM START</th><th class="py-3">CALCULATED DATE</th><th class="py-3">DAYS LEFT <br><span class="text-sm">(Including Holidays, Saturdays and Sundays)</span></th></tr></thead><tbody class="text-center"><tr class="border-2 border-primary whitespace-pre-wrap"><td class="px-6 py-4">Re-opening for Students (Even Semester 2025-26)</td><td class="px-6 py-4">0</td><td class="px-6 py-4">0</td><td class="px-6 py-4">Mon Jan 19 2026</td><th class="px-6 py-4">25 days</th></tr><tr class="border-2 border-primary whitespace-pre-wrap"><td class="px-6 py-4">Intermediate Feedback 1</td><td class="px-6 py-4">19</td><td class="px-6 py-4">19</td><td class="px-6 py-4">Mon Feb 16 2026</td><th class="px-6 py-4">53 days</th></tr><tr class="border-2 border-primary whitespace-pre-wrap"><td class="px-6 py-4">Assessment Tutorial 1 ( for 1st Yr BE/BTech only)</td><td class="px-6 py-4">8</td><td class="px-6 py-4">27</td><td class="px-6 py-4">Thu Feb 26 2026</td><th class="px-6 py-4">63 days</th></tr><tr class="border-2 border-primary whitespace-pre-wrap"><td class="px-6 py-4">Practice Test 1 ( for 1st Yr BE/BTech only)</td><td class="px-6 py-4">10</td><td class="px-6 py-4">37</td><td class="px-6 py-4">Thu Mar 12 2026</td><th class="px-6 py-4">77 days</th></tr><tr class="border-2 border-primary whitespace-pre-wrap"><td class="px-6 py-4">CA 1 From</td><td class="px-6 py-4">2</td><td class="px-6 py-4">39</td><td class="px-6 py-4">Mon Mar 16 2026</td><th class="px-6 py-4">81 days</th></tr><tr class="border-2 border-primary whitespace-pre-wrap"><td class="px-6 py-4">Attendance Review 1</td><td class="px-6 py-4">1</td><td class="px-6 py-4">40</td><td class="px-6 py-4">Tue Mar 17 2026</td><th class="px-6 py-4">82 days</th></tr><tr class="border-2 border-primary whitespace-pre-wrap"><td class="px-6 py-4">CA 1 Mark Entry</td><td class="px-6 py-4">9</td><td class="px-6 py-4">49</td><td class="px-6 py-4">Wed Apr 01 2026</td><th class="px-6 py-4">97 days</th></tr><tr class="border-2 border-primary whitespace-pre-wrap"><td class="px-6 py-4">Intermediate Feedback 2</td><td class="px-6 py-4">3</td><td class="px-6 py-4">52</td><td class="px-6 py-4">Tue Apr 07 2026</td><th class="px-6 py-4">103 days</th></tr><tr class="border-2 border-primary whitespace-pre-wrap"><td class="px-6 py-4">Assessment Tutorial 2 ( for 1st  Yr BE/BTech only)</td><td class="px-6 py-4">8</td><td class="px-6 py-4">60</td><td class="px-6 py-4">Mon Apr 20 2026</td><th class="px-6 py-4">116 days</th></tr><tr class="border-2 border-primary whitespace-pre-wrap"><td class="px-6 py-4">End Semester Feedback Entry from</td><td class="px-6 py-4">5</td><td class="px-6 py-4">65</td><td class="px-6 py-4">Mon Apr 27 2026</td><th class="px-6 py-4">123 days</th></tr><tr class="border-2 border-primary whitespace-pre-wrap"><td class="px-6 py-4">Practice Test 2 ( for 1st  Yr BE/BTech only)</td><td class="px-6 py-4">5</td><td class="px-6 py-4">70</td><td class="px-6 py-4">Tue May 05 2026</td><th class="px-6 py-4">131 days</th></tr><tr class="border-2 border-primary whitespace-pre-wrap"><td class="px-6 py-4">Last Working Day</td><td class="px-6 py-4">9</td><td class="px-6 py-4">79</td><td class="px-6 py-4">Mon May 18 2026</td><th class="px-6 py-4">144 days</th></tr><tr class="border-2 border-primary whitespace-pre-wrap"><td class="px-6 py-4">CA 2 From</td><td class="px-6 py-4">1</td><td class="px-6 py-4">80</td><td class="px-6 py-4">Tue May 19 2026</td><th class="px-6 py-4">145 days</th></tr><tr class="border-2 border-primary whitespace-pre-wrap"><td class="px-6 py-4">Attendance Review - Final</td><td class="px-6 py-4">2</td><td class="px-6 py-4">82</td><td class="px-6 py-4">Thu May 21 2026</td><th class="px-6 py-4">147 days</th></tr><tr class="border-2 border-primary whitespace-pre-wrap"><td class="px-6 py-4">Final Laboratory Examination</td><td class="px-6 py-4">1</td><td class="px-6 py-4">83</td><td class="px-6 py-4">Fri May 22 2026</td><th class="px-6 py-4">148 days</th></tr><tr class="border-2 border-primary whitespace-pre-wrap"><td class="px-6 py-4">CA 2 Mark Entry</td><td class="px-6 py-4">6</td><td class="px-6 py-4">89</td><td class="px-6 py-4">Tue Jun 02 2026</td><th class="px-6 py-4">159 days</th></tr><tr class="border-2 border-primary whitespace-pre-wrap"><td class="px-6 py-4">End Semester Exam</td><td class="px-6 py-4">0</td><td class="px-6 py-4">89</td><td class="px-6 py-4">Tue Jun 02 2026</td><th class="px-6 py-4">159 days</th></tr><tr class="border-2 border-primary whitespace-pre-wrap"><td class="px-6 py-4">Re-opening for Students of  ME/MTech (ODD Semester 2026-27)</td><td class="px-6 py-4">18</td><td class="px-6 py-4">107</td><td class="px-6 py-4">Mon Jun 29 2026</td><th class="px-6 py-4">186 days</th></tr><tr class="border-2 border-primary whitespace-pre-wrap"><td class="px-6 py-4">Re-opening for Students of  BE/BTech    (ODD Semester 2026-27)</td><td class="px-6 py-4">25</td><td class="px-6 py-4">132</td><td class="px-6 py-4">Mon Aug 03 2026</td><th class="px-6 py-4">221 days</th></tr></tbody></table></div></div><div class="mt-8 w-full flex flex-row justify-between px-4 space-x-10"><div class="flex-1"><h1 class="font-pragati text-4xl text-gray-500 mb-2">Number of Public Holidays falling on Weekdays untill last working day</h1><table class="w-full text-xl"><thead><tr class="bg-primary text-white border-primary border-t-2 border-x-2"><th class="py-1">Monday</th><th class="py-1">Tuesday</th><th class="py-1">Wednesday</th><th class="py-1">Thursday</th><th class="py-1">Friday</th></tr></thead><tbody><tr class="border-2 border-black"><th class="border border-black">1</th><th class="border border-black">2</th><th class="border border-black">0</th><th class="border border-black">0</th><th class="border border-black">3</th></tr></tbody></table></div><div class="flex flex-row space-x-10"><div class="text-center"><h1 class="font-pragati text-4xl text-gray-500 mb-2">Remaining Working days</h1><h2 class="text-2xl text-primary">92</h2></div><div class="text-center"><h1 class="font-pragati text-4xl text-gray-500 mb-2">Last date</h1><h2 class="text-2xl text-primary">Mon May 18 2026</h2></div></div></div></div></div></div>
+  <!--
+      This HTML file is a template.
+      If you open it directly in the browser, you will see an empty page.
+
+      You can add webfonts, meta tags, or analytics to this file.
+      The build step will place the bundled scripts into the <body> tag.
+
+      To begin the development, run `npm start` or `yarn start`.
+      To create a production bundle, use `npm run build` or `yarn build`.
+    -->
+
+
+</body>   .

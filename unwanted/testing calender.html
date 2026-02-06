@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PSG Tech Academic Calendar</title>
+    <style>
+        :root {
+            --primary: #1a237e;
+            --primary-light: #5c6bc0;
+            --secondary: #1565c0;
+            --success: #2e7d32;
+            --warning: #f57c00;
+            --danger: #c62828;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --gray-light: #e9ecef;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            --transition: all 0.3s ease;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--dark);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--box-shadow);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .input-section {
+            background: var(--gray-light);
+            padding: 25px;
+            border-radius: var(--border-radius);
+            margin-bottom: 30px;
+            border: 2px dashed var(--primary-light);
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 15px;
+            max-width: 500px;
+            margin: 0 auto 15px;
+        }
+        
+        input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #d1d9ff;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(92, 107, 192, 0.2);
+        }
+        
+        button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(57, 73, 171, 0.3);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .examples {
+            text-align: center;
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+        
+        .examples span {
+            background: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin: 0 5px;
+            font-family: monospace;
+            font-weight: 600;
+            border: 1px solid #ddd;
+        }
+        
+        .error {
+            background: #ffebee;
+            color: var(--danger);
+            padding: 15px 20px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            border-left: 4px solid var(--danger);
+            display: none;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--primary);
+            display: none;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .calendar-content {
+            display: none;
+        }
+        
+        .calendar-header {
+            background: var(--light);
+            padding: 25px;
+            border-radius: var(--border-radius);
+            margin-bottom: 30px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .calendar-title {
+            font-size: 1.8rem;
+            color: var(--primary);
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .date-range {
+            color: var(--gray);
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            border: 1px solid #dee2e6;
+            transition: var(--transition);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--box-shadow);
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 5px;
+            line-height: 1;
+        }
+        
+        .stat-label {
+            color: var(--gray);
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        
+        .progress-section {
+            background: white;
+            padding: 25px;
+            border-radius: var(--border-radius);
+            margin-bottom: 30px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .progress-bar {
+            height: 25px;
+            background: var(--gray-light);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-light), var(--primary));
+            width: 0%;
+            transition: width 1s ease;
+            position: relative;
+        }
+        
+        .progress-dates {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        
+        .section-card {
+            background: white;
+            padding: 25px;
+            border-radius: var(--border-radius);
+            border: 1px solid #dee2e6;
+        }
+        
+        .section-title {
+            font-size: 1.4rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--gray-light);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-title::before {
+            content: '';
+            width: 6px;
+            height: 24px;
+            background: var(--primary-light);
+            border-radius: 3px;
+        }
+        
+        .activity-list, .holiday-list {
+            list-style: none;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .activity-item, .holiday-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: var(--light);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--primary-light);
+            transition: var(--transition);
+        }
+        
+        .activity-item:hover, .holiday-item:hover {
+            transform: translateX(5px);
+        }
+        
+        .activity-date, .holiday-date {
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+            font-size: 1rem;
+        }
+        
+        .activity-name, .holiday-name {
+            color: var(--dark);
+        }
+        
+        .countdown {
+            background: linear-gradient(135deg, var(--warning), #ff9800);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: inline-block;
+            margin-top: 8px;
+        }
+        
+        .holiday-item {
+            border-left-color: var(--success);
+        }
+        
+        .holiday-item .holiday-date {
+            color: var(--success);
+        }
+        
+        .config-info {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: var(--secondary);
+            border-left: 4px solid var(--secondary);
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                border-radius: 12px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .input-group {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+            
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>PSG Tech Academic Calendar</h1>
+            <p>Enter your roll number to view your personalized academic calendar</p>
+        </div>
+        
+        <div class="content">
+            <div class="input-section">
+                <div class="input-group">
+                    <input type="text" id="rollNumber" placeholder="Enter roll number (e.g., 25U101)" maxlength="6">
+                    <button id="viewCalendar">View Calendar</button>
+                </div>
+                <p class="examples">Examples: <span>25U101</span> <span>25S023</span> <span>25M045</span></p>
+            </div>
+            
+            <div class="error" id="errorMessage"></div>
+            
+            <div class="loading" id="loadingIndicator">
+                <div class="loading-spinner"></div>
+                <p>Fetching calendar data...</p>
+            </div>
+            
+            <div class="calendar-content" id="calendarContent">
+                <div class="calendar-header">
+                    <h2 class="calendar-title" id="calendarName"></h2>
+                    <div class="date-range" id="dateRange"></div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="workingDays">0</div>
+                            <div class="stat-label">Working Days</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalActivities">0</div>
+                            <div class="stat-label">Academic Activities</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalHolidays">0</div>
+                            <div class="stat-label">Holidays</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="daysRemaining">0</div>
+                            <div class="stat-label">Days Remaining</div>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-section">
+                        <div class="progress-header">
+                            <span>Semester Progress</span>
+                            <span id="progressPercentage">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div class="progress-dates">
+                            <span id="startDateText">Start Date</span>
+                            <span id="endDateText">End Date</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="content-grid">
+                    <div class="section-card">
+                        <h3 class="section-title">Academic Activities</h3>
+                        <ul class="activity-list" id="activityList"></ul>
+                    </div>
+                    
+                    <div class="section-card">
+                        <h3 class="section-title">Holidays & Breaks</h3>
+                        <ul class="holiday-list" id="holidayList"></ul>
+                    </div>
+                </div>
+                
+                <div class="config-info">
+                    <strong>Note:</strong> Calendar data is for academic year <span id="configYear"></span>. 
+                    If you need to update for a new semester, edit the configuration section at the top of the code.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================================
+        // ===== EDIT THESE VALUES EACH SEMESTER =====
+        // ============================================================================
+        
+        const CONFIG = {
+            // API year (change each academic year)
+            API_YEAR: 2025,
+            
+            // Planner ID mapping (update each semester if needed)
+            // Format: "COURSE_YEAR": PLANNER_ID
+            PLANNER_MAP: {
+                // BE/BTech Programs
+                "BE_1": 31,      // First Year BE
+                "BTech_1": 31,   // First Year BTech
+                "BE_2": 30,      // Second Year BE
+                "BTech_2": 30,   // Second Year BTech
+                "BE_3": 29,      // Third Year BE
+                "BTech_3": 29,   // Third Year BTech
+                "BE_4": 28,      // Fourth Year BE
+                "BTech_4": 28,   // Fourth Year BTech
+                "BE_5": 28,      // Fifth Year BE (Sandwich)
+                
+                // BSc Programs (ALL YEARS - same calendar)
+                "BSc_1": 29,     // First Year BSc
+                "BSc_2": 29,     // Second Year BSc
+                "BSc_3": 29,     // Third Year BSc
+                
+                // MSc Programs (ALL YEARS - same calendar)
+                "MSc_1": 29,     // First Year MSc
+                "MSc_2": 29,     // Second Year MSc
+                
+                // ME/MTech Programs
+                "ME_1": 31,      // First Year ME
+                "MTech_1": 31,   // First Year MTech
+                "ME_2": 29,      // Second Year ME
+                "MTech_2": 29,   // Second Year MTech
+                
+                // MCA Program
+                "MCA_1": 31,     // First Year MCA
+                "MCA_2": 29,     // Second Year MCA
+            },
+            
+            // Course code mapping (usually stable - based on roll number letter)
+            COURSE_CODES: {
+                // BE codes (U, A, D, C, Z, N, E, L, M, Y, P, R)
+                'U': 'BE', 'A': 'BE', 'D': 'BE', 'C': 'BE', 'Z': 'BE',
+                'N': 'BE', 'E': 'BE', 'L': 'BE', 'M': 'BE', 'Y': 'BE',
+                'P': 'BE', 'R': 'BE',
+                
+                // BTech codes (B, H, I, T)
+                'B': 'BTech', 'H': 'BTech', 'I': 'BTech', 'T': 'BTech',
+                
+                // BSc codes (S, X)
+                'S': 'BSc', 'X': 'BSc',
+                
+                // MSc codes (use S for BSc/MSc - API treats them the same)
+                
+                // ME codes (two letters)
+                'AE': 'ME', 'NB': 'ME', 'ZC': 'ME', 'UC': 'ME',
+                'EE': 'ME', 'MD': 'ME', 'MN': 'ME', 'PP': 'ME',
+                'ED': 'ME', 'CS': 'ME', 'LV': 'ME', 'BT': 'ME',
+                
+                // MTech codes (similar to ME)
+                'CE': 'MTech', 'EC': 'MTech', 'IT': 'MTech', 'ME': 'MTech',
+                
+                // MCA code
+                'MX': 'MCA',
+            }
+        };
+        
+        // ============================================================================
+        // ===== END OF EDITABLE SECTION =====
+        // ============================================================================
+        
+        // API endpoints (automatically use CONFIG.API_YEAR)
+        const BASE_URL = `https://academicschedule.psgtech.ac.in/api/calendar/${CONFIG.API_YEAR}`;
+        const PLANNER_URL = `${BASE_URL}/planner/`;
+        
+        // DOM elements
+        const rollNumberInput = document.getElementById('rollNumber');
+        const viewCalendarBtn = document.getElementById('viewCalendar');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const calendarContent = document.getElementById('calendarContent');
+        const errorMessage = document.getElementById('errorMessage');
+        const calendarName = document.getElementById('calendarName');
+        const dateRange = document.getElementById('dateRange');
+        const workingDays = document.getElementById('workingDays');
+        const totalActivities = document.getElementById('totalActivities');
+        const totalHolidays = document.getElementById('totalHolidays');
+        const daysRemaining = document.getElementById('daysRemaining');
+        const progressPercentage = document.getElementById('progressPercentage');
+        const progressFill = document.getElementById('progressFill');
+        const startDateText = document.getElementById('startDateText');
+        const endDateText = document.getElementById('endDateText');
+        const activityList = document.getElementById('activityList');
+        const holidayList = document.getElementById('holidayList');
+        const configYear = document.getElementById('configYear');
+        
+        // Show current config year in UI
+        configYear.textContent = CONFIG.API_YEAR;
+        
+        // Get current academic year based on roll number and current date
+        function getAcademicYear(rollNumber) {
+            if (!rollNumber || rollNumber.length < 2) return null;
+            
+            // Extract admission year (first two digits)
+            const admissionYear = parseInt('20' + rollNumber.substring(0, 2));
+            const currentYear = new Date().getFullYear();
+            const currentMonth = new Date().getMonth() + 1; // 1-12
+            
+            // Calculate academic year
+            // If current month is Jan-May, academic year is previous year to current year
+            // If current month is June-Dec, academic year is current year to next year
+            let academicYear;
+            if (currentMonth >= 1 && currentMonth <= 5) {
+                academicYear = currentYear - 1;
+            } else {
+                academicYear = currentYear;
+            }
+            
+            // Calculate year of study (1st, 2nd, 3rd, 4th, 5th)
+            const yearOfStudy = academicYear - admissionYear + 1;
+            
+            // Ensure year of study is between 1 and 5
+            return Math.max(1, Math.min(5, yearOfStudy));
+        }
+        
+        // Get course type from roll number
+        function getCourseType(rollNumber) {
+            if (!rollNumber || rollNumber.length < 3) return null;
+            
+            const letters = rollNumber.substring(2);
+            
+            // Check for two-letter codes first (like MX, AE, etc.)
+            if (letters.length >= 2) {
+                const twoLetters = letters.substring(0, 2).toUpperCase();
+                if (CONFIG.COURSE_CODES[twoLetters]) {
+                    return CONFIG.COURSE_CODES[twoLetters];
+                }
+            }
+            
+            // Check for single letter codes
+            const firstLetter = letters.charAt(0).toUpperCase();
+            return CONFIG.COURSE_CODES[firstLetter] || null;
+        }
+        
+        // Get planner ID from roll number
+        function getPlannerIdFromRollNumber(rollNumber) {
+            // Validate roll number format
+            if (!rollNumber || rollNumber.length < 6) {
+                return null;
+            }
+            
+            // Get course type and academic year
+            const courseType = getCourseType(rollNumber);
+            const academicYear = getAcademicYear(rollNumber);
+            
+            if (!courseType || !academicYear) {
+                return null;
+            }
+            
+            // Create key for PLANNER_MAP lookup
+            const mapKey = `${courseType}_${academicYear}`;
+            
+            // Return the planner ID from the config
+            return CONFIG.PLANNER_MAP[mapKey] || null;
+        }
+        
+        // Format date for display
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        }
+        
+        // Calculate days between dates
+        function daysBetween(startDate, endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const diffTime = Math.abs(end - start);
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+        
+        // Calculate countdown to a future date
+        function getCountdown(targetDate) {
+            const now = new Date();
+            const target = new Date(targetDate);
+            
+            // If the date is in the past, return null
+            if (target < now) return null;
+            
+            const diffTime = target - now;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 0) return "Today";
+            if (diffDays === 1) return "Tomorrow";
+            if (diffDays < 7) return `In ${diffDays} days`;
+            if (diffDays < 30) return `In ${Math.floor(diffDays/7)} weeks`;
+            return `In ${Math.floor(diffDays/30)} months`;
+        }
+        
+        // Calculate semester progress
+        function calculateProgress(startDate, endDate) {
+            const now = new Date();
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            
+            // If semester hasn't started
+            if (now < start) return 0;
+            
+            // If semester has ended
+            if (now > end) return 100;
+            
+            const totalDuration = end - start;
+            const elapsed = now - start;
+            
+            return (elapsed / totalDuration) * 100;
+        }
+        
+        // Fetch planner data
+        async function fetchPlannerData(plannerId) {
+            try {
+                const response = await fetch(`${PLANNER_URL}${plannerId}`);
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching planner data:', error);
+                throw error;
+            }
+        }
+        
+        // Display calendar data
+        function displayCalendarData(plannerData) {
+            const planner = plannerData;
+            
+            // Update header information
+            calendarName.textContent = planner.name;
+            dateRange.textContent = `${formatDate(planner.startDate)} → ${formatDate(planner.lastDate)}`;
+            
+            // Update stats
+            workingDays.textContent = planner.totalWorkingDays || 0;
+            totalActivities.textContent = planner.activities ? planner.activities.length : 0;
+            totalHolidays.textContent = planner.calendar.holidays ? planner.calendar.holidays.length : 0;
+            
+            // Calculate days remaining
+            const daysRemainingValue = daysBetween(new Date(), planner.lastDate);
+            daysRemaining.textContent = Math.max(0, daysRemainingValue);
+            
+            // Calculate and display progress
+            const progress = calculateProgress(planner.startDate, planner.lastDate);
+            progressPercentage.textContent = `${progress.toFixed(1)}%`;
+            progressFill.style.width = `${progress}%`;
+            
+            // Update progress bar dates
+            startDateText.textContent = formatDate(planner.startDate);
+            endDateText.textContent = formatDate(planner.lastDate);
+            
+            // Display activities
+            activityList.innerHTML = '';
+            if (planner.activities && planner.activities.length > 0) {
+                // Sort activities by date
+                const sortedActivities = [...planner.activities].sort((a, b) => 
+                    new Date(a.date) - new Date(b.date)
+                );
+                
+                sortedActivities.forEach(activity => {
+                    const li = document.createElement('li');
+                    li.className = 'activity-item';
+                    
+                    const activityDate = document.createElement('div');
+                    activityDate.className = 'activity-date';
+                    activityDate.textContent = formatDate(activity.date);
+                    
+                    const activityName = document.createElement('div');
+                    activityName.className = 'activity-name';
+                    activityName.textContent = activity.name;
+                    
+                    li.appendChild(activityDate);
+                    li.appendChild(activityName);
+                    activityList.appendChild(li);
+                });
+            } else {
+                activityList.innerHTML = '<li class="activity-item">No activities scheduled</li>';
+            }
+            
+            // Display holidays
+            holidayList.innerHTML = '';
+            if (planner.calendar.holidays && planner.calendar.holidays.length > 0) {
+                // Sort holidays by date
+                const sortedHolidays = [...planner.calendar.holidays].sort((a, b) => 
+                    new Date(a.date) - new Date(b.date)
+                );
+                
+                // Find the next upcoming holiday
+                const now = new Date();
+                let nextHoliday = null;
+                
+                for (const holiday of sortedHolidays) {
+                    const holidayDate = new Date(holiday.date);
+                    if (holidayDate >= now) {
+                        nextHoliday = holiday;
+                        break;
+                    }
+                }
+                
+                // Display all holidays
+                sortedHolidays.forEach(holiday => {
+                    const li = document.createElement('li');
+                    li.className = 'holiday-item';
+                    
+                    const holidayDate = document.createElement('div');
+                    holidayDate.className = 'holiday-date';
+                    holidayDate.textContent = formatDate(holiday.date);
+                    
+                    const holidayName = document.createElement('div');
+                    holidayName.className = 'holiday-name';
+                    holidayName.textContent = holiday.name;
+                    
+                    li.appendChild(holidayDate);
+                    li.appendChild(holidayName);
+                    
+                    // Add countdown for the next holiday
+                    if (nextHoliday && holiday.date === nextHoliday.date) {
+                        const countdown = document.createElement('div');
+                        countdown.className = 'countdown';
+                        countdown.textContent = getCountdown(holiday.date) || "Today!";
+                        li.appendChild(countdown);
+                    }
+                    
+                    holidayList.appendChild(li);
+                });
+            } else {
+                holidayList.innerHTML = '<li class="holiday-item">No holidays in this period</li>';
+            }
+            
+            // Show the calendar content
+            calendarContent.style.display = 'block';
+        }
+        
+        // Show error message
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            calendarContent.style.display = 'none';
+        }
+        
+        // Clear error message
+        function clearError() {
+            errorMessage.style.display = 'none';
+        }
+        
+        // Main function to load calendar
+        async function loadCalendar() {
+            const rollNumber = rollNumberInput.value.trim().toUpperCase();
+            
+            // Clear any previous errors
+            clearError();
+            
+            // Validate input
+            if (!rollNumber) {
+                showError("Please enter a roll number.");
+                return;
+            }
+            
+            if (rollNumber.length !== 6) {
+                showError("Roll number must be 6 characters (e.g., 25U101).");
+                return;
+            }
+            
+            // Get planner ID from roll number
+            const plannerId = getPlannerIdFromRollNumber(rollNumber);
+            
+            if (!plannerId) {
+                showError("Cannot determine calendar for this roll number. Please check the format (e.g., 25U101).");
+                return;
+            }
+            
+            // Show loading indicator
+            loadingIndicator.style.display = 'block';
+            calendarContent.style.display = 'none';
+            
+            try {
+                // Fetch planner data
+                const plannerData = await fetchPlannerData(plannerId);
+                
+                // Hide loading indicator
+                loadingIndicator.style.display = 'none';
+                
+                // Display the calendar data
+                displayCalendarData(plannerData);
+                
+            } catch (error) {
+                // Hide loading indicator
+                loadingIndicator.style.display = 'none';
+                
+                // Show error
+                showError(`Failed to load calendar data. Please try again.`);
+                console.error(error);
+            }
+        }
+        
+        // Event listeners
+        viewCalendarBtn.addEventListener('click', loadCalendar);
+        
+        rollNumberInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                loadCalendar();
+            }
+        });
+        
+        // Clear error when user starts typing
+        rollNumberInput.addEventListener('input', clearError);
+        
+        // Pre-fill with an example roll number for testing (optional)
+        window.addEventListener('load', () => {
+            // Uncomment the line below to pre-fill with an example for testing
+            // rollNumberInput.value = "25U101";
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Bunker - Smart Attendance & Bunk Planner</title>
+
+    <!-- Google Search Console Verification -->
+    <meta name="google-site-verification" content="NGyoxybNQ87eTpl7xo17mY4BGTy3kcssC108SPkqIHM" />
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-P86F6KGBJD"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-P86F6KGBJD');
+    </script>
+
+    <!-- Standard SEO -->
+    <meta name="description"
+        content="Track attendance, calculate safe bunks, view academic calendar, holidays, exam dates & timetable. Smart planner for students, including PSG IAS Bunker logic.">
+    <meta name="keywords"
+        content="bunker, smart bunker, bunk planner, attendance manager, college attendance tracker, safe bunk calculator, psg bunker, psg attendance, psg smart planner, student tools, academic calendar, exam schedule, psg ca test dates, psg re-opening date, attendance hourly calculation, medical condonation psg, psg tech attendance rules, psg ias bunker, psg ias attendance">
+    <meta name="author" content="Bunker Team">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://psg-bunk.vercel.app/">
+
+    <!-- Open Graph (Facebook/LinkedIn) -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://psg-bunk.vercel.app/">
+    <meta property="og:title" content="Bunker - Smart Attendance & Bunk Planner">
+    <meta property="og:description"
+        content="Track attendance, safe bunks, calendar, holidays, exams & timetable. Smart planner for students.">
+    <meta property="og:image" content="https://psg-bunk.vercel.app/static/icon.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:image:alt" content="Bunker - Smart Attendance Tracker">
+    <meta property="og:site_name" content="Bunker">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://psg-bunk.vercel.app/">
+    <meta name="twitter:title" content="Bunker - Smart Attendance & Bunk Planner">
+    <meta name="twitter:description"
+        content="Track attendance, safe bunks, calendar, holidays, exams & timetable. Smart planner for students.">
+    <meta name="twitter:image" content="https://psg-bunk.vercel.app/static/icon.png">
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Bunker",
+        "alternateName": ["Smart Bunker", "PSG Bunker", "Bunk Planner"],
+        "url": "https://psg-bunk.vercel.app/",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Android, iOS, Windows, Linkux",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "description": "The ultimate attendance and bunk planner for students. Features academic calendar, holidays, and exam dates.",
+        "image": "https://psg-bunk.vercel.app/static/icon.png",
+        "screenshot": "https://psg-bunk.vercel.app/static/screenshot_login.png",
+        "featureList": "Calculate Attendance, Safe Bunk Calculator, Academic Calendar, Exam Schedule, Holiday Widget",
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "ratingCount": "120",
+            "bestRating": "5",
+            "worstRating": "1"
+        },
+        "author": {
+            "@type": "Organization",
+            "name": "Bunker Team",
+            "url": "https://psg-bunk.vercel.app/",
+            "logo": "https://psg-bunk.vercel.app/static/icon.png"
+        }
+    }
+    </script>
+
+    <!-- Gemini SEO Strategy: Featured Snippet Bait (Event Schedule) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Event",
+      "name": "PSG Tech Academic Schedule",
+      "eventStatus": "https://schema.org/EventScheduled",
+      "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+      "location": {
+        "@type": "Place",
+        "name": "PSG College of Technology",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Avinashi Road, Peelamedu",
+          "addressLocality": "Coimbatore",
+          "postalCode": "641004",
+          "addressCountry": "IN"
+        }
+      },
+      "description": "Complete academic calendar including semester dates, CA tests, and exam schedules. Check the app for live updates on all upcoming events.",
+      "performer": {
+        "@type": "Organization",
+        "name": "PSG Tech"
+      }
+    }
+    </script>
+
+    <!-- Gemini SEO Strategy: FAQ Schema for Long-Tail Keywords -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [{
+        "@type": "Question",
+        "name": "How to calculate attendance on an hourly basis for PSG Tech?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "PSG Tech calculates attendance hourly. If you attend 3 out of 7 hours, it counts as 3/7 (0.42 days), not 1 day. Bunker uses this exact formula."
+        }
+      }, {
+        "@type": "Question",
+        "name": "What is the minimum attendance required for PSG semester exam?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The minimum requirement is 75% overall. However, you need at least 60% in individual subjects to be eligible."
+        }
+      }, {
+        "@type": "Question",
+        "name": "How many days can I bunk in PSG Tech?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "It depends on your current percentage. Use the Safe Bunk Calculator to find the exact number of classes you can miss while maintaining 75%."
+        }
+      }, {
+        "@type": "Question",
+        "name": "When does PSG Tech re-open for even semester?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The Even Semester typically re-opens in late January. Check the Academic Calendar in the app for exact dates."
+        }
+      }]
+    }
+    </script>
+
+    <!-- PWA & Theme -->
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.json?v=bunker5">
+
+    <!-- Icons & Fonts -->
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link rel="shortcut icon" href="/static/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Tailwind & Anime.js -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" defer></script>
+
+    <script>
+        // PWA Manager
+        window.pwaManager = {
+            deferredPrompt: null,
+            isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream,
+            isStandalone: window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone,
+            isAppInstalled: false, // Will be updated after detection
+
+            init: function () {
+                // Check if app is already installed (even if user is in browser)
+                this.checkIfInstalled();
+
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    this.deferredPrompt = e;
+                    this.isAppInstalled = false; // If this event fires, app is NOT installed
+                    console.log("PWA: Install prompt captured");
+                    // Trigger UI update if needed
+                    if (typeof updateInstallUI === 'function') updateInstallUI();
+                });
+
+                window.addEventListener('appinstalled', () => {
+                    this.deferredPrompt = null;
+                    this.isAppInstalled = true;
+                    console.log("PWA: App installed");
+                    if (typeof updateInstallUI === 'function') updateInstallUI();
+                });
+            },
+
+            checkIfInstalled: async function () {
+                // Method 1: Check if running in standalone (already installed and opened)
+                if (this.isStandalone) {
+                    this.isAppInstalled = true;
+                    if (typeof updateInstallUI === 'function') updateInstallUI();
+                    return;
+                }
+
+                // Method 2: Use getInstalledRelatedApps API (Chrome 80+)
+                if ('getInstalledRelatedApps' in navigator) {
+                    try {
+                        const relatedApps = await navigator.getInstalledRelatedApps();
+                        this.isAppInstalled = relatedApps.length > 0;
+                        if (this.isAppInstalled) {
+                            console.log('PWA: App is installed (detected via getInstalledRelatedApps)');
+                            if (typeof updateInstallUI === 'function') updateInstallUI();
+                        }
+                    } catch (e) {
+                        console.log('PWA: getInstalledRelatedApps failed', e);
+                    }
+                }
+
+                // Method 3: Fallback - if beforeinstallprompt doesn't fire after 2 seconds,
+                // assume app might be installed (not 100% reliable but helps)
+                setTimeout(() => {
+                    if (!this.deferredPrompt && !this.isStandalone && !this.isAppInstalled) {
+                        // No prompt fired and not in standalone - might be installed
+                        // Check if Service Worker is registered (indicates previous install)
+                        if ('serviceWorker' in navigator) {
+                            navigator.serviceWorker.getRegistrations().then(regs => {
+                                if (regs.length > 0) {
+                                    this.isAppInstalled = true;
+                                    console.log('PWA: App likely installed (SW registered, no prompt)');
+                                    if (typeof updateInstallUI === 'function') updateInstallUI();
+                                }
+                            });
+                        }
+                    }
+                }, 2000);
+            },
+
+            install: async function () {
+                if (this.deferredPrompt) {
+                    this.deferredPrompt.prompt();
+                    const { outcome } = await this.deferredPrompt.userChoice;
+                    console.log(`PWA: User response to install prompt: ${outcome}`);
+                    this.deferredPrompt = null;
+                } else {
+                    // Fallback feedback
+                    if (window.showToast) {
+                        const isHttp = location.protocol === 'http:' && location.hostname !== 'localhost';
+                        if (isHttp) showToast("Install requires HTTPS or Localhost", "error");
+                        else showToast("App install not ready or already installed using browser menu");
+                    } else {
+                        alert("Install via browser menu (Add to Home Screen)");
+                    }
+                }
+            }
+        };
+        window.pwaManager.init();
+
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(reg => console.log('SW registered:', reg))
+                    .catch(err => console.log('SW failed:', err));
+            });
+        }
+    </script>
+
+    <!-- Performance Optimization Script -->
+    <script>
+        (function () {
+            // Retrieve user preference from storage
+            const savedPerf = localStorage.getItem('bunker_perf_mode');
+            let perf = 'low'; // Default safe mode
+
+            if (savedPerf) {
+                perf = savedPerf;
+            } else {
+                // Auto-detect RAM: <4GB = Low, >4GB = High
+                // iOS = High (usually powerful enough)
+                const ram = navigator.deviceMemory;
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+                if (isIOS || (ram && ram > 4)) {
+                    perf = 'high';
+                } else {
+                    perf = 'low'; // Default to low for < 4GB for safety
+                }
+            }
+
+            // Apply mode immediately before render
+            document.documentElement.setAttribute('data-perf', perf);
+            console.log(`Smart Bunker: Performance Mode set to ${perf.toUpperCase()} (RAM: ${navigator.deviceMemory || 'Unknown'})`);
+        })();
+    </script>
+
+    <!-- External Styles -->
+    <link rel="stylesheet" href="/static/style.css?v=1.0.0">
+</head>
+
+<body>
+
+    <!-- Background -->
+    <div class="aurora-container" id="aurora-bg">
+        <div class="aurora-blob blob-1"></div>
+        <div class="aurora-blob blob-2"></div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app" class="relative z-10 w-full h-full max-w-md mx-auto flex flex-col bg-transparent">
+
+        <!-- LOGIN VIEW (Redesigned) -->
+        <div id="login-view" class="absolute inset-0 z-50 flex flex-col justify-center px-6">
+            <div class="flex-1 flex flex-col justify-center items-center w-full">
+                <!-- Header Section -->
+                <div class="text-center mb-8 relative w-full">
+                    <div
+                        class="w-24 h-24 bg-indigo-500/20 rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 blur-3xl animate-pulse">
+                    </div>
+                    <h1 class="text-5xl sm:text-6xl font-black tracking-tighter mb-2 relative z-10 bunker-glow">Bunker.
+                    </h1>
+                    <h2 class="text-indigo-200/50 font-bold tracking-[0.3em] text-[10px] uppercase">
+                        Smart Attendance Manager
+                    </h2>
+                </div>
+
+                <!-- Login Card (Resized & Compact) -->
+                <div
+                    class="glass-panel w-full max-w-sm rounded-[32px] p-6 shadow-2xl border border-white/10 relative overflow-hidden">
+
+                    <!-- Updating Overlay -->
+                    <div id="updating-overlay"
+                        class="absolute inset-0 bg-[#0a0a0c] z-20 flex flex-col items-center justify-center hidden transition-all duration-300">
+                        <div class="mb-6 scale-125">
+                            <svg id="pegtopone" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+                                <path
+                                    d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z"
+                                    fill="url(#grad1)" stroke="rgba(255,255,255,0.5)" stroke-width="1"></path>
+                                <defs>
+                                    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+                                        <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                        </div>
+                        <p class="text-[10px] font-bold text-indigo-300 uppercase tracking-[0.2em] animate-pulse">
+                            Syncing...</p>
+                    </div>
+
+                    <form id="login-form" class="space-y-4 relative z-10">
+                        <a href="https://feedback-auto-eubkuw8k4dsyxndd7w7y45.streamlit.app/#feedback" target="_blank"
+                            class="w-full py-3 mb-4 rounded-2xl bg-white/5 border border-indigo-500/30 text-indigo-300 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-3 hover:bg-indigo-500/20 hover:scale-[1.02] transition-all shadow-lg group relative overflow-hidden">
+                            <div
+                                class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-shimmer">
+                            </div>
+                            <i
+                                class="fas fa-robot text-lg text-indigo-400 group-hover:rotate-12 transition-transform"></i>
+                            <div class="flex flex-col items-start text-left">
+                                <span class="text-xs font-black text-white tracking-widest leading-tight">COLLEGE
+                                    FEEDBACK</span>
+                                <span
+                                    class="text-[8px] text-indigo-300 font-bold tracking-[0.2em] leading-tight">AUTOMATED
+                                    ENTRY BOT</span>
+                            </div>
+                            <i
+                                class="fas fa-external-link-alt absolute right-5 text-[10px] text-indigo-400/40 group-hover:text-indigo-400 transition-colors"></i>
+                        </a>
+
+                        <div class="input-group">
+                            <input type="text" id="username" class="glass-input py-4" placeholder="Roll Number" required
+                                autocomplete="username" maxlength="7" style="text-transform: uppercase;">
+                            <i class="fas fa-user-graduate input-icon"></i>
+                        </div>
+                        <div class="input-group">
+                            <input type="password" id="password" class="glass-input py-4" placeholder="Password"
+                                required autocomplete="current-password">
+                            <i class="fas fa-lock input-icon"></i>
+                            <i class="fas fa-eye absolute right-5 top-1/2 -translate-y-1/2 text-white/30 cursor-pointer hover:text-white transition-colors"
+                                onclick="togglePassword()"></i>
+                        </div>
+
+                        <div id="login-error"
+                            class="hidden text-rose-400 text-[10px] text-center font-bold bg-rose-500/10 p-3 rounded-2xl border border-rose-500/20">
+                            Invalid Roll Number
+                        </div>
+
+                        <button type="submit" id="btn-submit"
+                            class="w-full py-4 rounded-2xl btn-liquid text-white font-bold text-base mt-2 flex items-center justify-center gap-2 group shadow-lg">
+                            <span id="btn-text">Sign In</span>
+                            <i id="btn-icon"
+                                class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+                        </button>
+
+                        <div class="mt-1 flex flex-col items-center gap-2 scale-90 origin-top">
+                            <p class="text-[9px] text-gray-600 text-center leading-none">
+                                By logging in, you agree to our
+                                <span onclick="showPrivacyPolicy()"
+                                    class="text-indigo-400 cursor-pointer hover:underline font-bold inline-flex items-center gap-1">
+                                    <i class="fas fa-lock text-[8px]"></i> Privacy Policy & Terms
+                                </span>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="pb-10 text-center">
+                    <a href="#" onclick="loadDemo()"
+                        class="text-[10px] text-white/40 hover:text-white/90 transition-colors font-bold tracking-[0.2em] uppercase decoration-dotted underline underline-offset-4 opacity-70 hover:opacity-100">
+                        Try Demo Mode
+                    </a>
+                </div>
+                <!-- Login Page PWA Install Prompt -->
+                <div id="login-install-prompt"
+                    class="hidden absolute bottom-4 left-0 right-0 flex justify-center z-50 fade-in-up">
+                    <div
+                        class="glass-panel mx-4 px-6 py-4 rounded-2xl flex items-center justify-between gap-4 w-full max-w-sm shadow-2xl border border-white/10 bg-[#1c1c1e]/90 backdrop-blur-xl">
+                        <div class="flex items-center gap-3">
+                            <img src="/static/icon.png" class="w-10 h-10 rounded-xl shadow-lg">
+                            <div class="flex flex-col">
+                                <span id="install-text" class="text-sm font-bold text-white leading-tight">Install
+                                    Bunker.</span>
+                                <span class="text-[10px] text-gray-400 font-medium">Add to Home Screen for best
+                                    experience</span>
+                            </div>
+                        </div>
+                        <button onclick="triggerInstall()"
+                            class="bg-white text-black text-xs font-bold px-4 py-2 rounded-full hover:scale-105 active:scale-95 transition shadow-lg">
+                            Install
+                        </button>
+                        <button onclick="document.getElementById('login-install-prompt').classList.add('hidden')"
+                            class="text-white/50 hover:text-white p-1">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD VIEW -->
+        <div id="dashboard-view" class="hidden h-full flex flex-col">
+
+            <!-- Compact & Sticky Header -->
+            <div class="px-6 pt-5 pb-2 flex justify-between items-center z-30 sticky top-0 backdrop-blur-sm transition-all duration-300"
+                id="main-header">
+                <div>
+                    <span class="text-[9px] font-black text-indigo-400 uppercase tracking-[0.15em] block mb-1"
+                        id="current-date">TODAY</span>
+                    <h2 class="text-3xl font-extrabold text-white leading-none tracking-tight" id="greeting-text">
+                        Dashboard</h2>
+                </div>
+                <button onclick="toggleSettings()"
+                    class="w-10 h-10 rounded-full bg-[#111] border border-white/10 flex items-center justify-center text-white/90 hover:bg-[#222] transition active:scale-95 shadow-lg">
+                    <i class="fas fa-cog text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto no-scrollbar px-5 pb-32" id="main-content">
+
+                <!-- TAB: HOME -->
+                <div id="tab-home" class="tab-content active space-y-4 pt-2">
+
+                    <!-- Dynamic Hero Widget -->
+                    <div id="hero-widget-container"></div>
+
+                    <!-- Widgets Grid -->
+                    <div class="grid grid-cols-2 gap-3">
+
+                        <!-- Next Exam -->
+                        <div
+                            class="glass-panel rounded-[32px] p-5 h-44 relative overflow-hidden group active:scale-[0.98] transition-all theme-exam">
+                            <div class="pulse-ring"></div>
+
+                            <div class="relative z-10 flex flex-col h-full justify-between">
+                                <div class="flex justify-between items-start">
+                                    <div
+                                        class="w-10 h-10 rounded-full flex items-center justify-center text-lg bg-black/40 text-white shadow-sm border border-white/10 scale-105">
+                                        <i class="fas fa-stopwatch"></i>
+                                    </div>
+                                    <span class="widget-badge badge-exam">Exam</span>
+                                </div>
+
+                                <div class="flex flex-col items-center justify-center flex-1 my-2">
+                                    <span
+                                        class="text-4xl font-black text-white leading-none tracking-tighter drop-shadow-md"
+                                        id="next-exam-days-big">--</span>
+                                    <span class="text-[9px] font-bold text-white/60 uppercase tracking-widest mt-1">Days
+                                        Left</span>
+                                </div>
+
+                                <div class="text-center">
+                                    <h3 class="text-xs font-bold text-white truncate leading-tight px-1"
+                                        id="next-exam-name">No Exams</h3>
+                                    <p class="text-[9px] font-medium text-white/60 mt-0.5" id="next-exam-date-sub">
+                                        Relaxing</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Next Holiday -->
+                        <div class="glass-panel rounded-[32px] p-5 h-44 relative overflow-hidden group active:scale-[0.98] transition-all"
+                            id="holiday-widget-container">
+                            <!-- Content injected by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Subjects List -->
+                    <div class="pt-4">
+                        <div class="flex justify-between items-end mb-3 px-1">
+                            <div>
+                                <h3 class="font-bold text-lg text-white tracking-tight">Subjects</h3>
+                                <div class="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Updated:
+                                    <span class="text-indigo-400" id="last-updated-date">--</span>
+                                </div>
+                            </div>
+                            <div class="text-right flex items-center gap-1.5 cursor-pointer opacity-70 active:opacity-100 transition"
+                                onclick="showToast('Tap a card to predict outcomes')">
+                                <i class="fas fa-magic text-indigo-400 text-[10px]"></i>
+                                <span
+                                    class="text-[9px] font-bold text-indigo-300 uppercase tracking-widest">Simulate</span>
+                            </div>
+                        </div>
+                        <div id="subject-list-container" class="space-y-3 pb-4"></div>
+                    </div>
+                </div>
+
+                <!-- TAB: CALENDAR -->
+                <div id="tab-calendar" class="tab-content space-y-5 pt-2">
+                    <div class="glass-panel rounded-[32px] p-6 flex items-center gap-5 border-l-[4px] shadow-xl"
+                        style="border-left-color: var(--primary);">
+                        <div
+                            class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-white text-xl font-bold shadow-inner border border-white/5">
+                            <i class="fas fa-hourglass-half"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Working
+                                Days
+                                Left</h4>
+                            <div class="text-3xl font-black text-white tracking-tight" id="cal-remaining-days">...
+                            </div>
+                        </div>
+                    </div>
+                    <div id="academic-list" class="space-y-6 relative pl-2">
+                        <div
+                            class="absolute left-[21px] top-6 bottom-6 w-[2px] bg-gradient-to-b from-white/10 via-white/5 to-transparent">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: PLANNER -->
+                <div id="tab-planner" class="tab-content space-y-5 pt-2">
+                    <div class="glass-panel p-2 rounded-[32px] border-l-4" style="border-left-color: var(--primary);">
+                        <div class="mx-2 mt-2 mb-3 bg-white/5 rounded-[24px] p-5 border border-white/5 shadow-inner">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center gap-2">
+                                    <div
+                                        class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-indigo-200 text-xs">
+                                        <i class="fas fa-chart-pie"></i>
+                                    </div>
+                                    <span
+                                        class="text-[9px] font-bold text-indigo-200 uppercase tracking-widest">Prediction</span>
+                                </div>
+                            </div>
+                            <div id="planner-impact-list" class="space-y-1">
+                                <div class="text-center py-2 text-gray-500 text-[10px] italic font-medium">Select
+                                    classes below to see impact</div>
+                            </div>
+                        </div>
+                        <div class="flex bg-black/40 rounded-[20px] p-1 mb-3 mx-2">
+                            <div class="flex w-full overflow-x-auto no-scrollbar gap-1" id="planner-days"></div>
+                        </div>
+                        <div class="px-3 pb-3 space-y-2" id="planner-classes"></div>
+                    </div>
+                </div>
+
+                <!-- TAB: EDIT -->
+                <div id="tab-edit" class="tab-content space-y-5 pt-2">
+                    <div class="glass-panel p-6 rounded-[32px] border-l-4" style="border-left-color: var(--primary);">
+                        <div class="relative mb-6">
+                            <label
+                                class="text-[9px] font-bold text-gray-500 uppercase ml-1 mb-2 block tracking-widest">Select
+                                Subject</label>
+                            <div class="relative">
+                                <select id="manual-subject"
+                                    class="w-full bg-white/5 border border-white/10 text-white text-sm rounded-xl p-4 pr-10 outline-none appearance-none font-bold focus:border-indigo-500/50 transition">
+                                    <option value="">Choose...</option>
+                                </select>
+                                <i
+                                    class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-xs text-gray-500 pointer-events-none"></i>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 mb-6">
+                            <button onclick="addManualRecord('Present')"
+                                class="py-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold hover:bg-emerald-500/20 active:scale-95 transition flex flex-col items-center gap-2 group">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-lg group-hover:scale-110 transition">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <span class="text-[9px] uppercase tracking-widest">Attended</span>
+                            </button>
+                            <button onclick="addManualRecord('Absent')"
+                                class="py-5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 font-bold hover:bg-rose-500/20 active:scale-95 transition flex flex-col items-center gap-2 group">
+                                <div
+                                    class="w-10 h-10 rounded-full bg-rose-500/20 flex items-center justify-center text-lg group-hover:scale-110 transition">
+                                    <i class="fas fa-times"></i>
+                                </div>
+                                <span class="text-[9px] uppercase tracking-widest">Bunked</span>
+                            </button>
+                        </div>
+                        <div class="border-t border-white/5 pt-4">
+                            <p class="text-[9px] font-bold text-gray-600 uppercase mb-3 ml-1 tracking-widest">Recent
+                                History</p>
+                            <div id="manual-history" class="space-y-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- REDESIGNED FLOATING NAVIGATION -->
+            <div class="nav-dock-container">
+                <nav class="nav-dock">
+                    <div class="nav-item active" onclick="switchTab('home', 0)" id="nav-home">
+                        <i class="fas fa-th-large"></i>
+                    </div>
+                    <div class="nav-item" onclick="switchTab('calendar', 1)" id="nav-calendar">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="nav-item" onclick="switchTab('planner', 2)" id="nav-planner">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    <div class="nav-item" onclick="switchTab('edit', 3)" id="nav-edit">
+                        <i class="fas fa-sliders-h"></i>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- REDESIGNED SIMULATOR MODAL -->
+    <div id="sim-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/95 opacity-0 transition-opacity duration-300" id="sim-backdrop"
+            onclick="closeSim()"></div>
+        <div class="w-full max-w-[340px] relative z-10 opacity-0 transition-all duration-300 transform scale-95"
+            id="sim-panel">
+            <div class="bg-[#111] rounded-[40px] p-6 pb-8 border border-white/10 shadow-2xl relative overflow-hidden">
+
+                <!-- Header -->
+                <div class="flex justify-between items-start mb-8 relative z-10">
+                    <div>
+                        <h3 class="text-xl font-bold text-white leading-tight w-48 truncate" id="sim-subject">
+                            Subject
+                        </h3>
+                        <p class="text-[9px] text-indigo-400 font-bold uppercase tracking-widest mt-1">Prediction
+                            Mode
+                        </p>
+                    </div>
+                    <button onclick="closeSim()"
+                        class="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-white/50 hover:bg-white/10 transition"><i
+                            class="fas fa-times text-sm"></i></button>
+                </div>
+
+                <!-- Main Chart -->
+                <div class="flex justify-center mb-8 relative z-10">
+                    <div class="w-52 h-52 relative">
+                        <!-- BG Ring -->
+                        <svg class="w-full h-full transform -rotate-90">
+                            <circle cx="104" cy="104" r="90" stroke="#1a1a1a" stroke-width="12" fill="none">
+                            </circle>
+                            <!-- FG Ring -->
+                            <circle id="sim-ring" cx="104" cy="104" r="90" stroke="var(--primary)" stroke-width="12"
+                                fill="none" stroke-dasharray="565" stroke-dashoffset="0" stroke-linecap="round"
+                                class="transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)]"></circle>
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span id="sim-pct"
+                                class="text-6xl font-black text-white tracking-tighter transition-colors duration-300">0%</span>
+                            <span id="sim-diff"
+                                class="text-[10px] font-bold px-3 py-1 rounded-full bg-white/5 mt-2 uppercase tracking-wide border border-white/5">Current</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="space-y-4 relative z-10">
+                    <!-- Attend Control -->
+                    <div
+                        class="bg-white/5 rounded-3xl p-2 pr-3 flex items-center justify-between pl-5 border border-white/5">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <span class="text-[11px] font-bold text-gray-300 uppercase tracking-wider">Attend</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="updateSim('attend', -1)"
+                                class="w-10 h-10 rounded-2xl bg-black/40 text-white/50 hover:text-white hover:bg-black/60 active:scale-90 transition flex items-center justify-center"><i
+                                    class="fas fa-minus text-[10px]"></i></button>
+                            <span id="val-attend" class="w-8 text-center font-black text-white text-lg">0</span>
+                            <button onclick="updateSim('attend', 1)"
+                                class="w-10 h-10 rounded-2xl bg-emerald-500 text-black font-bold active:scale-90 transition flex items-center justify-center shadow-lg shadow-emerald-500/20"><i
+                                    class="fas fa-plus text-[10px]"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Bunk Control -->
+                    <div
+                        class="bg-white/5 rounded-3xl p-2 pr-3 flex items-center justify-between pl-5 border border-white/5">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400 text-xs">
+                                <i class="fas fa-times"></i>
+                            </div>
+                            <span class="text-[11px] font-bold text-gray-300 uppercase tracking-wider">Bunk</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="updateSim('bunk', -1)"
+                                class="w-10 h-10 rounded-2xl bg-black/40 text-white/50 hover:text-white hover:bg-black/60 active:scale-90 transition flex items-center justify-center"><i
+                                    class="fas fa-minus text-[10px]"></i></button>
+                            <span id="val-bunk" class="w-8 text-center font-black text-white text-lg">0</span>
+                            <button onclick="updateSim('bunk', 1)"
+                                class="w-10 h-10 rounded-2xl bg-rose-500 text-black font-bold active:scale-90 transition flex items-center justify-center shadow-lg shadow-rose-500/20"><i
+                                    class="fas fa-plus text-[10px]"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 text-center">
+                    <button onclick="openSim(simSubject.code)"
+                        class="text-[10px] text-gray-500 font-bold uppercase tracking-widest hover:text-white transition">Reset
+                        Simulation</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="settings-modal" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-black/90 opacity-0 transition-opacity duration-300" id="settings-backdrop"
+            onclick="toggleSettings()"></div>
+        <div class="absolute bottom-0 left-0 right-0 glass-panel rounded-t-[40px] p-8 pb-16 translate-y-full transition-transform duration-300"
+            id="settings-panel">
+            <div class="w-12 h-1.5 bg-white/10 rounded-full mx-auto mb-8"></div>
+            <div class="flex items-center gap-4 mb-6">
+                <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-xl">⚙️</div>
+                <div>
+                    <h3 class="text-xl font-bold text-white">Settings</h3>
+                    <p class="text-[10px] text-gray-400 mt-0.5">App Preferences</p>
+                </div>
+            </div>
+
+            <!-- Demo Time Travel (Hidden by default) -->
+            <div id="demo-date-picker"
+                class="hidden mb-4 bg-indigo-500/10 rounded-[24px] p-5 border border-indigo-500/20">
+                <div class="flex justify-between items-center mb-3">
+                    <div>
+                        <div class="text-xs font-bold text-indigo-300">Time Travel</div>
+                        <div class="text-[10px] text-indigo-400/60 font-bold uppercase tracking-widest">Demo Mode
+                            Only
+                        </div>
+                    </div>
+                    <i class="fas fa-history text-indigo-400"></i>
+                </div>
+                <input type="date" id="sim-date-input" onchange="updateSimDate(this)"
+                    class="w-full bg-[#111] text-white text-sm font-bold p-3 rounded-xl border border-white/10 outline-none focus:border-indigo-500 transition shadow-inner">
+            </div>
+
+            <div class="space-y-4">
+                <!-- User Info -->
+                <div class="bg-white/5 rounded-[24px] p-5 border border-white/5">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="text-xs font-bold text-white">Logged In As</div>
+                            <div class="text-[10px] text-indigo-400 mt-0.5 font-medium uppercase" id="settings-roll">--
+                            </div>
+                        </div>
+                        <div
+                            class="px-4 py-2 rounded-lg bg-white/5 text-gray-400 text-[10px] font-bold border border-white/10">
+                            Read Only</div>
+                    </div>
+                </div>
+
+                <!-- Install App (PWA) -->
+                <div class="bg-white/5 rounded-[24px] p-5 border border-white/5 hidden" id="settings-install-btn">
+                    <div class="flex justify-between items-center cursor-pointer" onclick="triggerInstall()">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
+                                <i class="fas fa-download"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-white">Install App</div>
+                                <div class="text-[10px] text-gray-400 mt-0.5">Add to Home Screen</div>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-white/20 text-xs"></i>
+                    </div>
+                </div>
+
+                <!-- Graphics Quality Toggle -->
+                <div class="bg-white/5 rounded-[24px] p-5 border border-white/5 flex justify-between items-center">
+                    <div>
+                        <div class="text-xs font-bold text-white">Graphics Quality</div>
+                        <div class="text-[10px] text-gray-400 mt-0.5 font-medium" id="perf-mode-text">Auto</div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="perf-toggle" class="sr-only peer" onchange="togglePerfMode(this)">
+                        <div
+                            class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600">
+                        </div>
+                    </label>
+                </div>
+            </div>
+            <button onclick="logout()"
+                class="w-full py-5 rounded-2xl bg-rose-500/10 border border-rose-500/10 text-rose-400 font-bold text-xs hover:bg-rose-500/20 active:scale-95 transition mt-4">Sign
+                Out</button>
+
+            <div class="mt-6 text-center pb-4">
+                <button onclick="showPrivacyPolicy()"
+                    class="text-[10px] text-gray-600 font-bold uppercase tracking-widest hover:text-white transition">Privacy
+                    Policy & Terms</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast-container"
+        class="fixed top-14 left-1/2 -translate-x-1/2 z-[80] flex flex-col gap-2 w-max max-w-[90%] pointer-events-none">
+    </div>
+
+    <!-- Main Logic -->
+    <script src="/static/legal.js?v=1.0.1" defer></script>
+    <script src="/static/app.js?v=1.0.1" defer></script>
+</body>
+
+</html>
