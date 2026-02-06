@@ -892,17 +892,68 @@ function initAcademicCalendar() {
 }
 function initPlanner() {
     const t = document.getElementById('planner-days'), c = document.getElementById('planner-classes');
-    if (t) { t.innerHTML = ''; DAYS.forEach(d => { t.innerHTML += `<button onclick="state.activePlannerDay='${d}';initPlanner()" class="flex-1 py-3 rounded-xl text-xs font-bold transition-all ${d === state.activePlannerDay ? 'bg-white text-black shadow-lg shadow-white/10' : 'bg-white/5 text-gray-400 border border-white/5'}">${d}</button>`; }); }
+
+    // CHECK IF TIMETABLE EXISTS
+    const hasTimetable = state.timetable && Object.keys(state.timetable).length > 0 &&
+        Object.values(state.timetable).some(d => d && d.length > 0 && d.some(x => x !== 'Free'));
+
+    if (t) {
+        if (!hasTimetable) {
+            t.innerHTML = '';
+            t.style.display = 'none'; // Hide days if no timetable
+        } else {
+            t.style.display = 'flex'; // Show days
+            t.innerHTML = '';
+            DAYS.forEach(d => { t.innerHTML += `<button onclick="state.activePlannerDay='${d}';initPlanner()" class="flex-1 py-3 rounded-xl text-xs font-bold transition-all ${d === state.activePlannerDay ? 'bg-white text-black shadow-lg shadow-white/10' : 'bg-white/5 text-gray-400 border border-white/5'}">${d}</button>`; });
+        }
+    }
+
     if (c) {
-        // If checking same day, don't rebuild if already built (optional optimization, but we always rebuild on tab switch)
-        // But for toggleBunk we want to avoid rebuild.
-        // We'll trust toggleBunk to not call INIT.
+        c.innerHTML = '';
 
-        // Only clear if we are NOT just updating? No, initPlanner is "render".
-        // toggleBunk should NOT call initPlanner.
+        if (!hasTimetable) {
+            // FALLBACK: SHOW ATTENDANCE DETAILS
+            c.innerHTML = `
+                <div class="text-center py-6">
+                    <div class="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-calendar-times text-gray-500"></i>
+                    </div>
+                    <h3 class="text-white font-bold text-sm mb-1">Timetable Unavailable</h3>
+                    <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-4">Showing Class List Instead</p>
+                </div>
+                <div class="space-y-2">
+            `;
 
-        c.innerHTML = ''; const cl = state.timetable[state.activePlannerDay] || [];
-        if (!cl.length || cl.every(x => x === 'Free')) { c.innerHTML = '<div class="text-center py-10 text-gray-600 text-xs font-bold uppercase tracking-widest">No classes</div>'; updatePlannerImpact(); return; }
+            // Reuse Subject List Logic (Simplified for Planner)
+            if (state.subjects.length === 0) {
+                c.innerHTML += '<div class="text-center text-gray-500 text-xs">No subjects found</div>';
+            } else {
+                state.subjects.forEach(sub => {
+                    const stats = getSubjectStats(sub.code);
+                    c.innerHTML += `
+                        <div class="bg-white/5 p-4 rounded-2xl border border-white/5 flex justify-between items-center">
+                            <div>
+                                <h4 class="font-bold text-white text-xs mb-1">${stats.name}</h4>
+                                <p class="text-[9px] text-gray-400 font-bold uppercase">${stats.code}</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="font-bold text-indigo-400 text-xs">${stats.att}/${stats.tot}</span>
+                            </div>
+                        </div>
+                     `;
+                });
+            }
+            c.innerHTML += '</div>';
+
+            // Clear impact list since we aren't planning
+            const l = document.getElementById('planner-impact-list');
+            if (l) l.innerHTML = '<div class="text-center py-2 text-gray-500 text-[10px] italic font-medium">Timetable needed for prediction</div>';
+
+            return;
+        }
+
+        const cl = state.timetable[state.activePlannerDay] || [];
+        if (!cl.length || cl.every(x => x === 'Free')) { c.innerHTML = '<div class="text-center py-10 text-gray-600 text-xs font-bold uppercase tracking-widest">No classes today</div>'; updatePlannerImpact(); return; }
         cl.forEach((x, i) => {
             if (x === 'Free') return; const id = `${state.activePlannerDay}-${i}`, ch = state.plannerBunks[id], s = state.subjects.find(s => s.code === x) || { name: state.courseMapping[x] || x };
 
