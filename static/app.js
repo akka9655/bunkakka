@@ -1044,8 +1044,6 @@ function initPlanner() {
             return;
         }
 
-        if (!state.selectedCards) state.selectedCards = {};
-
         const cl = state.timetable[state.activePlannerDay] || [];
         if (!cl.length || cl.every(x => x === 'Free')) {
             c.innerHTML = '<div class="text-center py-10 text-gray-600 text-[10px] font-black uppercase tracking-widest">No classes scheduled</div>';
@@ -1055,39 +1053,32 @@ function initPlanner() {
 
         cl.forEach((code, i) => {
             if (code === 'Free') return;
-            const id = `${state.activePlannerDay}-${i}`;
-            const isSelected = !!state.selectedCards[id];
             const s = state.subjects.find(s => s.code === code) || { name: state.courseMapping[code] || code };
 
-            // Check if this subject has entries TODAY in manual history
             const todayStr = new Date().toLocaleDateString();
             const todayEntries = state.manual.filter(m => m.code === code && new Date(m.timestamp || m.time).toLocaleDateString() === todayStr);
             const isDone = todayEntries.length > 0;
             const statusIcon = todayEntries.some(m => m.status === 'Present') ? 'fa-check-circle text-emerald-400' : (isDone ? 'fa-times-circle text-rose-400' : '');
 
             c.innerHTML += `
-                <div onclick="toggleCardSelection('${id}', '${code}')" 
-                    class="glass-panel p-5 rounded-[28px] border-2 transition-all duration-300 relative overflow-hidden group active:scale-[0.97] cursor-pointer
-                    ${isSelected ? 'border-emerald-500 bg-emerald-500/10 shadow-lg shadow-emerald-500/10' : 'border-white/5 hover:border-white/20'} 
+                <div class="glass-panel p-5 rounded-[28px] border-2 border-white/5 transition-all duration-300 relative overflow-hidden group
                     ${isDone ? 'opacity-90' : ''}">
-                    
-                    ${isSelected ? '<div class="absolute -right-4 -top-4 w-12 h-12 bg-emerald-500 rotate-45 flex items-end justify-center pb-1 shadow-lg"><i class="fas fa-check text-[10px] text-white -rotate-45"></i></div>' : ''}
                     
                     <div class="flex items-center justify-between">
                         <div class="flex-1 min-w-0 pr-4">
                             <div class="flex items-center gap-2 mb-2">
                                 <span class="px-2 py-0.5 rounded-lg bg-indigo-500/10 text-indigo-400 text-[8px] font-black uppercase tracking-widest">Period ${i + 1}</span>
-                                ${isDone ? `<span class="text-[10px] animate-pulse"><i class="fas ${statusIcon}"></i></span>` : ''}
+                                ${isDone ? `<span class="text-[10px]"><i class="fas ${statusIcon}"></i></span>` : ''}
                             </div>
-                            <p class="text-[14px] font-bold text-white truncate group-hover:text-indigo-200 transition-colors">${s.name}</p>
+                            <p class="text-[14px] font-bold text-white truncate">${s.name}</p>
                             <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wider mt-1">${code}</p>
                         </div>
                         <div class="flex gap-2 relative z-10">
-                            <button onclick="event.stopPropagation(); markTimetableAttendance('${code}', 'Present')" 
+                            <button onclick="markTimetableAttendance('${code}', 'Present')" 
                                 class="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center hover:bg-emerald-500/20 active:scale-95 transition">
                                 <i class="fas fa-check text-xs"></i>
                             </button>
-                            <button onclick="event.stopPropagation(); markTimetableAttendance('${code}', 'Absent')" 
+                            <button onclick="markTimetableAttendance('${code}', 'Absent')" 
                                 class="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center hover:bg-rose-500/20 active:scale-95 transition">
                                 <i class="fas fa-times text-xs"></i>
                             </button>
@@ -1097,47 +1088,52 @@ function initPlanner() {
             `;
         });
 
-        // Update Select All button state
-        const selBtn = document.getElementById('select-all-btn');
-        if (selBtn) {
-            const validClasses = cl.filter(x => x !== 'Free');
-            const totalSelected = validClasses.filter((code, i) => !!state.selectedCards[`${state.activePlannerDay}-${i}`]).length;
-            const isAll = validClasses.length > 0 && totalSelected === validClasses.length;
-            selBtn.innerText = isAll ? 'Deselect Day' : 'Select All';
-            selBtn.classList.toggle('bg-rose-500/10', isAll);
-            selBtn.classList.toggle('text-rose-400', isAll);
-            selBtn.classList.toggle('bg-indigo-500/10', !isAll);
-            selBtn.classList.toggle('text-indigo-400', !isAll);
-        }
-
         updateSmartTrackerImpact();
     }
 }
 
+function toggleSmartTrackerPanel(btn) {
+    const panel = document.getElementById('smart-tracker-panel');
+    if (!panel) return;
+    const isHidden = panel.classList.toggle('hidden');
+    btn.innerHTML = isHidden
+        ? '<i class="fas fa-chart-bar text-[8px]"></i> Show Stats'
+        : '<i class="fas fa-chart-bar text-[8px]"></i> Hide Stats';
+    if (!isHidden) updateSmartTrackerImpact();
+}
+
 function toggleSelectAllCards() {
     const cl = state.timetable[state.activePlannerDay] || [];
-    const validIds = [];
-    cl.forEach((code, i) => {
-        if (code !== 'Free') validIds.push({ id: `${state.activePlannerDay}-${i}`, code });
+    const validCodes = [];
+    cl.forEach((code) => {
+        if (code !== 'Free') validCodes.push(code);
     });
 
-    if (validIds.length === 0) return;
+    if (validCodes.length === 0) return;
 
-    const allSelected = validIds.every(v => !!state.selectedCards[v.id]);
+    validCodes.forEach(code => {
+        const s = state.subjects.find(x => x.code === code);
+        const name = s ? s.name : (state.courseMapping[code] || code);
+        state.manual.unshift({
+            id: Date.now() + Math.random(),
+            code, name,
+            status: 'Present',
+            time: new Date().toLocaleString(),
+            timestamp: new Date().toISOString()
+        });
+    });
 
-    if (allSelected) {
-        validIds.forEach(v => delete state.selectedCards[v.id]);
-    } else {
-        validIds.forEach(v => state.selectedCards[v.id] = v.code);
-    }
-    initPlanner();
+    state.selectedCards = {};
+    saveState();
+    renderSemesterHero(); renderWidgets(); renderSubjects(); initPlanner(); initManual();
+    showToast(`✅ Marked entire day Attended (${validCodes.length} classes)!`, 'success');
 }
 
 function toggleCardSelection(id, code) {
-    if (state.selectedCards[id]) delete state.selectedCards[id];
-    else state.selectedCards[id] = code;
-    initPlanner();
+    // Immediately mark as Attended on tap — no confirmation needed
+    markTimetableAttendance(code, 'Present');
 }
+
 
 function markTimetableAttendance(code, status) {
     const s = state.subjects.find(x => x.code === code);
@@ -1164,86 +1160,41 @@ function markTimetableAttendance(code, status) {
     showToast(`✅ Marked ${status === 'Present' ? 'Attended' : 'Bunked'}: ${code}`, 'success');
 }
 
-function applySelectedAttendance() {
-    const selectedEntries = Object.values(state.selectedCards);
-    if (selectedEntries.length === 0) return;
-
-    selectedEntries.forEach(code => {
-        const s = state.subjects.find(x => x.code === code);
-        const name = s ? s.name : (state.courseMapping[code] || code);
-
-        state.manual.unshift({
-            id: Date.now() + Math.random(),
-            code: code,
-            name: name,
-            status: 'Present',
-            time: new Date().toLocaleString(),
-            timestamp: new Date().toISOString()
-        });
-    });
-
-    state.selectedCards = {};
-    saveState();
-
-    // Refresh all UI
-    renderSemesterHero(); renderWidgets(); renderSubjects(); initPlanner(); initManual();
-    showToast(`✅ Marked ${selectedEntries.length} as Attended!`, 'success');
-}
 
 function updateSmartTrackerImpact() {
     const l = document.getElementById('planner-impact-list');
-    const btn = document.getElementById('planner-confirm-btn');
     if (!l) return;
 
-    const selectedCodes = Object.values(state.selectedCards || {});
     const todayStr = new Date().toLocaleDateString();
     const todayManual = state.manual.filter(m => new Date(m.timestamp || m.time).toLocaleDateString() === todayStr);
     const todayManualCodes = [...new Set(todayManual.map(m => m.code))];
-    
-    // Subjects to show: either currently selected OR already tracked today
-    const codesToShow = [...new Set([...selectedCodes, ...todayManualCodes])];
-    
-    if (codesToShow.length === 0) {
-        l.innerHTML = '<div class="text-center py-2 text-gray-500 text-[10px] italic font-medium">Select or mark classes to see tracker stats</div>';
-        if (btn) btn.classList.add('hidden');
+
+    if (todayManualCodes.length === 0) {
+        l.innerHTML = '<div class="text-center py-2 text-gray-500 text-[10px] italic font-medium">Mark classes to see today\'s tracker stats</div>';
         return;
     }
 
-    if (btn) {
-        if (selectedCodes.length > 0) btn.classList.remove('hidden');
-        else btn.classList.add('hidden');
-    }
-
     let html = '';
-    codesToShow.forEach(code => {
+    todayManualCodes.forEach(code => {
         const s = getSubjectStats(code);
         if (!s) return;
 
         const histCount = todayManual.filter(m => m.code === code && m.status === 'Present').length;
         const histAbsent = todayManual.filter(m => m.code === code && m.status === 'Absent').length;
-        const pendingCount = selectedCodes.filter(c => c === code).length;
 
-        const totalP = histCount + pendingCount;
-        const totalA = histAbsent;
-
-        const adjAtt = s.att + totalP;
-        const adjTot = s.tot + totalP + totalA;
+        const adjAtt = s.att + histCount;
+        const adjTot = s.tot + histCount + histAbsent;
         const adjPct = adjTot === 0 ? 0 : (adjAtt / adjTot * 100);
-        
+
         const diff = adjPct - s.pct;
         const diffStr = diff >= 0 ? `+${diff.toFixed(1)}%` : `${diff.toFixed(1)}%`;
         const diffCol = diff > 0.05 ? 'text-emerald-400' : diff < -0.05 ? 'text-rose-400' : 'text-gray-500';
 
         html += `
-            <div class="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div class="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5">
                 <div class="flex-1 min-w-0 pr-3">
                     <p class="text-[11px] font-bold text-white truncate">${s.name}</p>
-                    <div class="flex items-center gap-2 mt-1">
-                        <span class="text-[9px] font-black ${pendingCount > 0 ? 'text-indigo-400 animate-pulse' : 'text-emerald-400/70'}">
-                            ${totalP} P / ${totalA} A Today
-                        </span>
-                        ${pendingCount > 0 ? `<span class="text-[8px] px-1.5 py-0.5 rounded-lg bg-indigo-500/20 text-indigo-300">+${pendingCount} selecting</span>` : ''}
-                    </div>
+                    <span class="text-[9px] font-black text-emerald-400/70">${histCount} P / ${histAbsent} A Today</span>
                 </div>
                 <div class="text-right">
                     <p class="text-[13px] font-black text-indigo-300">${adjPct.toFixed(1)}%</p>
@@ -1252,7 +1203,7 @@ function updateSmartTrackerImpact() {
             </div>
         `;
     });
-    
+
     l.innerHTML = html;
 }
 

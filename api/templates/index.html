@@ -569,48 +569,40 @@
 
                 <!-- TAB: SMART TRACKER (Combined Planner & Edit) -->
                 <div id="tab-planner" class="tab-content space-y-5 pt-2">
-                    <!-- Integrated Attendance Comparison (Top) -->
-                    <div
-                        class="glass-panel p-5 rounded-[32px] border-l-4 border-indigo-500 shadow-xl overflow-hidden relative">
-                        <div class="absolute top-0 right-0 p-4 opacity-10 text-4xl">📊</div>
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="flex items-center gap-3">
-                                <div
-                                    class="w-8 h-8 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-300">
-                                    <i class="fas fa-chart-line text-xs"></i>
-                                </div>
-                                <span class="text-[10px] font-black text-indigo-200 uppercase tracking-[0.2em]">Smart
-                                    Tracker Attendance</span>
-                            </div>
-                            <button id="planner-confirm-btn" onclick="applySelectedAttendance()"
-                                class="hidden py-1.5 px-4 rounded-full bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 active:scale-95 transition-all animate-bounce">
-                                <i class="fas fa-check-double mr-2"></i>Apply Selected
-                            </button>
-                        </div>
-                        <div id="planner-impact-list" class="space-y-3">
-                            <div class="text-center py-2 text-gray-500 text-[10px] italic font-medium">Select classes
-                                below to see prediction</div>
-                        </div>
-                    </div>
 
                     <!-- Day Selector (Stays at top) -->
                     <div class="flex bg-black/40 rounded-[24px] p-1.5 shadow-inner backdrop-blur-md">
                         <div class="flex w-full overflow-x-auto no-scrollbar gap-1.5" id="planner-days"></div>
                     </div>
 
-                    <!-- Select All Control -->
-                    <div id="planner-select-all-container"
+                    <!-- Row: Mark All + Show Smart Attendance toggle -->
+                    <div
                         class="flex justify-between items-center px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
-                        <span class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Day Selection</span>
-                        <button id="select-all-btn" onclick="toggleSelectAllCards()"
+                        <button onclick="toggleSelectAllCards()"
                             class="py-1.5 px-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[9px] font-black uppercase tracking-widest hover:bg-indigo-500/20 transition-all active:scale-95">
-                            Select All
+                            Mark All Attended
                         </button>
+                        <button onclick="toggleSmartTrackerPanel(this)"
+                            class="py-1.5 px-3 rounded-xl bg-white/5 border border-white/10 text-gray-400 text-[9px] font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95 flex items-center gap-1.5">
+                            <i class="fas fa-chart-bar text-[8px]"></i> Show Stats
+                        </button>
+                    </div>
+
+                    <!-- Smart Tracker Attendance Panel (collapsible, hidden by default) -->
+                    <div id="smart-tracker-panel"
+                        class="hidden glass-panel p-5 rounded-[32px] border-l-4 border-indigo-500 shadow-xl overflow-hidden relative">
+                        <div class="absolute top-0 right-0 p-4 opacity-10 text-4xl">📊</div>
+                        <p class="text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-3">Smart Tracker
+                            Attendance</p>
+                        <div id="planner-impact-list" class="space-y-3">
+                            <div class="text-center py-2 text-gray-500 text-[10px] italic font-medium">Mark classes to
+                                see today's tracker stats</div>
+                        </div>
                     </div>
 
                     <!-- Interactive Timetable Cards -->
                     <div class="space-y-3" id="planner-classes">
-                        <!-- Class cards with Present/Absent buttons injected by JS -->
+                        <!-- Class cards injected by JS -->
                     </div>
 
                     <!-- Recent History & Logs -->
