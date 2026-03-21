@@ -1066,10 +1066,10 @@ function initPlanner() {
             const statusIcon = todayEntries.some(m => m.status === 'Present') ? 'fa-check-circle text-emerald-400' : (isDone ? 'fa-times-circle text-rose-400' : '');
 
             c.innerHTML += `
-                <div onclick="${isDone ? '' : `toggleCardSelection('${id}', '${code}')`}" 
-                    class="glass-panel p-5 rounded-[28px] border-2 transition-all duration-300 relative overflow-hidden group active:scale-[0.97]
-                    ${isSelected ? 'border-emerald-500 bg-emerald-500/10 shadow-lg shadow-emerald-500/10' : 'border-white/5'} 
-                    ${isDone ? 'opacity-60 cursor-not-allowed scale-95 grayscale-[0.5]' : 'cursor-pointer hover:border-white/20'}">
+                <div onclick="toggleCardSelection('${id}', '${code}')" 
+                    class="glass-panel p-5 rounded-[28px] border-2 transition-all duration-300 relative overflow-hidden group active:scale-[0.97] cursor-pointer
+                    ${isSelected ? 'border-emerald-500 bg-emerald-500/10 shadow-lg shadow-emerald-500/10' : 'border-white/5 hover:border-white/20'} 
+                    ${isDone ? 'opacity-90' : ''}">
                     
                     ${isSelected ? '<div class="absolute -right-4 -top-4 w-12 h-12 bg-emerald-500 rotate-45 flex items-end justify-center pb-1 shadow-lg"><i class="fas fa-check text-[10px] text-white -rotate-45"></i></div>' : ''}
                     
@@ -1083,7 +1083,7 @@ function initPlanner() {
                             <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wider mt-1">${code}</p>
                         </div>
                         <div class="flex items-center justify-center w-10 h-10 rounded-2xl ${isSelected ? 'bg-emerald-500 text-white' : 'bg-white/5 text-gray-600'} transition-all">
-                            <i class="fas ${isSelected ? 'fa-check' : (isDone ? 'fa-lock' : 'fa-plus')} text-xs"></i>
+                            <i class="fas ${isSelected ? 'fa-check' : 'fa-plus'} text-xs"></i>
                         </div>
                     </div>
                 </div>
