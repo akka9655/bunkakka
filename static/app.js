@@ -1058,7 +1058,7 @@ function initPlanner() {
             const id = `${state.activePlannerDay}-${i}`;
             const isSelected = !!state.selectedCards[id];
             const s = state.subjects.find(s => s.code === code) || { name: state.courseMapping[code] || code };
-            
+
             // Check if this subject has entries TODAY in manual history
             const todayStr = new Date().toLocaleDateString();
             const todayEntries = state.manual.filter(m => m.code === code && new Date(m.timestamp || m.time).toLocaleDateString() === todayStr);
@@ -1082,8 +1082,15 @@ function initPlanner() {
                             <p class="text-[14px] font-bold text-white truncate group-hover:text-indigo-200 transition-colors">${s.name}</p>
                             <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wider mt-1">${code}</p>
                         </div>
-                        <div class="flex items-center justify-center w-10 h-10 rounded-2xl ${isSelected ? 'bg-emerald-500 text-white' : 'bg-white/5 text-gray-600'} transition-all">
-                            <i class="fas ${isSelected ? 'fa-check' : 'fa-plus'} text-xs"></i>
+                        <div class="flex gap-2 relative z-10">
+                            <button onclick="event.stopPropagation(); markTimetableAttendance('${code}', 'Present')" 
+                                class="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center hover:bg-emerald-500/20 active:scale-95 transition">
+                                <i class="fas fa-check text-xs"></i>
+                            </button>
+                            <button onclick="event.stopPropagation(); markTimetableAttendance('${code}', 'Absent')" 
+                                class="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center hover:bg-rose-500/20 active:scale-95 transition">
+                                <i class="fas fa-times text-xs"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1099,6 +1106,31 @@ function toggleCardSelection(id, code) {
     initPlanner();
 }
 
+function markTimetableAttendance(code, status) {
+    const s = state.subjects.find(x => x.code === code);
+    const name = s ? s.name : (state.courseMapping[code] || code);
+
+    state.manual.unshift({
+        id: Date.now() + Math.random(),
+        code: code,
+        name: name,
+        status: status,
+        time: new Date().toLocaleString(),
+        timestamp: new Date().toISOString()
+    });
+
+    // Deselect specifically for this subject if selected
+    if (state.selectedCards) {
+        Object.keys(state.selectedCards).forEach(id => {
+            if (state.selectedCards[id] === code) delete state.selectedCards[id];
+        });
+    }
+
+    saveState();
+    renderSemesterHero(); renderWidgets(); renderSubjects(); initPlanner(); initManual();
+    showToast(`✅ Marked ${status === 'Present' ? 'Attended' : 'Bunked'}: ${code}`, 'success');
+}
+
 function applySelectedAttendance() {
     const selectedEntries = Object.values(state.selectedCards);
     if (selectedEntries.length === 0) return;
@@ -1106,7 +1138,7 @@ function applySelectedAttendance() {
     selectedEntries.forEach(code => {
         const s = state.subjects.find(x => x.code === code);
         const name = s ? s.name : (state.courseMapping[code] || code);
-        
+
         state.manual.unshift({
             id: Date.now() + Math.random(),
             code: code,
@@ -1119,7 +1151,7 @@ function applySelectedAttendance() {
 
     state.selectedCards = {};
     saveState();
-    
+
     // Refresh all UI
     renderSemesterHero(); renderWidgets(); renderSubjects(); initPlanner(); initManual();
     showToast(`✅ Marked ${selectedEntries.length} as Attended!`, 'success');
@@ -1131,7 +1163,7 @@ function updateSmartTrackerImpact() {
     if (!l) return;
 
     const selectedCodes = Object.values(state.selectedCards || {});
-    
+
     if (selectedCodes.length === 0) {
         l.innerHTML = '<div class="text-center py-2 text-gray-500 text-[10px] italic font-medium">Select classes to see prediction</div>';
         if (btn) btn.classList.add('hidden');
