@@ -570,24 +570,6 @@
                 <!-- TAB: SMART TRACKER (Combined Planner & Edit) -->
                 <div id="tab-planner" class="tab-content space-y-5 pt-2">
 
-                    <!-- Day Selector (Stays at top) -->
-                    <div class="flex bg-black/40 rounded-[24px] p-1.5 shadow-inner backdrop-blur-md">
-                        <div class="flex w-full overflow-x-auto no-scrollbar gap-1.5" id="planner-days"></div>
-                    </div>
-
-                    <!-- Row: Mark All + Show Smart Attendance toggle -->
-                    <div
-                        class="flex justify-between items-center px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
-                        <button onclick="toggleSelectAllCards()"
-                            class="py-1.5 px-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[9px] font-black uppercase tracking-widest hover:bg-indigo-500/20 transition-all active:scale-95">
-                            Mark All Attended
-                        </button>
-                        <button onclick="toggleSmartTrackerPanel(this)"
-                            class="py-1.5 px-3 rounded-xl bg-white/5 border border-white/10 text-gray-400 text-[9px] font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95 flex items-center gap-1.5">
-                            <i class="fas fa-chart-bar text-[8px]"></i> Show Stats
-                        </button>
-                    </div>
-
                     <!-- Smart Tracker Attendance Panel (collapsible, hidden by default) -->
                     <div id="smart-tracker-panel"
                         class="hidden glass-panel p-5 rounded-[32px] border-l-4 border-indigo-500 shadow-xl overflow-hidden relative">
@@ -598,6 +580,24 @@
                             <div class="text-center py-2 text-gray-500 text-[10px] italic font-medium">Mark classes to
                                 see today's tracker stats</div>
                         </div>
+                    </div>
+
+                    <!-- Day Selector -->
+                    <div class="flex bg-black/40 rounded-[24px] p-1.5 shadow-inner backdrop-blur-md">
+                        <div class="flex w-full overflow-x-auto no-scrollbar gap-1.5" id="planner-days"></div>
+                    </div>
+
+                    <!-- Row: Mark All + Show Stats toggle -->
+                    <div
+                        class="flex justify-between items-center px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
+                        <button onclick="toggleSelectAllCards()"
+                            class="py-1.5 px-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[9px] font-black uppercase tracking-widest hover:bg-indigo-500/20 transition-all active:scale-95">
+                            Mark All Attended
+                        </button>
+                        <button onclick="toggleSmartTrackerPanel(this)"
+                            class="py-1.5 px-3 rounded-xl bg-white/5 border border-white/10 text-gray-400 text-[9px] font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95 flex items-center gap-1.5">
+                            <i class="fas fa-chart-bar text-[8px]"></i> Show Stats
+                        </button>
                     </div>
 
                     <!-- Interactive Timetable Cards -->
