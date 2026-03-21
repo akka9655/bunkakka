@@ -1,24 +1,29 @@
 {
+  "functions": {
+    "api/index.py": {
+      "runtime": "vercel-python@0.0.6"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index.py"
+      "destination": "api/index.py"
     },
     {
       "source": "/favicon.ico",
-      "destination": "/api/favicon.py"
+      "destination": "api/favicon.py"
     },
     {
       "source": "/manifest.json",
-      "destination": "/static/manifest.json"
+      "destination": "static/manifest.json"
     },
     {
       "source": "/static/(.*)",
-      "destination": "/static/$1"
+      "destination": "static/$1"
     },
     {
       "source": "/(.*)",
-      "destination": "/api/index.py"
+      "destination": "api/index.py"
     }
   ],
   "headers": [
