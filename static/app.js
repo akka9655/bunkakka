@@ -1021,115 +1021,190 @@ function initAcademicCalendar() {
 }
 function initPlanner() {
     const t = document.getElementById('planner-days'), c = document.getElementById('planner-classes');
-
-    // CHECK IF TIMETABLE EXISTS
     const hasTimetable = state.timetable && Object.keys(state.timetable).length > 0 &&
         Object.values(state.timetable).some(d => d && d.length > 0 && d.some(x => x !== 'Free'));
 
     if (t) {
         if (!hasTimetable) {
             t.innerHTML = '';
-            t.style.display = 'none'; // Hide days if no timetable
+            t.parentNode.style.display = 'none';
         } else {
-            t.style.display = 'flex'; // Show days
+            t.parentNode.style.display = 'flex';
             t.innerHTML = '';
-            DAYS.forEach(d => { t.innerHTML += `<button onclick="state.activePlannerDay='${d}';initPlanner()" class="flex-1 py-3 rounded-xl text-xs font-bold transition-all ${d === state.activePlannerDay ? 'bg-white text-black shadow-lg shadow-white/10' : 'bg-white/5 text-gray-400 border border-white/5'}">${d}</button>`; });
+            DAYS.forEach(d => {
+                t.innerHTML += `<button onclick="state.activePlannerDay='${d}';state.selectedCards={};initPlanner()" class="flex-1 py-3 px-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${d === state.activePlannerDay ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'bg-white/5 text-gray-400 border border-white/5'}">${d}</button>`;
+            });
         }
     }
 
     if (c) {
         c.innerHTML = '';
-
         if (!hasTimetable) {
-            // FALLBACK: SHOW ATTENDANCE DETAILS
-            c.innerHTML = `
-                <div class="text-center py-6">
-                    <div class="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-3">
-                        <i class="fas fa-calendar-times text-gray-500"></i>
-                    </div>
-                    <h3 class="text-white font-bold text-sm mb-1">Timetable Unavailable</h3>
-                    <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-4">Showing Class List Instead</p>
-                </div>
-                <div class="space-y-2">
-            `;
-
-            // Reuse Subject List Logic (Simplified for Planner)
-            if (state.subjects.length === 0) {
-                c.innerHTML += '<div class="text-center text-gray-500 text-xs">No subjects found</div>';
-            } else {
-                state.subjects.forEach(sub => {
-                    const stats = getSubjectStats(sub.code);
-                    c.innerHTML += `
-                        <div class="bg-white/5 p-4 rounded-2xl border border-white/5 flex justify-between items-center">
-                            <div>
-                                <h4 class="font-bold text-white text-xs mb-1">${stats.name}</h4>
-                                <p class="text-[9px] text-gray-400 font-bold uppercase">${stats.code}</p>
-                            </div>
-                            <div class="text-right">
-                                <span class="font-bold text-indigo-400 text-xs">${stats.att}/${stats.tot}</span>
-                            </div>
-                        </div>
-                     `;
-                });
-            }
-            c.innerHTML += '</div>';
-
-            // Clear impact list since we aren't planning
-            const l = document.getElementById('planner-impact-list');
-            if (l) l.innerHTML = '<div class="text-center py-2 text-gray-500 text-[10px] italic font-medium">Timetable needed for prediction</div>';
-
+            c.innerHTML = `<div class="text-center py-10 opacity-50"><div class="text-4xl mb-4">📅</div><p class="text-xs font-bold uppercase tracking-widest text-gray-400">Timetable Not Found</p></div>`;
             return;
         }
 
+        if (!state.selectedCards) state.selectedCards = {};
+
         const cl = state.timetable[state.activePlannerDay] || [];
-        if (!cl.length || cl.every(x => x === 'Free')) { c.innerHTML = '<div class="text-center py-10 text-gray-600 text-xs font-bold uppercase tracking-widest">No classes today</div>'; updatePlannerImpact(); return; }
-        cl.forEach((x, i) => {
-            if (x === 'Free') return; const id = `${state.activePlannerDay}-${i}`, ch = state.plannerBunks[id], s = state.subjects.find(s => s.code === x) || { name: state.courseMapping[x] || x };
+        if (!cl.length || cl.every(x => x === 'Free')) {
+            c.innerHTML = '<div class="text-center py-10 text-gray-600 text-[10px] font-black uppercase tracking-widest">No classes scheduled</div>';
+            updateSmartTrackerImpact();
+            return;
+        }
 
-            // Added unique ID to label for DOM updates
-            c.innerHTML += `<label id="planner-label-${id}" class="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 cursor-pointer active:scale-98 transition group"><div class="relative w-6 h-6 rounded-lg border-2 ${ch ? 'bg-rose-500 border-rose-500' : 'border-gray-600 group-hover:border-gray-500'} flex items-center justify-center transition-all" id="planner-checkbox-${id}"><i class="fas fa-check text-xs text-white ${ch ? 'scale-100' : 'scale-0'} transition-transform"></i><input type="checkbox" class="hidden" ${ch ? 'checked' : ''} onchange="toggleBunk(this, '${id}','${x}')"></div><div class="flex-1"><p class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-0.5">Period ${i + 1}</p><p class="text-sm font-bold text-white truncate w-full ${ch ? 'text-gray-500 line-through decoration-rose-500/50' : ''}" id="planner-text-${id}">${s.name}</p></div></label>`;
+        cl.forEach((code, i) => {
+            if (code === 'Free') return;
+            const id = `${state.activePlannerDay}-${i}`;
+            const isSelected = !!state.selectedCards[id];
+            const s = state.subjects.find(s => s.code === code) || { name: state.courseMapping[code] || code };
+            
+            // Check if this subject has entries TODAY in manual history
+            const todayStr = new Date().toLocaleDateString();
+            const todayEntries = state.manual.filter(m => m.code === code && new Date(m.timestamp || m.time).toLocaleDateString() === todayStr);
+            const isDone = todayEntries.length > 0;
+            const statusIcon = todayEntries.some(m => m.status === 'Present') ? 'fa-check-circle text-emerald-400' : (isDone ? 'fa-times-circle text-rose-400' : '');
+
+            c.innerHTML += `
+                <div onclick="${isDone ? '' : `toggleCardSelection('${id}', '${code}')`}" 
+                    class="glass-panel p-5 rounded-[28px] border-2 transition-all duration-300 relative overflow-hidden group active:scale-[0.97]
+                    ${isSelected ? 'border-emerald-500 bg-emerald-500/10 shadow-lg shadow-emerald-500/10' : 'border-white/5'} 
+                    ${isDone ? 'opacity-60 cursor-not-allowed scale-95 grayscale-[0.5]' : 'cursor-pointer hover:border-white/20'}">
+                    
+                    ${isSelected ? '<div class="absolute -right-4 -top-4 w-12 h-12 bg-emerald-500 rotate-45 flex items-end justify-center pb-1 shadow-lg"><i class="fas fa-check text-[10px] text-white -rotate-45"></i></div>' : ''}
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1 min-w-0 pr-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="px-2 py-0.5 rounded-lg bg-indigo-500/10 text-indigo-400 text-[8px] font-black uppercase tracking-widest">Period ${i + 1}</span>
+                                ${isDone ? `<span class="text-[10px] animate-pulse"><i class="fas ${statusIcon}"></i></span>` : ''}
+                            </div>
+                            <p class="text-[14px] font-bold text-white truncate group-hover:text-indigo-200 transition-colors">${s.name}</p>
+                            <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wider mt-1">${code}</p>
+                        </div>
+                        <div class="flex items-center justify-center w-10 h-10 rounded-2xl ${isSelected ? 'bg-emerald-500 text-white' : 'bg-white/5 text-gray-600'} transition-all">
+                            <i class="fas ${isSelected ? 'fa-check' : (isDone ? 'fa-lock' : 'fa-plus')} text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+            `;
         });
-        updatePlannerImpact();
+        updateSmartTrackerImpact();
     }
 }
 
-function toggleBunk(el, id, code) {
-    // Update State
-    if (state.plannerBunks[id]) delete state.plannerBunks[id];
-    else state.plannerBunks[id] = code;
-
-    // PERFOMANCE FIX: Update DOM directly instead of re-rendering list
-    const ch = !!state.plannerBunks[id];
-
-    // Update Checkbox UI
-    const checkboxDiv = document.getElementById(`planner-checkbox-${id}`);
-    const checkIcon = checkboxDiv.querySelector('i');
-
-    if (ch) {
-        checkboxDiv.className = "relative w-6 h-6 rounded-lg border-2 bg-rose-500 border-rose-500 flex items-center justify-center transition-all";
-        checkIcon.classList.remove('scale-0');
-        checkIcon.classList.add('scale-100');
-    } else {
-        checkboxDiv.className = "relative w-6 h-6 rounded-lg border-2 border-gray-600 group-hover:border-gray-500 flex items-center justify-center transition-all";
-        checkIcon.classList.remove('scale-100');
-        checkIcon.classList.add('scale-0');
-    }
-
-    // Update Text UI
-    const textP = document.getElementById(`planner-text-${id}`);
-    if (ch) {
-        textP.className = "text-sm font-bold text-white truncate w-full text-gray-500 line-through decoration-rose-500/50";
-    } else {
-        textP.className = "text-sm font-bold text-white truncate w-full";
-    }
-
-    // Recalculate impact only
-    updatePlannerImpact();
+function toggleCardSelection(id, code) {
+    if (state.selectedCards[id]) delete state.selectedCards[id];
+    else state.selectedCards[id] = code;
+    initPlanner();
 }
-function updatePlannerImpact() {
-    const l = document.getElementById('planner-impact-list'), cnt = {}; Object.values(state.plannerBunks).forEach(c => cnt[c] = (cnt[c] || 0) + 1);
-    l.innerHTML = ''; if (Object.keys(cnt).length === 0) { l.innerHTML = '<div class="text-center py-2 text-gray-500 text-[10px] italic font-medium">Select classes below to see impact</div>'; return; }
-    Object.entries(cnt).forEach(([c, n]) => { const s = getSubjectStats(c); if (!s) return; const np = ((s.att) / (s.tot + n) * 100).toFixed(1); l.innerHTML += `<div class="flex justify-between items-center text-xs bg-black/20 p-2 rounded-lg mb-1"><span class="text-gray-400 truncate w-32">${s.name}</span><div class="flex items-center gap-2"><span class="text-rose-400 font-bold">-${n}</span><span class="text-gray-600">→</span><span class="${np >= 75 ? 'text-white' : 'text-rose-400'} font-bold">${np}%</span></div></div>`; });
+
+function applySelectedAttendance() {
+    const selectedEntries = Object.values(state.selectedCards);
+    if (selectedEntries.length === 0) return;
+
+    selectedEntries.forEach(code => {
+        const s = state.subjects.find(x => x.code === code);
+        const name = s ? s.name : (state.courseMapping[code] || code);
+        
+        state.manual.unshift({
+            id: Date.now() + Math.random(),
+            code: code,
+            name: name,
+            status: 'Present',
+            time: new Date().toLocaleString(),
+            timestamp: new Date().toISOString()
+        });
+    });
+
+    state.selectedCards = {};
+    saveState();
+    
+    // Refresh all UI
+    renderSemesterHero(); renderWidgets(); renderSubjects(); initPlanner(); initManual();
+    showToast(`✅ Marked ${selectedEntries.length} as Attended!`, 'success');
+}
+
+function updateSmartTrackerImpact() {
+    const l = document.getElementById('planner-impact-list');
+    const btn = document.getElementById('planner-confirm-btn');
+    if (!l) return;
+
+    const selectedCodes = Object.values(state.selectedCards || {});
+    
+    if (selectedCodes.length === 0) {
+        l.innerHTML = '<div class="text-center py-2 text-gray-500 text-[10px] italic font-medium">Select classes to see prediction</div>';
+        if (btn) btn.classList.add('hidden');
+        return;
+    }
+
+    if (btn) btn.classList.remove('hidden');
+
+    const counts = {};
+    selectedCodes.forEach(c => counts[c] = (counts[c] || 0) + 1);
+
+    let html = '';
+    Object.entries(counts).forEach(([code, n]) => {
+        const s = getSubjectStats(code);
+        if (!s) return;
+        const adjAtt = s.att + n; const adjTot = s.tot + n;
+        const adjPct = adjTot === 0 ? 0 : (adjAtt / adjTot * 100);
+        const diff = adjPct - s.pct;
+        const diffStr = diff >= 0 ? `+${diff.toFixed(1)}%` : `${diff.toFixed(1)}%`;
+        const diffCol = diff > 0.05 ? 'text-emerald-400' : diff < -0.05 ? 'text-rose-400' : 'text-gray-500';
+
+        html += `<div class="flex justify-between items-center bg-white/5 p-3 rounded-2xl border border-white/5 h-16">
+            <div class="flex-1 min-w-0 pr-3">
+                <p class="text-[10px] font-bold text-white truncate">${s.name}</p>
+                <p class="text-[8px] text-gray-500 font-black uppercase mt-0.5">+${n} Session(s)</p>
+            </div>
+            <div class="text-right">
+                <p class="text-[11px] font-black text-indigo-300">${adjPct.toFixed(1)}%</p>
+                <p class="text-[9px] font-bold ${diffCol}">${diffStr}</p>
+            </div>
+        </div>`;
+    });
+    l.innerHTML = html;
+}
+
+    let html = '';
+    uniqueDayCodes.forEach(code => {
+        const manualEntries = state.manual.filter(m => m.code === code);
+        if (manualEntries.length === 0) return;
+
+        const s = getSubjectStats(code);
+        if (!s) return;
+
+        const manualPresent = manualEntries.filter(m => m.status === 'Present').length;
+        const manualAbsent = manualEntries.filter(m => m.status === 'Absent').length;
+
+        const adjAtt = s.att + manualPresent;
+        const adjTot = s.tot + manualPresent + manualAbsent;
+        const adjPct = adjTot === 0 ? 0 : (adjAtt / adjTot * 100);
+
+        const diff = adjPct - s.pct;
+        const diffStr = diff >= 0 ? `+${diff.toFixed(1)}%` : `${diff.toFixed(1)}%`;
+        const diffCol = diff > 0.05 ? 'text-emerald-400' : diff < -0.05 ? 'text-rose-400' : 'text-gray-500';
+
+        html += `
+            <div class="flex justify-between items-center bg-white/5 p-3 rounded-2xl border border-white/5">
+                <div class="flex-1 min-w-0 pr-3">
+                    <p class="text-[10px] font-bold text-white truncate">${s.name}</p>
+                    <p class="text-[8px] text-gray-500 font-black uppercase mt-0.5">${manualPresent} P / ${manualAbsent} A</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-[11px] font-black text-indigo-300">${adjPct.toFixed(1)}%</p>
+                    <p class="text-[9px] font-bold ${diffCol}">${diffStr}</p>
+                </div>
+            </div>
+        `;
+    });
+
+    if (!html) {
+        l.innerHTML = '<div class="text-center py-2 text-gray-500 text-[10px] italic font-medium">No actions taken for ' + state.activePlannerDay + ' yet</div>';
+    } else {
+        l.innerHTML = html;
+    }
 }
 function initManual() {
     const s = document.getElementById('manual-subject'), h = document.getElementById('manual-history');
@@ -1395,7 +1470,7 @@ function switchTab(id, index) {
 
     let t = "Dashboard";
     if (id === 'home') { const td = new Date(); const ev = ACADEMIC_DATA.fullCalendar.find(e => new Date(e.date).toDateString() === td.toDateString()); if (ev) t = ev.type === 'Holiday' ? "Holiday! 🌴" : ev.type === 'Exam' ? "Exam Day! 🍀" : "Busy Day! 📚"; else if (td.getDay() === 0 || td.getDay() === 6) t = "Weekend Vibes 🎉"; }
-    else if (id === 'calendar') t = "Timeline"; else if (id === 'planner') t = "Planner"; else if (id === 'edit') t = "Manual Tracking";
+    else if (id === 'calendar') t = "Timeline"; else if (id === 'planner') t = "Smart Tracker";
     document.getElementById('greeting-text').innerText = t;
 }
 function togglePassword() { const i = document.getElementById('password'); i.type = i.type === 'password' ? 'text' : 'password'; }

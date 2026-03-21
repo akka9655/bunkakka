@@ -567,60 +567,62 @@
                     </div>
                 </div>
 
-                <!-- TAB: PLANNER -->
+                <!-- TAB: SMART TRACKER (Combined Planner & Edit) -->
                 <div id="tab-planner" class="tab-content space-y-5 pt-2">
-                    <div class="glass-panel p-2 rounded-[32px] border-l-4" style="border-left-color: var(--primary);">
-                        <div class="mx-2 mt-2 mb-3 bg-white/5 rounded-[24px] p-5 border border-white/5 shadow-inner">
-                            <div class="flex items-center justify-between mb-2">
-                                <div class="flex items-center gap-2">
-                                    <div
-                                        class="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-indigo-200 text-xs">
-                                        <i class="fas fa-chart-pie"></i>
-                                    </div>
-                                    <span
-                                        class="text-[9px] font-bold text-indigo-200 uppercase tracking-widest">Prediction</span>
+                                        <!-- Integrated Attendance Comparison (Top) -->
+                    <div class="glass-panel p-5 rounded-[32px] border-l-4 border-indigo-500 shadow-xl overflow-hidden relative">
+                        <div class="absolute top-0 right-0 p-4 opacity-10 text-4xl">📊</div>
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-300">
+                                    <i class="fas fa-chart-line text-xs"></i>
                                 </div>
+                                <span class="text-[10px] font-black text-indigo-200 uppercase tracking-[0.2em]">Predicted Attendance</span>
                             </div>
-                            <div id="planner-impact-list" class="space-y-1">
-                                <div class="text-center py-2 text-gray-500 text-[10px] italic font-medium">Select
-                                    classes below to see impact</div>
-                            </div>
+                            <button id="planner-confirm-btn" onclick="applySelectedAttendance()" 
+                                class="hidden py-1.5 px-4 rounded-full bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 active:scale-95 transition-all animate-bounce">
+                                <i class="fas fa-check-double mr-2"></i>Apply Selected
+                            </button>
                         </div>
-                        <div class="flex bg-black/40 rounded-[20px] p-1 mb-3 mx-2">
-                            <div class="flex w-full overflow-x-auto no-scrollbar gap-1" id="planner-days"></div>
+                        <div id="planner-impact-list" class="space-y-3">
+                            <div class="text-center py-2 text-gray-500 text-[10px] italic font-medium">Select classes below to see prediction</div>
                         </div>
-                        <div class="px-3 pb-3 space-y-2" id="planner-classes"></div>
                     </div>
-                </div>
+                    </div>
 
-                <!-- TAB: EDIT -->
-                <div id="tab-edit" class="tab-content space-y-5 pt-2">
-                    <div class="glass-panel p-6 rounded-[32px] border-l-4" style="border-left-color: var(--primary);">
+                    <!-- Day Selector (Stays at top) -->
+                    <div class="flex bg-black/40 rounded-[24px] p-1.5 shadow-inner backdrop-blur-md">
+                        <div class="flex w-full overflow-x-auto no-scrollbar gap-1.5" id="planner-days"></div>
+                    </div>
 
-                        <!-- Toggles: injected by initManual() -->
+                    <!-- Interactive Timetable Cards -->
+                    <div class="space-y-3" id="planner-classes">
+                        <!-- Class cards with Present/Absent buttons injected by JS -->
+                    </div>
 
-                        <!-- Subject Selector -->
+                                        <!-- Manual Tracking Controls (Condensed from Edit Tab) -->
+                    <div class="glass-panel p-6 rounded-[32px] border-l-4 border-violet-500 mt-4">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-8 h-8 rounded-xl bg-violet-500/20 flex items-center justify-center text-violet-300">
+                                <i class="fas fa-plus text-xs"></i>
+                            </div>
+                            <span class="text-[10px] font-black text-violet-200 uppercase tracking-[0.2em]">Ad-hoc Entry</span>
+                        </div>
+                        
                         <div class="grid grid-cols-2 gap-3 mb-6">
                             <div class="relative">
-                                <label
-                                    class="text-[9px] font-bold text-gray-500 uppercase ml-1 mb-2 block tracking-widest">Select
-                                    Subject</label>
+                                <label class="text-[9px] font-bold text-gray-500 uppercase ml-1 mb-2 block tracking-widest">Subject</label>
                                 <div class="relative">
-                                    <select id="manual-subject"
-                                        class="w-full bg-white/5 border border-white/10 text-white text-[11px] rounded-xl p-3 pr-8 outline-none appearance-none font-bold focus:border-indigo-500/50 transition truncate">
+                                    <select id="manual-subject" class="w-full bg-white/5 border border-white/10 text-white text-[11px] rounded-xl p-3 pr-8 outline-none appearance-none font-bold focus:border-indigo-500/50 transition truncate">
                                         <option value="">Choose...</option>
                                     </select>
-                                    <i
-                                        class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none"></i>
+                                    <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none"></i>
                                 </div>
                             </div>
                             <div class="relative">
-                                <label
-                                    class="text-[9px] font-bold text-gray-500 uppercase ml-1 mb-2 block tracking-widest">Select
-                                    Day</label>
+                                <label class="text-[9px] font-bold text-gray-500 uppercase ml-1 mb-2 block tracking-widest">Bulk Day</label>
                                 <div class="relative">
-                                    <select id="manual-day"
-                                        class="w-full bg-white/5 border border-white/10 text-white text-[11px] rounded-xl p-3 pr-8 outline-none appearance-none font-bold focus:border-indigo-500/50 transition">
+                                    <select id="manual-day" class="w-full bg-white/5 border border-white/10 text-white text-[11px] rounded-xl p-3 pr-8 outline-none appearance-none font-bold focus:border-indigo-500/50 transition">
                                         <option value="">Choose...</option>
                                         <option value="Mon">Monday</option>
                                         <option value="Tue">Tuesday</option>
@@ -628,52 +630,34 @@
                                         <option value="Thu">Thursday</option>
                                         <option value="Fri">Friday</option>
                                     </select>
-                                    <i
-                                        class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none"></i>
+                                    <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none"></i>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Add Buttons -->
                         <div class="grid grid-cols-2 gap-3 mb-4">
-                            <button onclick="addManualRecord('Present')"
-                                class="py-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold hover:bg-emerald-500/20 active:scale-95 transition flex flex-col items-center gap-1.5 group">
-                                <div
-                                    class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-sm group-hover:scale-110 transition">
-                                    <i class="fas fa-check"></i>
-                                </div>
-                                <span class="text-[8px] uppercase tracking-widest">Attended</span>
+                            <button onclick="addManualRecord('Present')" class="py-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold hover:bg-emerald-500/20 active:scale-95 transition flex items-center justify-center gap-3 group">
+                                <i class="fas fa-check text-xs group-hover:scale-110 transition"></i>
+                                <span class="text-[9px] uppercase tracking-widest">Attended</span>
                             </button>
-                            <button onclick="addManualRecord('Absent')"
-                                class="py-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 font-bold hover:bg-rose-500/20 active:scale-95 transition flex flex-col items-center gap-1.5 group">
-                                <div
-                                    class="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-sm group-hover:scale-110 transition">
-                                    <i class="fas fa-times"></i>
-                                </div>
-                                <span class="text-[8px] uppercase tracking-widest">Bunked</span>
+                            <button onclick="addManualRecord('Absent')" class="py-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 font-bold hover:bg-rose-500/20 active:scale-95 transition flex items-center justify-center gap-3 group">
+                                <i class="fas fa-times text-xs group-hover:scale-110 transition"></i>
+                                <span class="text-[9px] uppercase tracking-widest">Bunked</span>
                             </button>
                         </div>
 
-                        <!-- Bulk Action -->
-                        <button onclick="markDayAttended()"
-                            class="w-full py-3 mb-6 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-500/20 active:scale-95 transition shadow-lg group">
+                        <button onclick="markDayAttended()" class="w-full py-4 mb-6 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-bold text-[9px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-indigo-500/20 active:scale-95 transition shadow-lg group">
                             <i class="fas fa-calendar-check text-xs group-hover:rotate-12 transition-transform"></i>
                             <span>Mark Entire Day Attended</span>
                         </button>
 
-                        <!-- Attendance Comparison Panel (injected by renderManualComparison) -->
-                        <div id="manual-comparison-container" class="mb-4"></div>
-
                         <!-- Recent History -->
-                        <div class="border-t border-white/5 pt-4">
-                            <div class="flex justify-between items-center mb-3 px-1">
-                                <p class="text-[9px] font-bold text-gray-600 uppercase tracking-widest">Recent
-                                    History</p>
-                                <button onclick="showFullHistory()"
-                                    class="text-[9px] font-bold text-indigo-400 uppercase tracking-widest hover:underline">View
-                                    All</button>
+                        <div class="border-t border-white/5 pt-5">
+                            <div class="flex justify-between items-center mb-4 px-1">
+                                <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Recent History</p>
+                                <button onclick="showFullHistory()" class="text-[9px] font-black text-indigo-400 uppercase tracking-widest hover:text-indigo-300 transition">View Full Log</button>
                             </div>
-                            <div id="manual-history" class="space-y-2"></div>
+                            <div id="manual-history" class="space-y-2.5"></div>
                         </div>
                     </div>
                 </div>
@@ -690,10 +674,7 @@
                         <i class="fas fa-calendar-alt"></i>
                     </div>
                     <div class="nav-item" onclick="switchTab('planner', 2)" id="nav-planner">
-                        <i class="fas fa-clipboard-list"></i>
-                    </div>
-                    <div class="nav-item" onclick="switchTab('edit', 3)" id="nav-edit">
-                        <i class="fas fa-sliders-h"></i>
+                        <i class="fas fa-check-double"></i>
                     </div>
                 </nav>
             </div>
@@ -910,7 +891,7 @@
             </div>
         </div>
     </div>
-        <!-- HISTORY MODAL -->
+    <!-- HISTORY MODAL -->
     <div id="history-modal" class="fixed inset-0 z-[60] hidden">
         <div class="absolute inset-0 bg-black/90 opacity-0 transition-opacity duration-300" id="history-backdrop"
             onclick="closeHistory()"></div>
@@ -919,18 +900,19 @@
             <div class="w-12 h-1.5 bg-white/10 rounded-full mx-auto mb-8"></div>
             <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-xl">📜</div>
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-xl">📜
+                    </div>
                     <div>
                         <h3 class="text-xl font-bold text-white">Full History</h3>
                         <p class="text-[10px] text-gray-400 mt-0.5" id="history-count">0 Entries</p>
                     </div>
                 </div>
-                <button onclick="closeHistory()" 
+                <button onclick="closeHistory()"
                     class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            
+
             <div id="full-history-content" class="flex-1 overflow-y-auto no-scrollbar space-y-4 pb-10">
                 <!-- History entries will be injected here -->
             </div>
