@@ -1096,8 +1096,41 @@ function initPlanner() {
                 </div>
             `;
         });
+
+        // Update Select All button state
+        const selBtn = document.getElementById('select-all-btn');
+        if (selBtn) {
+            const validClasses = cl.filter(x => x !== 'Free');
+            const totalSelected = validClasses.filter((code, i) => !!state.selectedCards[`${state.activePlannerDay}-${i}`]).length;
+            const isAll = validClasses.length > 0 && totalSelected === validClasses.length;
+            selBtn.innerText = isAll ? 'Deselect Day' : 'Select All';
+            selBtn.classList.toggle('bg-rose-500/10', isAll);
+            selBtn.classList.toggle('text-rose-400', isAll);
+            selBtn.classList.toggle('bg-indigo-500/10', !isAll);
+            selBtn.classList.toggle('text-indigo-400', !isAll);
+        }
+
         updateSmartTrackerImpact();
     }
+}
+
+function toggleSelectAllCards() {
+    const cl = state.timetable[state.activePlannerDay] || [];
+    const validIds = [];
+    cl.forEach((code, i) => {
+        if (code !== 'Free') validIds.push({ id: `${state.activePlannerDay}-${i}`, code });
+    });
+
+    if (validIds.length === 0) return;
+
+    const allSelected = validIds.every(v => !!state.selectedCards[v.id]);
+
+    if (allSelected) {
+        validIds.forEach(v => delete state.selectedCards[v.id]);
+    } else {
+        validIds.forEach(v => state.selectedCards[v.id] = v.code);
+    }
+    initPlanner();
 }
 
 function toggleCardSelection(id, code) {
@@ -1200,40 +1233,11 @@ function updateSmartTrackerImpact() {
 }
 
 function initManual() {
-    const s = document.getElementById('manual-subject'), h = document.getElementById('manual-history');
+    const h = document.getElementById('manual-history');
 
     // Render subject comparison panel
     renderManualComparison();
 
-    if (s) {
-        s.innerHTML = '<option value="">Choose...</option>';
-
-        if (state.subjects.length > 0) {
-            state.subjects.forEach(x => {
-                const o = document.createElement('option');
-                o.value = x.code;
-                o.text = x.name;
-                o.className = "text-black font-medium";
-                s.appendChild(o);
-            });
-        } else if (state.timetable) {
-            const uniqueCourses = new Set();
-            Object.values(state.timetable).forEach(day => {
-                day.forEach(course => {
-                    if (course && course !== 'Free') uniqueCourses.add(course);
-                });
-            });
-            Array.from(uniqueCourses).sort().forEach(code => {
-                const o = document.createElement('option');
-                o.value = code;
-                o.text = state.courseMapping[code] || code;
-                o.className = "text-black font-medium";
-                s.appendChild(o);
-            });
-        }
-    }
-
-    // Recent history (last 3 entries)
     if (h) {
         h.innerHTML = state.manual.length ? '' : '<div class="text-center text-xs text-gray-700 italic py-4">No manual entries yet</div>';
         state.manual.slice(0, 3).forEach(m => {
@@ -1664,36 +1668,7 @@ function updateSimUI() {
 }
 
 // BULK ATTENDANCE & HISTORY
-function markDayAttended() {
-    const day = document.getElementById('manual-day').value;
-    if (!day) return showToast('Select a day first', 'error');
 
-    if (!state.timetable || !state.timetable[day]) {
-        return showToast('No timetable found for ' + day, 'error');
-    }
-
-    const classes = state.timetable[day].filter(c => c && c !== 'Free');
-    if (classes.length === 0) return showToast('No classes on ' + day, 'info');
-
-    // Add each class manually
-    classes.forEach((code, index) => {
-        const s = state.subjects.find(x => x.code === code);
-        const name = s ? s.name : (state.courseMapping[code] || code);
-        // Add minimal delay to ID to avoid collisions if adding many at once
-        state.manual.unshift({
-            id: Date.now() + index,
-            code: code,
-            name: name,
-            status: 'Present',
-            time: new Date().toLocaleString(),
-            timestamp: new Date().toISOString()
-        });
-    });
-
-    saveState();
-    renderSemesterHero(); renderWidgets(); renderSubjects(); initPlanner(); initManual();
-    showToast(`Marked ${classes.length} classes for ${day}`, 'success');
-}
 
 function showFullHistory() {
     const m = document.getElementById('history-modal'), p = document.getElementById('history-panel'),

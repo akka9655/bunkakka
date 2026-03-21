@@ -594,64 +594,23 @@
                         <div class="flex w-full overflow-x-auto no-scrollbar gap-1.5" id="planner-days"></div>
                     </div>
 
+                    <!-- Select All Control -->
+                    <div id="planner-select-all-container" class="flex justify-between items-center px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
+                        <span class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Day Selection</span>
+                        <button id="select-all-btn" onclick="toggleSelectAllCards()" 
+                            class="py-1.5 px-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[9px] font-black uppercase tracking-widest hover:bg-indigo-500/20 transition-all active:scale-95">
+                            Select All
+                        </button>
+                    </div>
+
                     <!-- Interactive Timetable Cards -->
                     <div class="space-y-3" id="planner-classes">
                         <!-- Class cards with Present/Absent buttons injected by JS -->
                     </div>
 
-                                        <!-- Manual Tracking Controls (Condensed from Edit Tab) -->
+                                                            <!-- Recent History & Logs -->
                     <div class="glass-panel p-6 rounded-[32px] border-l-4 border-violet-500 mt-4">
-                        <div class="flex items-center gap-3 mb-6">
-                            <div class="w-8 h-8 rounded-xl bg-violet-500/20 flex items-center justify-center text-violet-300">
-                                <i class="fas fa-plus text-xs"></i>
-                            </div>
-                            <span class="text-[10px] font-black text-violet-200 uppercase tracking-[0.2em]">Ad-hoc Entry</span>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-3 mb-6">
-                            <div class="relative">
-                                <label class="text-[9px] font-bold text-gray-500 uppercase ml-1 mb-2 block tracking-widest">Subject</label>
-                                <div class="relative">
-                                    <select id="manual-subject" class="w-full bg-white/5 border border-white/10 text-white text-[11px] rounded-xl p-3 pr-8 outline-none appearance-none font-bold focus:border-indigo-500/50 transition truncate">
-                                        <option value="">Choose...</option>
-                                    </select>
-                                    <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none"></i>
-                                </div>
-                            </div>
-                            <div class="relative">
-                                <label class="text-[9px] font-bold text-gray-500 uppercase ml-1 mb-2 block tracking-widest">Bulk Day</label>
-                                <div class="relative">
-                                    <select id="manual-day" class="w-full bg-white/5 border border-white/10 text-white text-[11px] rounded-xl p-3 pr-8 outline-none appearance-none font-bold focus:border-indigo-500/50 transition">
-                                        <option value="">Choose...</option>
-                                        <option value="Mon">Monday</option>
-                                        <option value="Tue">Tuesday</option>
-                                        <option value="Wed">Wednesday</option>
-                                        <option value="Thu">Thursday</option>
-                                        <option value="Fri">Friday</option>
-                                    </select>
-                                    <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none"></i>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3 mb-4">
-                            <button onclick="addManualRecord('Present')" class="py-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold hover:bg-emerald-500/20 active:scale-95 transition flex items-center justify-center gap-3 group">
-                                <i class="fas fa-check text-xs group-hover:scale-110 transition"></i>
-                                <span class="text-[9px] uppercase tracking-widest">Attended</span>
-                            </button>
-                            <button onclick="addManualRecord('Absent')" class="py-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 font-bold hover:bg-rose-500/20 active:scale-95 transition flex items-center justify-center gap-3 group">
-                                <i class="fas fa-times text-xs group-hover:scale-110 transition"></i>
-                                <span class="text-[9px] uppercase tracking-widest">Bunked</span>
-                            </button>
-                        </div>
-
-                        <button onclick="markDayAttended()" class="w-full py-4 mb-6 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-bold text-[9px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-indigo-500/20 active:scale-95 transition shadow-lg group">
-                            <i class="fas fa-calendar-check text-xs group-hover:rotate-12 transition-transform"></i>
-                            <span>Mark Entire Day Attended</span>
-                        </button>
-
-                        <!-- Recent History -->
-                        <div class="border-t border-white/5 pt-5">
+                        <div class="border-t border-white/0 pt-0">
                             <div class="flex justify-between items-center mb-4 px-1">
                                 <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Recent History</p>
                                 <button onclick="showFullHistory()" class="text-[9px] font-black text-indigo-400 uppercase tracking-widest hover:text-indigo-300 transition">View Full Log</button>
