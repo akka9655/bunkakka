@@ -1167,45 +1167,6 @@ function updateSmartTrackerImpact() {
     l.innerHTML = html;
 }
 
-    let html = '';
-    uniqueDayCodes.forEach(code => {
-        const manualEntries = state.manual.filter(m => m.code === code);
-        if (manualEntries.length === 0) return;
-
-        const s = getSubjectStats(code);
-        if (!s) return;
-
-        const manualPresent = manualEntries.filter(m => m.status === 'Present').length;
-        const manualAbsent = manualEntries.filter(m => m.status === 'Absent').length;
-
-        const adjAtt = s.att + manualPresent;
-        const adjTot = s.tot + manualPresent + manualAbsent;
-        const adjPct = adjTot === 0 ? 0 : (adjAtt / adjTot * 100);
-
-        const diff = adjPct - s.pct;
-        const diffStr = diff >= 0 ? `+${diff.toFixed(1)}%` : `${diff.toFixed(1)}%`;
-        const diffCol = diff > 0.05 ? 'text-emerald-400' : diff < -0.05 ? 'text-rose-400' : 'text-gray-500';
-
-        html += `
-            <div class="flex justify-between items-center bg-white/5 p-3 rounded-2xl border border-white/5">
-                <div class="flex-1 min-w-0 pr-3">
-                    <p class="text-[10px] font-bold text-white truncate">${s.name}</p>
-                    <p class="text-[8px] text-gray-500 font-black uppercase mt-0.5">${manualPresent} P / ${manualAbsent} A</p>
-                </div>
-                <div class="text-right">
-                    <p class="text-[11px] font-black text-indigo-300">${adjPct.toFixed(1)}%</p>
-                    <p class="text-[9px] font-bold ${diffCol}">${diffStr}</p>
-                </div>
-            </div>
-        `;
-    });
-
-    if (!html) {
-        l.innerHTML = '<div class="text-center py-2 text-gray-500 text-[10px] italic font-medium">No actions taken for ' + state.activePlannerDay + ' yet</div>';
-    } else {
-        l.innerHTML = html;
-    }
-}
 function initManual() {
     const s = document.getElementById('manual-subject'), h = document.getElementById('manual-history');
 
