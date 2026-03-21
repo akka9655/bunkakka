@@ -1594,3 +1594,115 @@ function updateSimUI() {
         diffText.style.color = "#FB7185";
     }
 }
+
+// BULK ATTENDANCE & HISTORY
+function markDayAttended() {
+    const day = document.getElementById('manual-day').value;
+    if (!day) return showToast('Select a day first', 'error');
+
+    if (!state.timetable || !state.timetable[day]) {
+        return showToast('No timetable found for ' + day, 'error');
+    }
+
+    const classes = state.timetable[day].filter(c => c && c !== 'Free');
+    if (classes.length === 0) return showToast('No classes on ' + day, 'info');
+
+    // Add each class manually
+    classes.forEach((code, index) => {
+        const s = state.subjects.find(x => x.code === code);
+        const name = s ? s.name : (state.courseMapping[code] || code);
+        // Add minimal delay to ID to avoid collisions if adding many at once
+        state.manual.unshift({
+            id: Date.now() + index,
+            code: code,
+            name: name,
+            status: 'Present',
+            time: new Date().toLocaleString(),
+            timestamp: new Date().toISOString()
+        });
+    });
+
+    saveState();
+    renderSemesterHero(); renderWidgets(); renderSubjects(); initPlanner(); initManual();
+    showToast(`Marked ${classes.length} classes for ${day}`, 'success');
+}
+
+function showFullHistory() {
+    const m = document.getElementById('history-modal'), p = document.getElementById('history-panel'),
+        b = document.getElementById('history-backdrop'), c = document.getElementById('full-history-content'),
+        count = document.getElementById('history-count');
+
+    if (!m || !c) return;
+
+    // Group by date
+    const groups = {};
+    state.manual.forEach(entry => {
+        const date = new Date(entry.timestamp || entry.time).toLocaleDateString(undefined, {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+        });
+        if (!groups[date]) groups[date] = [];
+        groups[date].push(entry);
+    });
+
+    let html = '';
+    const sortedDates = Object.keys(groups).sort((a, b) => new Date(b) - new Date(a));
+
+    if (sortedDates.length === 0) {
+        html = '<div class="text-center py-20 opacity-50"><div class="text-4xl mb-4">📜</div><p class="text-xs font-bold uppercase tracking-widest text-gray-500">No History Yet</p></div>';
+    } else {
+        sortedDates.forEach(date => {
+            html += `<div class="mb-8">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="h-px flex-1 bg-white/5"></div>
+                    <p class="text-[9px] font-black text-gray-600 uppercase tracking-[0.2em] whitespace-nowrap">${date}</p>
+                    <div class="h-px flex-1 bg-white/5"></div>
+                </div>
+                <div class="space-y-3">`;
+            groups[date].forEach(m => {
+                const timeStr = new Date(m.timestamp || m.time).toLocaleTimeString(undefined, {
+                    hour: '2-digit', minute: '2-digit'
+                });
+                html += `<div class="p-4 rounded-[24px] bg-white/[0.03] border border-white/5 flex justify-between items-center group hover:bg-white/[0.06] transition-colors">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-2xl ${m.status === 'Present' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'} flex items-center justify-center text-sm">
+                            <i class="fas fa-${m.status === 'Present' ? 'check' : 'times'}"></i>
+                        </div>
+                        <div class="max-w-[180px]">
+                            <p class="text-xs font-bold text-white truncate">${m.name}</p>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="text-[9px] text-gray-500 uppercase font-black">${m.code}</span>
+                                <span class="w-0.5 h-0.5 rounded-full bg-gray-700"></span>
+                                <span class="text-[9px] text-gray-500 font-bold">${timeStr}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="deleteManual(${m.id}); showFullHistory();" 
+                        class="w-10 h-10 flex items-center justify-center rounded-xl text-gray-600 hover:bg-rose-500/10 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
+                </div>`;
+            });
+            html += `</div></div>`;
+        });
+    }
+
+    count.innerText = `${state.manual.length} Total Entries`;
+    c.innerHTML = html;
+
+    m.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(() => {
+        b.classList.remove('opacity-0');
+        p.classList.remove('translate-y-full');
+    });
+}
+
+function closeHistory() {
+    const m = document.getElementById('history-modal'), p = document.getElementById('history-panel'),
+        b = document.getElementById('history-backdrop');
+    if (!p) return;
+    p.classList.add('translate-y-full');
+    b.classList.add('opacity-0');
+    document.body.style.overflow = '';
+    setTimeout(() => m.classList.add('hidden'), 300);
+}

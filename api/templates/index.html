@@ -600,47 +600,79 @@
                         <!-- Toggles: injected by initManual() -->
 
                         <!-- Subject Selector -->
-                        <div class="relative mb-6">
-                            <label
-                                class="text-[9px] font-bold text-gray-500 uppercase ml-1 mb-2 block tracking-widest">Select
-                                Subject</label>
+                        <div class="grid grid-cols-2 gap-3 mb-6">
                             <div class="relative">
-                                <select id="manual-subject"
-                                    class="w-full bg-white/5 border border-white/10 text-white text-sm rounded-xl p-4 pr-10 outline-none appearance-none font-bold focus:border-indigo-500/50 transition">
-                                    <option value="">Choose...</option>
-                                </select>
-                                <i
-                                    class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-xs text-gray-500 pointer-events-none"></i>
+                                <label
+                                    class="text-[9px] font-bold text-gray-500 uppercase ml-1 mb-2 block tracking-widest">Select
+                                    Subject</label>
+                                <div class="relative">
+                                    <select id="manual-subject"
+                                        class="w-full bg-white/5 border border-white/10 text-white text-[11px] rounded-xl p-3 pr-8 outline-none appearance-none font-bold focus:border-indigo-500/50 transition truncate">
+                                        <option value="">Choose...</option>
+                                    </select>
+                                    <i
+                                        class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none"></i>
+                                </div>
+                            </div>
+                            <div class="relative">
+                                <label
+                                    class="text-[9px] font-bold text-gray-500 uppercase ml-1 mb-2 block tracking-widest">Select
+                                    Day</label>
+                                <div class="relative">
+                                    <select id="manual-day"
+                                        class="w-full bg-white/5 border border-white/10 text-white text-[11px] rounded-xl p-3 pr-8 outline-none appearance-none font-bold focus:border-indigo-500/50 transition">
+                                        <option value="">Choose...</option>
+                                        <option value="Mon">Monday</option>
+                                        <option value="Tue">Tuesday</option>
+                                        <option value="Wed">Wednesday</option>
+                                        <option value="Thu">Thursday</option>
+                                        <option value="Fri">Friday</option>
+                                    </select>
+                                    <i
+                                        class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 pointer-events-none"></i>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Add Buttons -->
-                        <div class="grid grid-cols-2 gap-3 mb-6">
+                        <div class="grid grid-cols-2 gap-3 mb-4">
                             <button onclick="addManualRecord('Present')"
-                                class="py-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold hover:bg-emerald-500/20 active:scale-95 transition flex flex-col items-center gap-2 group">
+                                class="py-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold hover:bg-emerald-500/20 active:scale-95 transition flex flex-col items-center gap-1.5 group">
                                 <div
-                                    class="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-lg group-hover:scale-110 transition">
+                                    class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-sm group-hover:scale-110 transition">
                                     <i class="fas fa-check"></i>
                                 </div>
-                                <span class="text-[9px] uppercase tracking-widest">Attended</span>
+                                <span class="text-[8px] uppercase tracking-widest">Attended</span>
                             </button>
                             <button onclick="addManualRecord('Absent')"
-                                class="py-5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 font-bold hover:bg-rose-500/20 active:scale-95 transition flex flex-col items-center gap-2 group">
+                                class="py-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 font-bold hover:bg-rose-500/20 active:scale-95 transition flex flex-col items-center gap-1.5 group">
                                 <div
-                                    class="w-10 h-10 rounded-full bg-rose-500/20 flex items-center justify-center text-lg group-hover:scale-110 transition">
+                                    class="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-sm group-hover:scale-110 transition">
                                     <i class="fas fa-times"></i>
                                 </div>
-                                <span class="text-[9px] uppercase tracking-widest">Bunked</span>
+                                <span class="text-[8px] uppercase tracking-widest">Bunked</span>
                             </button>
                         </div>
+
+                        <!-- Bulk Action -->
+                        <button onclick="markDayAttended()"
+                            class="w-full py-3 mb-6 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-500/20 active:scale-95 transition shadow-lg group">
+                            <i class="fas fa-calendar-check text-xs group-hover:rotate-12 transition-transform"></i>
+                            <span>Mark Entire Day Attended</span>
+                        </button>
 
                         <!-- Attendance Comparison Panel (injected by renderManualComparison) -->
                         <div id="manual-comparison-container" class="mb-4"></div>
 
                         <!-- Recent History -->
                         <div class="border-t border-white/5 pt-4">
-                            <p class="text-[9px] font-bold text-gray-600 uppercase mb-3 ml-1 tracking-widest">Recent
-                                History</p>
+                            <div class="flex justify-between items-center mb-3 px-1">
+                                <p class="text-[9px] font-bold text-gray-600 uppercase tracking-widest">Recent
+                                    History</p>
+                                <button onclick="showFullHistory()"
+                                    class="text-[9px] font-bold text-indigo-400 uppercase tracking-widest hover:underline">View
+                                    All</button>
+                            </div>
                             <div id="manual-history" class="space-y-2"></div>
                         </div>
                     </div>
@@ -878,6 +910,33 @@
             </div>
         </div>
     </div>
+        <!-- HISTORY MODAL -->
+    <div id="history-modal" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-black/90 opacity-0 transition-opacity duration-300" id="history-backdrop"
+            onclick="closeHistory()"></div>
+        <div class="absolute bottom-0 left-0 right-0 glass-panel rounded-t-[40px] p-8 pb-16 translate-y-full transition-transform duration-300 h-[80vh] flex flex-col"
+            id="history-panel">
+            <div class="w-12 h-1.5 bg-white/10 rounded-full mx-auto mb-8"></div>
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-xl">📜</div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white">Full History</h3>
+                        <p class="text-[10px] text-gray-400 mt-0.5" id="history-count">0 Entries</p>
+                    </div>
+                </div>
+                <button onclick="closeHistory()" 
+                    class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="full-history-content" class="flex-1 overflow-y-auto no-scrollbar space-y-4 pb-10">
+                <!-- History entries will be injected here -->
+            </div>
+        </div>
+    </div>
+
     <!-- TOAST -->
     <div id="toast-container"
         class="fixed top-14 left-1/2 -translate-x-1/2 z-[80] flex flex-col gap-2 w-max max-w-[90%] pointer-events-none">
@@ -885,7 +944,7 @@
 
     <!-- Main Logic -->
     <script src="/static/legal.js?v=1.0.1" defer></script>
-    <script src="/static/app.js?v=1.1.0" defer></script>
+    <script src="/static/app.js?v=2.0.0" defer></script>
 </body>
 
 </html>
