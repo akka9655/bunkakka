@@ -1254,41 +1254,6 @@ function updateSmartTrackerImpact() {
     });
     
     l.innerHTML = html;
-});
-
-    if (selectedCodes.length === 0) {
-        l.innerHTML = '<div class="text-center py-2 text-gray-500 text-[10px] italic font-medium">Select classes to see prediction</div>';
-        if (btn) btn.classList.add('hidden');
-        return;
-    }
-
-    if (btn) btn.classList.remove('hidden');
-
-    const counts = {};
-    selectedCodes.forEach(c => counts[c] = (counts[c] || 0) + 1);
-
-    let html = '';
-    Object.entries(counts).forEach(([code, n]) => {
-        const s = getSubjectStats(code);
-        if (!s) return;
-        const adjAtt = s.att + n; const adjTot = s.tot + n;
-        const adjPct = adjTot === 0 ? 0 : (adjAtt / adjTot * 100);
-        const diff = adjPct - s.pct;
-        const diffStr = diff >= 0 ? `+${diff.toFixed(1)}%` : `${diff.toFixed(1)}%`;
-        const diffCol = diff > 0.05 ? 'text-emerald-400' : diff < -0.05 ? 'text-rose-400' : 'text-gray-500';
-
-        html += `<div class="flex justify-between items-center bg-white/5 p-3 rounded-2xl border border-white/5 h-16">
-            <div class="flex-1 min-w-0 pr-3">
-                <p class="text-[10px] font-bold text-white truncate">${s.name}</p>
-                <p class="text-[8px] text-gray-500 font-black uppercase mt-0.5">+${n} Session(s)</p>
-            </div>
-            <div class="text-right">
-                <p class="text-[11px] font-black text-indigo-300">${adjPct.toFixed(1)}%</p>
-                <p class="text-[9px] font-bold ${diffCol}">${diffStr}</p>
-            </div>
-        </div>`;
-    });
-    l.innerHTML = html;
 }
 
 function initManual() {
@@ -1400,18 +1365,7 @@ function renderManualComparison() {
     html += '</div>';
     container.innerHTML = html;
 }
-function addManualRecord(st) {
-    const c = document.getElementById('manual-subject').value;
-    if (!c) return showToast('Select subject', 'error');
-    const s = state.subjects.find(x => x.code === c);
-    const courseName = s ? s.name : (state.courseMapping[c] || c);
-    // Save TIMESTAMP for reliable comparison
-    state.manual.unshift({ id: Date.now(), code: c, name: courseName, status: st, time: new Date().toLocaleString(), timestamp: new Date().toISOString() });
-    saveState();
-    // Update UI components without switching tab
-    renderSemesterHero(); renderWidgets(); renderSubjects(); initPlanner(); initManual();
-    showToast('Updated', 'success');
-}
+
 
 function toggleManualImpact(el) {
     if (el) state.includeManual = el.checked;
