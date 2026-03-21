@@ -149,19 +149,23 @@ def get_planner_id(roll_number):
 
 
 def detect_college(roll_number):
-    """Detect college based on roll number length"""
+    """Detect college based on known course codes present in the roll number"""
     if not roll_number:
         return None
     
     roll_number = roll_number.strip().upper()
-    roll_length = len(roll_number)
     
-    if roll_length == 6:
-        return 'PSGTECH'
-    elif roll_length == 7:
-        return 'PSGIAS'
-    else:
-        return None
+    import re
+    match = re.search(r'[A-Z]+', roll_number)
+    
+    if match:
+        course_code = match.group(0)
+        if course_code in CONFIG['COURSE_CODES']:
+            return 'PSGTECH'
+            
+    # If it has a course code but it's not in the PSG Tech list (or no letters found), default to IAS
+    # E.g., IAS roll numbers might use different formats like '25IR007' where 'IR' is not in Tech list
+    return 'PSGIAS'
 
 
 class EcampusScraper:
@@ -231,19 +235,44 @@ class EcampusScraper:
                 cols = [col.text.strip() for col in row.find_all('td')]
                 if len(cols) >= 10:
                     try:
-                        # Extract data
+                        # Table columns:
+                        # 0: COURSE CODE
+                        # 1: TOTAL HOURS
+                        # 2: EXEMPTION HOURS
+                        # 3: TOTAL ABSENT
+                        # 4: TOTAL PRESENT
+                        # 5: PERCENTAGE OF ATTENDANCE (normal)
+                        # 6: PERCENTAGE WITH EXEMP
+                        # 7: PERCENTAGE WITH EXEMP MED
+                        # 8: ATTENDANCE PERCENTAGE FROM
+                        # 9: ATTENDANCE PERCENTAGE TO
+
+                        def safe_int(v):
+                            try: return int(v)
+                            except: return 0
+                        
+                        def safe_float(v):
+                            try: return float(v.replace('%','').strip())
+                            except: return 0.0
+
+                        total = safe_int(cols[1])
+                        exemption = safe_int(cols[2])
+                        attended = safe_int(cols[4])  # TOTAL PRESENT
+
                         attendance_data.append({
                             'code': cols[0],
                             'name': cols[0],
-                            'total': int(cols[1]),
-                            'attended': int(cols[4]),
-                            'percentage': float(cols[5])
+                            'total': total,
+                            'attended': attended,
+                            'exemption': exemption,
+                            'percentage': safe_float(cols[5]),       # normal
+                            'pct_exemp': safe_float(cols[6]),        # with exemption
+                            'pct_medical': safe_float(cols[7]),      # with medical
                         })
                         
                         # Extract last update date from "ATTENDANCE PERCENTAGE TO" column (index 9)
                         if not last_update and cols[9]:
                             date_str = cols[9].strip()
-                            # Convert DD-MM-YYYY to readable format
                             try:
                                 from datetime import datetime as dt
                                 date_obj = dt.strptime(date_str, '%d-%m-%Y')
@@ -253,7 +282,6 @@ class EcampusScraper:
                     except (ValueError, IndexError):
                         continue
             
-            # Use "No data" as fallback instead of current date
             if not last_update:
                 last_update = "No data"
             
@@ -717,7 +745,11 @@ def api_login():
                     'code': subject['code'],
                     'name': course_mapping.get(subject['code'], subject['code']),
                     'total': subject['total'],
-                    'attended': subject['attended']
+                    'attended': subject['attended'],
+                    'exemption': subject.get('exemption', 0),
+                    'pct_normal': subject.get('percentage', 0),
+                    'pct_exemp': subject.get('pct_exemp', 0),
+                    'pct_medical': subject.get('pct_medical', 0),
                 })
                # Prepare response data
         response_data = {

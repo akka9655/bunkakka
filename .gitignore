@@ -1,4 +1,29 @@
+# Core Application Files
+api/
+static/
+requirements.txt
+vercel.json
+README.md
+
+# Agent Artifacts
+task.md
+walkthrough.md
+.gemini/
+.agents/
+.agent/
+_agents/
+_agent/
+
+# Python/Build Artifacts
+venv/
+unwanted/
 __pycache__/
 *.pyc
+.ipynb_checkpoints/
 .DS_Store
 
+# Large Loose Assets (Root level)
+akka-BUNK-main.zip
+icon2.png
+icon3.png
+image.png

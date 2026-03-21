@@ -9,13 +9,15 @@ const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 let ACADEMIC_DATA = { name: "Loading...", startDate: new Date().toISOString(), lastDate: new Date().toISOString(), fullCalendar: [] };
 let state = {
     rollNumber: localStorage.getItem('bunker_roll') || null,
-    college: localStorage.getItem('bunker_college') || 'PSGTECH', // Default to PSGTECH
-    hasCalendar: localStorage.getItem('bunker_has_calendar') !== 'false', // Default to true
+    college: localStorage.getItem('bunker_college') || 'PSGTECH',
+    hasCalendar: localStorage.getItem('bunker_has_calendar') !== 'false',
     subjects: JSON.parse(localStorage.getItem('bunker_subjects') || '[]'),
     timetable: JSON.parse(localStorage.getItem('bunker_timetable') || '{}'),
     courseMapping: JSON.parse(localStorage.getItem('bunker_course_mapping') || '{}'),
     manual: JSON.parse(localStorage.getItem(`bunker_manual_${localStorage.getItem('bunker_roll')}`) || '[]'),
-    includeManual: localStorage.getItem(`bunker_include_manual_${localStorage.getItem('bunker_roll')}`) === 'true', // Default false
+    includeManual: localStorage.getItem(`bunker_include_manual_${localStorage.getItem('bunker_roll')}`) === 'true',
+    viewManualAdjusted: localStorage.getItem(`bunker_view_manual_${localStorage.getItem('bunker_roll')}`) === 'true',
+    attendanceMode: localStorage.getItem(`bunker_att_mode_${localStorage.getItem('bunker_roll')}`) || 'normal', // 'normal' | 'exemp' | 'medical'
     calendarCache: JSON.parse(localStorage.getItem('bunker_calendar_cache') || 'null'),
     threshold: 80, plannerBunks: {}, activePlannerDay: DAYS[new Date().getDay() - 1] || 'Mon'
 };
@@ -25,26 +27,135 @@ function getCourseType(roll) { if (!roll || roll.length < 3) return null; const 
 function getPlannerId(roll) { return CONFIG.PLANNER_MAP[`${getCourseType(roll)}_${getAcademicYear(roll)}`] || null; }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // DISABLED: Auto-login removed to ensure fresh data on every login
-    // User must login each time to get latest attendance from eCampus
-    // Browser password manager will autofill credentials for speed
+    // --- AUTO-LOGIN: Check for stored credentials ---
+    const savedCreds = (() => { try { return JSON.parse(localStorage.getItem('bunker_credentials') || 'null'); } catch { return null; } })();
+    const savedRoll = savedCreds?.roll;
+    const cachedSubjects = savedRoll ? localStorage.getItem(`bunker_subjects_${savedRoll}`) : null;
 
-    /* OLD CODE - Auto login disabled
-    if (state.rollNumber && state.calendarCache) {
-        ACADEMIC_DATA = state.calendarCache;
-        document.getElementById('login-view').classList.add('hidden');
-        document.getElementById('dashboard-view').classList.remove('hidden');
-        document.getElementById('aurora-bg').style.opacity = "0.25";
-        initDashboard();
+    if (savedCreds && savedRoll && cachedSubjects) {
+        // Restore full state from cache
+        state.rollNumber = savedRoll;
+        state.subjects = JSON.parse(cachedSubjects);
+        state.timetable = JSON.parse(localStorage.getItem('bunker_timetable') || '{}');
+        state.courseMapping = JSON.parse(localStorage.getItem('bunker_course_mapping') || '{}');
+        state.college = localStorage.getItem('bunker_college') || 'PSGTECH';
+        state.hasCalendar = localStorage.getItem('bunker_has_calendar') !== 'false';
+        state.manual = JSON.parse(localStorage.getItem(`bunker_manual_${savedRoll}`) || '[]');
+        state.includeManual = localStorage.getItem(`bunker_include_manual_${savedRoll}`) === 'true';
+        state.viewManualAdjusted = localStorage.getItem(`bunker_view_manual_${savedRoll}`) === 'true';
+        state.attendanceMode = localStorage.getItem(`bunker_att_mode_${savedRoll}`) || 'normal';
+        const cachedCalendar = localStorage.getItem('bunker_calendar_cache');
+        if (cachedCalendar) { try { ACADEMIC_DATA = JSON.parse(cachedCalendar); state.calendarCache = ACADEMIC_DATA; } catch { } }
+
+        localStorage.setItem('bunker_roll', savedRoll);
+
+        // Show dashboard immediately with cached data
+        enterApp();
+        // Start background sync
+        backgroundSync(savedCreds.roll, savedCreds.password);
     } else {
         document.getElementById('login-view').classList.remove('hidden');
     }
-    */
 
-    // Always show login screen for fresh data
-    document.getElementById('login-view').classList.remove('hidden');
     if (window.pwaManager) updateInstallUI();
 });
+
+async function backgroundSync(roll, password) {
+    showSyncIndicator('syncing');
+    try {
+        const loginResponse = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: roll, password: password })
+        });
+        const loginData = await loginResponse.json();
+
+        if (!loginData.success) {
+            showSyncIndicator('offline');
+            // Remains visible permanently until next successful sync or app restart
+            return;
+        }
+
+        // Update state with fresh data
+        state.subjects = loginData.subjects || state.subjects;
+        state.timetable = loginData.timetable || state.timetable;
+        state.courseMapping = loginData.course_mapping || state.courseMapping;
+        state.college = loginData.college || state.college;
+        state.hasCalendar = loginData.has_calendar !== false;
+
+        // Persist fresh data
+        localStorage.setItem('bunker_subjects', JSON.stringify(state.subjects));
+        localStorage.setItem(`bunker_subjects_${roll}`, JSON.stringify(state.subjects));
+        localStorage.setItem('bunker_timetable', JSON.stringify(state.timetable));
+        localStorage.setItem('bunker_course_mapping', JSON.stringify(state.courseMapping));
+        localStorage.setItem('bunker_college', state.college);
+        localStorage.setItem('bunker_has_calendar', state.hasCalendar);
+        localStorage.setItem('bunker_last_update', loginData.last_update || '');
+
+        // Fetch calendar too
+        try {
+            const calRes = await fetch(`/api/calendar/${roll}`);
+            const calData = await calRes.json();
+            if (!calData.error) processCalendarData(calData, roll);
+        } catch { }
+
+        // Run cleanup with fresh last_update, then refresh UI
+        cleanupManualEntries();
+        renderSemesterHero(); renderWidgets(); renderSubjects(); initPlanner(); initManual();
+
+        showSyncIndicator('done');
+        setTimeout(() => hideSyncIndicator(), 2500);
+    } catch (err) {
+        console.error('Background sync error:', err);
+        showSyncIndicator('offline');
+        // Remains visible permanently until next successful sync or app restart
+    }
+}
+
+function showSyncIndicator(status) {
+    let el = document.getElementById('sync-indicator');
+    if (!el) return;
+    el.classList.remove('hidden', 'translate-y-[-20px]', 'opacity-0');
+
+    // Add slide-down animation classes if not present
+    if (!el.classList.contains('translate-y-0')) {
+        el.className += ' translate-y-0 opacity-100';
+    }
+
+    const dot = el.querySelector('#sync-dot');
+    const txt = el.querySelector('#sync-text');
+
+    // Base premium classes for the pill (in-flow, no longer fixed top)
+    const basePill = 'flex justify-center items-center gap-2.5 px-4 py-2 mt-4 mx-auto w-max rounded-full backdrop-blur-xl shadow-lg transition-all duration-500 border';
+
+    if (status === 'syncing') {
+        el.className = `${basePill} bg-indigo-500/10 border-indigo-500/20 shadow-indigo-500/10`;
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse shadow-[0_0_8px_rgba(129,140,248,0.8)]';
+        txt.className = 'text-[10px] font-bold text-indigo-200 tracking-wide uppercase';
+        txt.innerHTML = 'Syncing Data <span class="tracking-widest animate-pulse">...</span>';
+    } else if (status === 'done') {
+        el.className = `${basePill} bg-emerald-500/10 border-emerald-500/20 shadow-emerald-500/10`;
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]';
+        txt.className = 'text-[10px] font-bold text-emerald-200 tracking-wide uppercase';
+        txt.innerText = 'Up to Date';
+    } else if (status === 'offline') {
+        el.className = `${basePill} bg-amber-500/10 border-amber-500/20 shadow-amber-500/10`;
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]';
+        txt.className = 'text-[10px] font-bold text-amber-200 tracking-wide uppercase';
+        txt.innerText = 'Offline Mode';
+    }
+}
+
+function hideSyncIndicator() {
+    const el = document.getElementById('sync-indicator');
+    if (el) {
+        // Slide up and fade out
+        el.classList.add('translate-y-[-20px]', 'opacity-0');
+        el.classList.remove('translate-y-0', 'opacity-100');
+        setTimeout(() => el.classList.add('hidden'), 500); // Wait for transition
+    }
+}
+
 
 document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -61,7 +172,6 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     document.getElementById('updating-overlay').classList.remove('hidden');
 
     try {
-        // Call backend login API
         const loginResponse = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -79,44 +189,41 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
             return;
         }
 
-        // Fetch calendar data from backend proxy
+        // Store credentials for auto-login
+        localStorage.setItem('bunker_credentials', JSON.stringify({ roll, password }));
+
+        // Fetch calendar data
         const calendarResponse = await fetch(`/api/calendar/${roll}`);
         const calendarData = await calendarResponse.json();
-
-        if (calendarData.error) {
-            console.warn('Calendar fetch failed:', calendarData.error);
-        }
-
-        // Process calendar data
+        if (calendarData.error) console.warn('Calendar fetch failed:', calendarData.error);
         processCalendarData(calendarData, roll);
 
-        // Store login data
+        // Store login data in state
         state.subjects = loginData.subjects || [];
         state.timetable = loginData.timetable || {};
-        state.courseMapping = loginData.course_mapping || {};  // Store course names
+        state.courseMapping = loginData.course_mapping || {};
         state.college = loginData.college || 'PSGTECH';
         state.hasCalendar = loginData.has_calendar !== false;
 
         localStorage.setItem('bunker_subjects', JSON.stringify(state.subjects));
-        localStorage.setItem('bunker_college', state.college);
-        localStorage.setItem('bunker_has_calendar', state.hasCalendar);
-
-        // Fix: Explicitly load manual data for the logged-in user
-        state.manual = JSON.parse(localStorage.getItem(`bunker_manual_${roll}`) || '[]');
-        state.includeManual = localStorage.getItem(`bunker_include_manual_${roll}`) === 'true';
-
-        // NEW: Save roll-specific backup for fallback
-        if (state.subjects.length > 0) {
-            localStorage.setItem(`bunker_subjects_${roll}`, JSON.stringify(state.subjects));
-        }
+        localStorage.setItem(`bunker_subjects_${roll}`, JSON.stringify(state.subjects));
         localStorage.setItem('bunker_timetable', JSON.stringify(state.timetable));
         localStorage.setItem('bunker_course_mapping', JSON.stringify(state.courseMapping));
-        localStorage.setItem('bunker_last_update', loginData.last_update || new Date().toLocaleDateString());
+        localStorage.setItem('bunker_college', state.college);
+        localStorage.setItem('bunker_has_calendar', state.hasCalendar);
+        localStorage.setItem('bunker_last_update', loginData.last_update || 'No data');
+
+        // Load per-user manual and preferences (stored from previous sessions)
+        state.rollNumber = roll;
+        state.manual = JSON.parse(localStorage.getItem(`bunker_manual_${roll}`) || '[]');
+        state.includeManual = localStorage.getItem(`bunker_include_manual_${roll}`) === 'true';
+        state.viewManualAdjusted = localStorage.getItem(`bunker_view_manual_${roll}`) === 'true';
+        state.attendanceMode = localStorage.getItem(`bunker_att_mode_${roll}`) || 'normal';
 
         setTimeout(() => {
             document.getElementById('updating-overlay').classList.add('hidden');
             enterApp();
-        }, 1500);
+        }, 50); // Lightning fast transition
 
     } catch (err) {
         console.error('Login error:', err);
@@ -127,6 +234,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         }, 1000);
     }
 });
+
 
 function processCalendarData(data, roll) {
     const fullCalendar = [];
@@ -438,7 +546,16 @@ function closeLegal() {
 }
 
 function enterApp() {
-    // Clean up old manual entries first
+    // Re-load manual data for the correct user BEFORE cleanup
+    const roll = state.rollNumber;
+    if (roll) {
+        state.manual = JSON.parse(localStorage.getItem(`bunker_manual_${roll}`) || '[]');
+        state.includeManual = localStorage.getItem(`bunker_include_manual_${roll}`) === 'true';
+        state.viewManualAdjusted = localStorage.getItem(`bunker_view_manual_${roll}`) === 'true';
+        state.attendanceMode = localStorage.getItem(`bunker_att_mode_${roll}`) || 'normal';
+    }
+
+    // Now cleanup stale manual entries (entries covered by official update)
     cleanupManualEntries();
     const login = document.getElementById('login-view');
     const dash = document.getElementById('dashboard-view');
@@ -544,11 +661,6 @@ function initDashboard() {
         }
     }
 
-    // Check perf mode on init
-    const perf = document.documentElement.getAttribute('data-perf');
-    document.getElementById('perf-toggle').checked = perf === 'high';
-    document.getElementById('perf-mode-text').innerText = perf === 'high' ? 'High (Glass)' : 'Low (Solid)';
-
     // Show Date Picker in Settings for Demo Mode
     const datePickerContainer = document.getElementById('demo-date-picker');
     if (datePickerContainer) {
@@ -583,6 +695,23 @@ function initDashboard() {
 function getSubjectStats(code) {
     const s = state.subjects.find(x => x.code === code); if (!s) return null;
 
+    // Determine base attendance based on selected mode (PSG Tech only)
+    let baseAtt = s.attended;
+    let baseTot = s.total;
+
+    if (state.college === 'PSGTECH') {
+        if (state.attendanceMode === 'exemp' && s.pct_exemp !== undefined) {
+            // With exemption: reduce total by exemption hours
+            const exemp = s.exemption || 0;
+            baseTot = Math.max(s.total - exemp, s.attended); // avoid negative
+        } else if (state.attendanceMode === 'medical' && s.pct_medical !== undefined) {
+            // With medical: use backend precomputed %, back-calculate effective total
+            // pct_medical = attended / effective_total => effective_total = attended / (pct_medical/100)
+            const pctMed = s.pct_medical || 0;
+            baseTot = pctMed > 0 ? Math.round(s.attended / (pctMed / 100)) : s.total;
+        }
+    }
+
     // Only include manual stats if toggle is ON
     let p = 0;
     let b = 0;
@@ -593,7 +722,7 @@ function getSubjectStats(code) {
         b = m.filter(x => x.status === 'Absent').length;
     }
 
-    const a = s.attended + p, t = s.total + p + b;
+    const a = baseAtt + p, t = baseTot + p + b;
     return { ...s, att: a, tot: t, pct: t === 0 ? 0 : (a / t) * 100 };
 }
 function renderSubjects() {
@@ -1005,28 +1134,13 @@ function updatePlannerImpact() {
 function initManual() {
     const s = document.getElementById('manual-subject'), h = document.getElementById('manual-history');
 
-    // Inject Toggle Switch if not present
-    const impactToggleContainer = document.getElementById('manual-impact-toggle-container');
-    if (impactToggleContainer) {
-        impactToggleContainer.innerHTML = `
-            <div class="flex items-center justify-between bg-white/5 p-4 rounded-2xl mb-6 border border-white/5">
-                <div>
-                    <h4 class="text-white font-bold text-sm">Include in Attendance</h4>
-                    <p class="text-gray-500 text-[10px] font-bold uppercase tracking-wider mt-1">Affects main dashboard stats</p>
-                </div>
-                <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" onchange="toggleManualImpact(this)" class="sr-only peer" ${state.includeManual ? 'checked' : ''}>
-                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                </label>
-            </div>
-        `;
-    }
+    // Render subject comparison panel
+    renderManualComparison();
 
     if (s) {
         s.innerHTML = '<option value="">Choose...</option>';
 
         if (state.subjects.length > 0) {
-            // Use subjects from attendance
             state.subjects.forEach(x => {
                 const o = document.createElement('option');
                 o.value = x.code;
@@ -1035,26 +1149,125 @@ function initManual() {
                 s.appendChild(o);
             });
         } else if (state.timetable) {
-            // No attendance - use courses from timetable
             const uniqueCourses = new Set();
             Object.values(state.timetable).forEach(day => {
                 day.forEach(course => {
-                    if (course && course !== 'Free') {
-                        uniqueCourses.add(course);
-                    }
+                    if (course && course !== 'Free') uniqueCourses.add(course);
                 });
             });
-
             Array.from(uniqueCourses).sort().forEach(code => {
                 const o = document.createElement('option');
                 o.value = code;
-                o.text = state.courseMapping[code] || code;  // Use name from mapping
+                o.text = state.courseMapping[code] || code;
                 o.className = "text-black font-medium";
                 s.appendChild(o);
             });
         }
     }
-    if (h) { h.innerHTML = state.manual.length ? '' : '<div class="text-center text-xs text-gray-700 italic py-4">No adjustments</div>'; state.manual.slice(0, 3).forEach(m => { h.innerHTML += `<div class="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/5 mb-2"><div class="flex items-center gap-3"><div class="w-2 h-8 rounded-full ${m.status === 'Present' ? 'bg-emerald-500' : 'bg-rose-500'}"></div><div><p class="text-xs font-bold text-white">${m.name}</p><p class="text-[9px] text-gray-500 font-bold uppercase">${m.time.split(',')[0]}</p></div></div><button onclick="deleteManual(${m.id})" class="w-8 h-8 flex items-center justify-center rounded-full text-gray-600 hover:bg-white/10 hover:text-white transition"><i class="fas fa-trash"></i></button></div>`; }); }
+
+    // Recent history (last 3 entries)
+    if (h) {
+        h.innerHTML = state.manual.length ? '' : '<div class="text-center text-xs text-gray-700 italic py-4">No manual entries yet</div>';
+        state.manual.slice(0, 3).forEach(m => {
+            h.innerHTML += `<div class="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/5 mb-2">
+                <div class="flex items-center gap-3">
+                    <div class="w-2 h-8 rounded-full ${m.status === 'Present' ? 'bg-emerald-500' : 'bg-rose-500'}"></div>
+                    <div>
+                        <p class="text-xs font-bold text-white">${m.name}</p>
+                        <p class="text-[9px] text-gray-500 font-bold uppercase">${m.time.split(',')[0]}</p>
+                    </div>
+                </div>
+                <button onclick="deleteManual(${m.id})" class="w-8 h-8 flex items-center justify-center rounded-full text-gray-600 hover:bg-white/10 hover:text-white transition"><i class="fas fa-trash"></i></button>
+            </div>`;
+        });
+    }
+}
+
+function toggleManualView(el) {
+    state.viewManualAdjusted = el.checked;
+    localStorage.setItem(`bunker_view_manual_${state.rollNumber}`, state.viewManualAdjusted);
+    renderManualComparison();
+    showToast(state.viewManualAdjusted ? 'Showing manual-adjusted view' : 'Showing original attendance');
+}
+
+function renderManualComparison() {
+    const container = document.getElementById('manual-comparison-container');
+    if (!container) return;
+
+    if (state.subjects.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    // Helper: compute base stats honoring the current attendance mode (no manual)
+    function getBaseStats(sub) {
+        let baseAtt = sub.attended;
+        let baseTot = sub.total;
+        if (state.college === 'PSGTECH') {
+            if (state.attendanceMode === 'exemp') {
+                baseTot = Math.max(sub.total - (sub.exemption || 0), sub.attended);
+            } else if (state.attendanceMode === 'medical') {
+                const pctMed = sub.pct_medical || 0;
+                baseTot = pctMed > 0 ? Math.round(sub.attended / (pctMed / 100)) : sub.total;
+            }
+        }
+        return { baseAtt, baseTot };
+    }
+
+    const modeLabel = { normal: 'Official', exemp: '+Exemption', medical: '+Medical' };
+    const officialLabel = modeLabel[state.attendanceMode] || 'Official';
+
+    // ALWAYS show manual-adjusted side-by-side comparison
+    const hasManual = state.manual.length > 0;
+    let html = `<div class="mb-2">
+        <p class="text-[9px] font-bold text-gray-600 uppercase tracking-widest mb-3 ml-1">Attendance Comparison <span class="text-violet-400 ml-1">(${officialLabel} vs Manual)</span></p>`;
+
+    if (!hasManual) {
+        html += `<div class="text-center text-xs text-gray-700 italic py-4">Add manual entries to see comparison</div>`;
+    } else {
+        state.subjects.forEach(sub => {
+            const { baseAtt, baseTot } = getBaseStats(sub);
+            const origPct = baseTot === 0 ? 0 : (baseAtt / baseTot * 100);
+
+            // Apply manual adjustments on top of mode-aware base
+            const manualEntries = state.manual.filter(x => x.code === sub.code);
+            const manualPresent = manualEntries.filter(x => x.status === 'Present').length;
+            const manualAbsent = manualEntries.filter(x => x.status === 'Absent').length;
+            const adjAtt = baseAtt + manualPresent;
+            const adjTot = baseTot + manualPresent + manualAbsent;
+            const adjPct = adjTot === 0 ? 0 : (adjAtt / adjTot * 100);
+
+            const origStr = origPct.toFixed(1);
+            const adjStr = adjPct.toFixed(1);
+            const diff = adjPct - origPct;
+            const diffStr = diff >= 0 ? `+${diff.toFixed(1)}%` : `${diff.toFixed(1)}%`;
+            const diffCol = diff > 0.05 ? 'text-emerald-400' : diff < -0.05 ? 'text-rose-400' : 'text-gray-500';
+            const origCol = origPct >= 75 ? 'text-gray-400' : 'text-rose-400/70';
+            const adjCol = adjPct >= 75 ? 'text-violet-400' : 'text-rose-400';
+
+            html += `<div class="p-3 rounded-xl bg-white/5 border border-white/5 mb-2">
+                <p class="text-xs font-bold text-white truncate mb-2">${sub.name}</p>
+                <div class="flex items-center justify-between">
+                    <div class="text-center">
+                        <p class="text-[9px] text-gray-500 uppercase tracking-wider mb-0.5">${officialLabel}</p>
+                        <p class="text-sm font-black ${origCol}">${origStr}%</p>
+                        <p class="text-[9px] text-gray-600">${baseAtt}/${baseTot}</p>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <i class="fas fa-arrow-right text-gray-700 text-xs mb-1"></i>
+                        <span class="text-[10px] font-black ${diffCol}">${diffStr}</span>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-[9px] text-violet-400 uppercase tracking-wider mb-0.5">With Manual</p>
+                        <p class="text-sm font-black ${adjCol}">${adjStr}%</p>
+                        <p class="text-[9px] text-gray-600">${adjAtt}/${adjTot}</p>
+                    </div>
+                </div>
+            </div>`;
+        });
+    }
+    html += '</div>';
+    container.innerHTML = html;
 }
 function addManualRecord(st) {
     const c = document.getElementById('manual-subject').value;
@@ -1070,7 +1283,9 @@ function addManualRecord(st) {
 }
 
 function toggleManualImpact(el) {
-    state.includeManual = el.checked;
+    if (el) state.includeManual = el.checked;
+    else state.includeManual = !state.includeManual;
+
     saveState();
 
     // Update all UI components to reflect changes
@@ -1105,9 +1320,9 @@ function cleanupManualEntries() {
 
     if (isNaN(lastUpdateDate.getTime())) return; // Failed to parse
 
-    // Set to end of day to be safe? Or just exact comparison.
-    // If update was "Oct 5", effectively covers all of Oct 5.
-    lastUpdateDate.setHours(23, 59, 59, 999);
+    // Set to start of the day so that manual entries tracked TODAY are successfully kept
+    // and aren't aggressively deleted immediately upon page reload.
+    lastUpdateDate.setHours(0, 0, 0, 0);
 
     const initialCount = state.manual.length;
 
@@ -1193,47 +1408,75 @@ function toggleSettings() {
             b.classList.remove('opacity-0');
             p.classList.remove('translate-y-full');
         });
+        // Sync attendance mode button states
+        const attModeContainer = document.getElementById('att-mode-container');
+        if (attModeContainer) {
+            // Hide for PSG IAS (they don't have exemption types)
+            attModeContainer.style.display = state.college === 'PSGIAS' ? 'none' : '';
+        }
+        ['normal', 'exemp', 'medical'].forEach(m => {
+            const btn = document.getElementById(`att-mode-${m}`);
+            if (!btn) return;
+            btn.className = m === state.attendanceMode
+                ? 'flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition bg-indigo-600 text-white shadow'
+                : 'flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition bg-white/5 text-gray-400 border border-white/5';
+        });
+
+        // Sync include manual toggle
+        const incToggle = document.getElementById('settings-include-manual');
+        if (incToggle) incToggle.checked = state.includeManual;
     } else {
         p.classList.add('translate-y-full');
         b.classList.add('opacity-0');
         setTimeout(() => m.classList.add('hidden'), 300);
     }
 }
-
-function togglePerfMode(el) {
-    const mode = el.checked ? 'high' : 'low';
-    document.documentElement.setAttribute('data-perf', mode);
-    document.getElementById('perf-mode-text').innerText = mode === 'high' ? 'High (Glass)' : 'Low (Solid)';
-    localStorage.setItem('bunker_perf_mode', mode);
-    showToast(`Graphics set to ${mode.toUpperCase()}`);
+function setAttendanceMode(mode) {
+    state.attendanceMode = mode;
+    saveState();
+    // Update button styles
+    ['normal', 'exemp', 'medical'].forEach(m => {
+        const btn = document.getElementById(`att-mode-${m}`);
+        if (btn) {
+            btn.className = m === mode
+                ? 'flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition bg-indigo-600 text-white shadow'
+                : 'flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition bg-white/5 text-gray-400 border border-white/5';
+        }
+    });
+    // Re-render subjects with new mode — including the manual comparison panel
+    renderSemesterHero(); renderWidgets(); renderSubjects(); initPlanner();
+    renderManualComparison(); // Sync manual comparison to new mode
+    const labels = { normal: 'Official Attendance', exemp: 'With Exemption', medical: 'With Medical' };
+    showToast(`Mode: ${labels[mode]}`);
 }
 
 function saveState() {
     localStorage.setItem('bunker_subjects', JSON.stringify(state.subjects));
     localStorage.setItem('bunker_timetable', JSON.stringify(state.timetable));
-    localStorage.setItem(`bunker_manual_${state.rollNumber}`, JSON.stringify(state.manual));
-    localStorage.setItem(`bunker_include_manual_${state.rollNumber}`, state.includeManual);
+    if (state.rollNumber) {
+        localStorage.setItem(`bunker_manual_${state.rollNumber}`, JSON.stringify(state.manual));
+        localStorage.setItem(`bunker_include_manual_${state.rollNumber}`, state.includeManual);
+        localStorage.setItem(`bunker_view_manual_${state.rollNumber}`, state.viewManualAdjusted);
+        localStorage.setItem(`bunker_att_mode_${state.rollNumber}`, state.attendanceMode);
+    }
     localStorage.setItem('bunker_roll', state.rollNumber);
 }
 function logout() {
-    // Smart Logout: Persist "Perf Mode" and "Cached Attendance"
-    const keysToKeep = ['bunker_perf_mode'];
+    // Smart Logout: Clear session but keep manual entries and preferences
     const allKeys = Object.keys(localStorage);
-
     allKeys.forEach(key => {
-        // Keep Perf Mode
-        if (key === 'bunker_perf_mode') return;
-
-        // Keep Cached Attendance (bunker_subjects_<ROLL>)
+        // Keep roll-specific cached subjects
         if (key.startsWith('bunker_subjects_')) return;
-
-        // Keep Manual Tracking (bunker_manual_<ROLL>)
+        // Keep manual tracking entries
         if (key.startsWith('bunker_manual_')) return;
-
-        // Delete everything else (active session, timetable, generic subjects)
+        // Keep per-user preferences
+        if (key.startsWith('bunker_include_manual_')) return;
+        if (key.startsWith('bunker_view_manual_')) return;
+        if (key.startsWith('bunker_att_mode_')) return;
+        // CLEAR credentials → forces login screen on next open
+        // (all the above keys allow user to quickly log back in and restore state)
         localStorage.removeItem(key);
     });
-
     location.reload();
 }
 function showToast(msg, t = 'info') { const e = document.createElement('div'), c = t === 'error' ? 'bg-rose-500' : 'bg-white text-black'; e.className = `px-5 py-3 rounded-2xl text-xs font-bold shadow-2xl flex items-center gap-3 transform translate-y-[-20px] opacity-0 transition-all duration-300 ${c}`; e.innerHTML = `<i class="fas fa-${t === 'error' ? 'exclamation-circle' : 'check-circle'}"></i> ${msg}`; document.getElementById('toast-container').appendChild(e); requestAnimationFrame(() => e.classList.remove('translate-y-[-20px]', 'opacity-0')); setTimeout(() => { e.classList.add('opacity-0', 'translate-y-[-10px]'); setTimeout(() => e.remove(), 300); }, 2500); }

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-perf="high">
 
 <head>
     <meta charset="UTF-8">
@@ -151,6 +151,8 @@
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/static/icon-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/static/icon-512.png">
     <link rel="manifest" href="/manifest.json?v=bunker5">
 
     <!-- Icons & Fonts -->
@@ -173,8 +175,18 @@
             isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream,
             isStandalone: window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone,
             isAppInstalled: false, // Will be updated after detection
-
             init: function () {
+                // Register Service Worker for total offline functionality
+                if ('serviceWorker' in navigator) {
+                    window.addEventListener('load', () => {
+                        navigator.serviceWorker.register('/sw.js').then((reg) => {
+                            console.log('PWA: Service Worker registered.', reg.scope);
+                        }).catch((err) => {
+                            console.log('PWA: Service Worker registration failed: ', err);
+                        });
+                    });
+                }
+
                 // Check if app is already installed (even if user is in browser)
                 this.checkIfInstalled();
 
@@ -369,7 +381,7 @@
 
                         <div class="input-group">
                             <input type="text" id="username" class="glass-input py-4" placeholder="Roll Number" required
-                                autocomplete="username" maxlength="7" style="text-transform: uppercase;">
+                                autocomplete="username" style="text-transform: uppercase;">
                             <i class="fas fa-user-graduate input-icon"></i>
                         </div>
                         <div class="input-group">
@@ -505,6 +517,13 @@
                         </div>
                     </div>
 
+                    <!-- SYNC INDICATOR (In-flow) -->
+                    <div id="sync-indicator"
+                        class="hidden flex justify-center items-center gap-2 px-4 py-2 mt-4 mx-auto w-max rounded-full bg-indigo-500/20 border border-indigo-500/30 backdrop-blur-xl text-xs font-bold text-indigo-300 shadow-lg transition-all">
+                        <span id="sync-dot" class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+                        <span id="sync-text">Syncing...</span>
+                    </div>
+
                     <!-- Subjects List -->
                     <div class="pt-4">
                         <div class="flex justify-between items-end mb-3 px-1">
@@ -577,6 +596,10 @@
                 <!-- TAB: EDIT -->
                 <div id="tab-edit" class="tab-content space-y-5 pt-2">
                     <div class="glass-panel p-6 rounded-[32px] border-l-4" style="border-left-color: var(--primary);">
+
+                        <!-- Toggles: injected by initManual() -->
+
+                        <!-- Subject Selector -->
                         <div class="relative mb-6">
                             <label
                                 class="text-[9px] font-bold text-gray-500 uppercase ml-1 mb-2 block tracking-widest">Select
@@ -590,6 +613,8 @@
                                     class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-xs text-gray-500 pointer-events-none"></i>
                             </div>
                         </div>
+
+                        <!-- Add Buttons -->
                         <div class="grid grid-cols-2 gap-3 mb-6">
                             <button onclick="addManualRecord('Present')"
                                 class="py-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold hover:bg-emerald-500/20 active:scale-95 transition flex flex-col items-center gap-2 group">
@@ -608,6 +633,11 @@
                                 <span class="text-[9px] uppercase tracking-widest">Bunked</span>
                             </button>
                         </div>
+
+                        <!-- Attendance Comparison Panel (injected by renderManualComparison) -->
+                        <div id="manual-comparison-container" class="mb-4"></div>
+
+                        <!-- Recent History -->
                         <div class="border-t border-white/5 pt-4">
                             <p class="text-[9px] font-bold text-gray-600 uppercase mb-3 ml-1 tracking-widest">Recent
                                 History</p>
@@ -800,14 +830,37 @@
                     </div>
                 </div>
 
-                <!-- Graphics Quality Toggle -->
+                <!-- Attendance Mode (PSG Tech only) -->
+                <div class="bg-white/5 rounded-[24px] p-5 border border-white/5" id="att-mode-container">
+                    <div class="mb-3">
+                        <div class="text-xs font-bold text-white">Attendance Mode</div>
+                        <div class="text-[10px] text-gray-400 mt-0.5 font-medium">Which % to display on dashboard</div>
+                    </div>
+                    <div class="flex gap-1.5" id="att-mode-buttons">
+                        <button id="att-mode-normal" onclick="setAttendanceMode('normal')"
+                            class="flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition bg-indigo-600 text-white shadow">
+                            Normal
+                        </button>
+                        <button id="att-mode-exemp" onclick="setAttendanceMode('exemp')"
+                            class="flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition bg-white/5 text-gray-400 border border-white/5">
+                            +Exemp
+                        </button>
+                        <button id="att-mode-medical" onclick="setAttendanceMode('medical')"
+                            class="flex-1 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition bg-white/5 text-gray-400 border border-white/5">
+                            +Medical
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Manual Attendance Include Toggle -->
                 <div class="bg-white/5 rounded-[24px] p-5 border border-white/5 flex justify-between items-center">
                     <div>
-                        <div class="text-xs font-bold text-white">Graphics Quality</div>
-                        <div class="text-[10px] text-gray-400 mt-0.5 font-medium" id="perf-mode-text">Auto</div>
+                        <div class="text-xs font-bold text-white">Include Manual Entries in Dashboard</div>
+                        <div class="text-[10px] text-gray-400 mt-0.5 font-medium">Affects home dashboard stats</div>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="perf-toggle" class="sr-only peer" onchange="togglePerfMode(this)">
+                        <input type="checkbox" id="settings-include-manual" class="sr-only peer"
+                            onchange="toggleManualImpact(this)">
                         <div
                             class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600">
                         </div>
@@ -825,7 +878,6 @@
             </div>
         </div>
     </div>
-
     <!-- TOAST -->
     <div id="toast-container"
         class="fixed top-14 left-1/2 -translate-x-1/2 z-[80] flex flex-col gap-2 w-max max-w-[90%] pointer-events-none">
@@ -833,7 +885,7 @@
 
     <!-- Main Logic -->
     <script src="/static/legal.js?v=1.0.1" defer></script>
-    <script src="/static/app.js?v=1.0.1" defer></script>
+    <script src="/static/app.js?v=1.1.0" defer></script>
 </body>
 
 </html>
