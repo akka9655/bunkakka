@@ -11,7 +11,7 @@
     },
     {
       "source": "/favicon.ico",
-      "destination": "api/favicon.py"
+      "destination": "static/favicon.ico"
     },
     {
       "source": "/manifest.json",
