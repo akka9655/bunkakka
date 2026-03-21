@@ -569,23 +569,27 @@
 
                 <!-- TAB: SMART TRACKER (Combined Planner & Edit) -->
                 <div id="tab-planner" class="tab-content space-y-5 pt-2">
-                                        <!-- Integrated Attendance Comparison (Top) -->
-                    <div class="glass-panel p-5 rounded-[32px] border-l-4 border-indigo-500 shadow-xl overflow-hidden relative">
+                    <!-- Integrated Attendance Comparison (Top) -->
+                    <div
+                        class="glass-panel p-5 rounded-[32px] border-l-4 border-indigo-500 shadow-xl overflow-hidden relative">
                         <div class="absolute top-0 right-0 p-4 opacity-10 text-4xl">📊</div>
                         <div class="flex items-center justify-between mb-4">
                             <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-300">
+                                <div
+                                    class="w-8 h-8 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-300">
                                     <i class="fas fa-chart-line text-xs"></i>
                                 </div>
-                                <span class="text-[10px] font-black text-indigo-200 uppercase tracking-[0.2em]">Predicted Attendance</span>
+                                <span class="text-[10px] font-black text-indigo-200 uppercase tracking-[0.2em]">Smart
+                                    Tracker Attendance</span>
                             </div>
-                            <button id="planner-confirm-btn" onclick="applySelectedAttendance()" 
+                            <button id="planner-confirm-btn" onclick="applySelectedAttendance()"
                                 class="hidden py-1.5 px-4 rounded-full bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 active:scale-95 transition-all animate-bounce">
                                 <i class="fas fa-check-double mr-2"></i>Apply Selected
                             </button>
                         </div>
                         <div id="planner-impact-list" class="space-y-3">
-                            <div class="text-center py-2 text-gray-500 text-[10px] italic font-medium">Select classes below to see prediction</div>
+                            <div class="text-center py-2 text-gray-500 text-[10px] italic font-medium">Select classes
+                                below to see prediction</div>
                         </div>
                     </div>
 
@@ -595,9 +599,10 @@
                     </div>
 
                     <!-- Select All Control -->
-                    <div id="planner-select-all-container" class="flex justify-between items-center px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
+                    <div id="planner-select-all-container"
+                        class="flex justify-between items-center px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
                         <span class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Day Selection</span>
-                        <button id="select-all-btn" onclick="toggleSelectAllCards()" 
+                        <button id="select-all-btn" onclick="toggleSelectAllCards()"
                             class="py-1.5 px-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[9px] font-black uppercase tracking-widest hover:bg-indigo-500/20 transition-all active:scale-95">
                             Select All
                         </button>
@@ -608,12 +613,15 @@
                         <!-- Class cards with Present/Absent buttons injected by JS -->
                     </div>
 
-                                                            <!-- Recent History & Logs -->
+                    <!-- Recent History & Logs -->
                     <div class="glass-panel p-6 rounded-[32px] border-l-4 border-violet-500 mt-4">
                         <div class="border-t border-white/0 pt-0">
                             <div class="flex justify-between items-center mb-4 px-1">
-                                <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Recent History</p>
-                                <button onclick="showFullHistory()" class="text-[9px] font-black text-indigo-400 uppercase tracking-widest hover:text-indigo-300 transition">View Full Log</button>
+                                <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Recent History
+                                </p>
+                                <button onclick="showFullHistory()"
+                                    class="text-[9px] font-black text-indigo-400 uppercase tracking-widest hover:text-indigo-300 transition">View
+                                    Full Log</button>
                             </div>
                             <div id="manual-history" class="space-y-2.5"></div>
                         </div>

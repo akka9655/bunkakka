@@ -1196,6 +1196,65 @@ function updateSmartTrackerImpact() {
     if (!l) return;
 
     const selectedCodes = Object.values(state.selectedCards || {});
+    const todayStr = new Date().toLocaleDateString();
+    const todayManual = state.manual.filter(m => new Date(m.timestamp || m.time).toLocaleDateString() === todayStr);
+    const todayManualCodes = [...new Set(todayManual.map(m => m.code))];
+    
+    // Subjects to show: either currently selected OR already tracked today
+    const codesToShow = [...new Set([...selectedCodes, ...todayManualCodes])];
+    
+    if (codesToShow.length === 0) {
+        l.innerHTML = '<div class="text-center py-2 text-gray-500 text-[10px] italic font-medium">Select or mark classes to see tracker stats</div>';
+        if (btn) btn.classList.add('hidden');
+        return;
+    }
+
+    if (btn) {
+        if (selectedCodes.length > 0) btn.classList.remove('hidden');
+        else btn.classList.add('hidden');
+    }
+
+    let html = '';
+    codesToShow.forEach(code => {
+        const s = getSubjectStats(code);
+        if (!s) return;
+
+        const histCount = todayManual.filter(m => m.code === code && m.status === 'Present').length;
+        const histAbsent = todayManual.filter(m => m.code === code && m.status === 'Absent').length;
+        const pendingCount = selectedCodes.filter(c => c === code).length;
+
+        const totalP = histCount + pendingCount;
+        const totalA = histAbsent;
+
+        const adjAtt = s.att + totalP;
+        const adjTot = s.tot + totalP + totalA;
+        const adjPct = adjTot === 0 ? 0 : (adjAtt / adjTot * 100);
+        
+        const diff = adjPct - s.pct;
+        const diffStr = diff >= 0 ? `+${diff.toFixed(1)}%` : `${diff.toFixed(1)}%`;
+        const diffCol = diff > 0.05 ? 'text-emerald-400' : diff < -0.05 ? 'text-rose-400' : 'text-gray-500';
+
+        html += `
+            <div class="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/5 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div class="flex-1 min-w-0 pr-3">
+                    <p class="text-[11px] font-bold text-white truncate">${s.name}</p>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="text-[9px] font-black ${pendingCount > 0 ? 'text-indigo-400 animate-pulse' : 'text-emerald-400/70'}">
+                            ${totalP} P / ${totalA} A Today
+                        </span>
+                        ${pendingCount > 0 ? `<span class="text-[8px] px-1.5 py-0.5 rounded-lg bg-indigo-500/20 text-indigo-300">+${pendingCount} selecting</span>` : ''}
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-[13px] font-black text-indigo-300">${adjPct.toFixed(1)}%</p>
+                    <p class="text-[9px] font-bold ${diffCol}">${diffStr}</p>
+                </div>
+            </div>
+        `;
+    });
+    
+    l.innerHTML = html;
+});
 
     if (selectedCodes.length === 0) {
         l.innerHTML = '<div class="text-center py-2 text-gray-500 text-[10px] italic font-medium">Select classes to see prediction</div>';
