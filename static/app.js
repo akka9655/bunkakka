@@ -19,7 +19,8 @@ let state = {
     viewManualAdjusted: localStorage.getItem(`bunker_view_manual_${localStorage.getItem('bunker_roll')}`) === 'true',
     attendanceMode: localStorage.getItem(`bunker_att_mode_${localStorage.getItem('bunker_roll')}`) || 'normal', // 'normal' | 'exemp' | 'medical'
     calendarCache: JSON.parse(localStorage.getItem('bunker_calendar_cache') || 'null'),
-    threshold: 80, plannerBunks: {}, activePlannerDay: DAYS[new Date().getDay() - 1] || 'Mon'
+    threshold: 80, plannerBunks: {}, activePlannerDay: DAYS[new Date().getDay() - 1] || 'Mon',
+    academics: { internals: null, gpa: null, cgpa: null, loaded: false }
 };
 
 function getAcademicYear(roll) { if (!roll || roll.length < 2) return null; const y = parseInt('20' + roll.substring(0, 2)), c = new Date().getFullYear(), m = new Date().getMonth() + 1; return Math.max(1, Math.min(5, (m >= 1 && m <= 5 ? c - 1 : c) - y + 1)); }
@@ -58,6 +59,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (window.pwaManager) updateInstallUI();
+
+    // Dismiss splash screen and reveal app
+    setTimeout(() => {
+        const splash = document.getElementById('premium-splash');
+        const app = document.getElementById('app');
+        if (splash) {
+            splash.style.opacity = '0';
+            splash.style.pointerEvents = 'none';
+            setTimeout(() => splash.remove(), 700);
+        }
+        if (app) app.style.opacity = '1';
+    }, 1200); // 1.2s delay for the animation to play out
 });
 
 async function backgroundSync(roll, password) {
@@ -145,6 +158,7 @@ function showSyncIndicator(status) {
         txt.innerText = 'Offline Mode';
     }
 }
+
 
 function hideSyncIndicator() {
     const el = document.getElementById('sync-indicator');
@@ -782,14 +796,41 @@ function renderSubjects() {
         else { col = 'text-[#EF4444]'; bar = 'bg-[#EF4444]'; bor = 'border-[#EF4444]'; }
 
         let stat, safe = Math.floor((4 * sub.att - 3 * sub.tot) / 3), need = Math.ceil(3 * sub.tot - 4 * sub.att);
-        if (sub.pct >= 75) stat = safe > 0 ? `<div class="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20"><i class="fas fa-check-circle text-[10px]"></i><span class="text-[9px] font-bold uppercase tracking-wide">Safe: ${safe}</span></div>` : `<div class="flex items-center gap-1.5 text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20"><i class="fas fa-exclamation-circle text-[10px]"></i><span class="text-[9px] font-bold uppercase tracking-wide">Danger</span></div>`;
-        else stat = need > 0 ? `<div class="flex items-center gap-1.5 text-rose-400 bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20"><i class="fas fa-arrow-up text-[10px]"></i><span class="text-[9px] font-bold uppercase tracking-wide">Need ${need}</span></div>` : `<div class="flex items-center gap-1.5 text-rose-400 bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20"><i class="fas fa-arrow-up text-[10px]"></i><span class="text-[9px] font-bold uppercase tracking-wide">Attend</span></div>`;
+        if (sub.pct >= 75) stat = safe > 0 ? `<div class="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20"><i class="fas fa-shield-alt text-[10px]"></i><span class="text-[9px] font-black uppercase tracking-wider">Safe to bunk ${safe}</span></div>` : `<div class="flex items-center gap-1.5 text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20"><i class="fas fa-exclamation-triangle text-[10px]"></i><span class="text-[9px] font-black uppercase tracking-wider">Danger Zone</span></div>`;
+        else stat = need > 0 ? `<div class="flex items-center gap-1.5 text-rose-400 bg-rose-500/10 px-3 py-1.5 rounded-xl border border-rose-500/20"><i class="fas fa-arrow-trend-up text-[10px]"></i><span class="text-[9px] font-black uppercase tracking-wider">Need ${need} classes</span></div>` : `<div class="flex items-center gap-1.5 text-rose-400 bg-rose-500/10 px-3 py-1.5 rounded-xl border border-rose-500/20"><i class="fas fa-exclamation-circle text-[10px]"></i><span class="text-[9px] font-black uppercase tracking-wider">Critical</span></div>`;
 
         const d = document.createElement('div');
-        // Optimization: Removed glassmorphism from list items
-        d.className = `glass-card rounded-[24px] p-5 mb-3 relative overflow-hidden group active:scale-[0.98] transition-all cursor-pointer border-l-4 ${bor}`;
+        d.className = `bg-white/[0.03] border border-white/5 backdrop-blur-xl shadow-xl rounded-[28px] overflow-hidden transition-all duration-300 mb-4 cursor-pointer active:scale-[0.98] border-l-4 ${bor}`;
         d.onclick = (e) => { if (!e.target.closest('button')) openSim(sub.code) };
-        d.innerHTML = `<div class="flex justify-between items-start mb-4"><div class="flex items-center gap-3"><div class="w-11 h-11 rounded-2xl bg-white/5 flex items-center justify-center font-bold text-xs text-gray-400 border border-white/5 shadow-inner">${sub.code.substring(0, 2)}</div><div><h4 class="font-bold text-white text-[15px] leading-tight mb-1">${sub.name}</h4><div class="flex items-center gap-2"><span class="text-[10px] text-gray-500 font-bold tracking-wider">${sub.att} / ${sub.tot}</span></div></div></div><div class="text-right"><span class="text-2xl font-black ${col}">${pct}%</span></div></div><div class="w-full bg-white/5 h-2 rounded-full overflow-hidden mb-4"><div class="h-full ${bar} rounded-full transition-all duration-1000" style="width:${pct}%"></div></div><div class="flex justify-between items-center">${stat}<button class="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-white/30 hover:bg-white/10 hover:text-white transition group-active:scale-90"><i class="fas fa-magic text-xs"></i></button></div>`;
+        
+        d.innerHTML = `
+            <div class="p-5 relative overflow-hidden">
+                <div class="absolute -right-4 -top-4 opacity-[0.03] pointer-events-none text-8xl text-white">
+                    <i class="fas fa-book-open"></i>
+                </div>
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex items-center gap-3 z-10 flex-1 pr-2 min-w-0">
+                        <div class="min-w-0 flex-1">
+                            <h4 class="font-bold text-white text-base leading-snug mb-1 drop-shadow-md tracking-wide truncate w-full block">${sub.name}</h4>
+                            <div class="flex items-center gap-2 opacity-80 mt-1">
+                                <span class="text-[10px] text-gray-400 font-bold tracking-widest uppercase">Attended: <span class="text-gray-200">${sub.att}/${sub.tot}</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end z-10 shrink-0 pl-2">
+                        <span class="text-3xl font-black ${col} drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] tracking-tighter">${pct}%</span>
+                    </div>
+                </div>
+                <div class="w-full bg-black/40 h-2.5 rounded-full overflow-hidden mb-5 border border-white/5 shadow-inner">
+                    <div class="h-full ${bar} rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_currentColor] opacity-90" style="width:${pct}%"></div>
+                </div>
+                <div class="flex justify-between items-center z-10 relative">
+                    ${stat}
+                    <button class="w-10 h-10 rounded-[14px] bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 hover:bg-indigo-500/20 transition-all active:scale-90 shadow-[0_0_15px_rgba(99,102,241,0.15)] group">
+                        <i class="fas fa-magic text-sm group-hover:rotate-12 transition-transform duration-300"></i>
+                    </button>
+                </div>
+            </div>`;
         c.appendChild(d);
     });
 }
@@ -1432,6 +1473,12 @@ function switchTab(id, index) {
     let t = "Dashboard";
     if (id === 'home') { const td = new Date(); const ev = ACADEMIC_DATA.fullCalendar.find(e => new Date(e.date).toDateString() === td.toDateString()); if (ev) t = ev.type === 'Holiday' ? "Holiday! 🌴" : ev.type === 'Exam' ? "Exam Day! 🍀" : "Busy Day! 📚"; else if (td.getDay() === 0 || td.getDay() === 6) t = "Weekend Vibes 🎉"; }
     else if (id === 'calendar') t = "Timeline"; else if (id === 'planner') t = "Smart Tracker";
+    else if (id === 'academics') {
+        t = "Academics";
+        if (state.academics && !state.academics.loaded) {
+            setTimeout(() => loadAcademics(), 150);
+        }
+    }
     document.getElementById('greeting-text').innerText = t;
 }
 function togglePassword() { const i = document.getElementById('password'); i.type = i.type === 'password' ? 'text' : 'password'; }
@@ -1713,3 +1760,678 @@ function closeHistory() {
     document.body.style.overflow = '';
     setTimeout(() => m.classList.add('hidden'), 300);
 }
+
+// ================================================================
+// ACADEMICS PAGE
+// ================================================================
+
+let acadActiveTab = 'internals';
+
+
+function getAuthToken() {
+    // 'bunker_credentials' is stored at login as {roll, password}
+    const creds = localStorage.getItem('bunker_credentials');
+    return creds || null;
+}
+
+function switchAcadTab(tab) {
+    acadActiveTab = tab;
+    const tabs = ['internals', 'results'];
+    tabs.forEach(t => {
+        const btn = document.getElementById(`acad-tab-${t}`);
+        const panel = document.getElementById(`acad-panel-${t}`);
+        if (!btn || !panel) return;
+        if (t === tab) {
+            btn.className = 'flex-1 py-2.5 rounded-[18px] text-[10px] font-black uppercase tracking-widest transition-all bg-indigo-600 text-white shadow-lg';
+            panel.classList.remove('hidden');
+        } else {
+            btn.className = 'flex-1 py-2.5 rounded-[18px] text-[10px] font-black uppercase tracking-widest transition-all bg-white/5 text-gray-400 border border-white/5';
+            panel.classList.add('hidden');
+        }
+    });
+}
+
+async function loadAcademics(force = false) {
+    if (state.academics.loaded && !force) return;
+
+    // PSG IAS doesn't have CA Marks / GPA pages on eCampus
+    if (state.college === 'PSGIAS') {
+        document.getElementById('acad-loading')?.classList.add('hidden');
+        showAcadError('Academic data (Internals / GPA / CGPA) is only available for PSG Tech students.');
+        return;
+    }
+
+    // Show loading
+    const panels = ['internals', 'results'];
+    panels.forEach(p => document.getElementById(`acad-panel-${p}`)?.classList.add('hidden'));
+    document.getElementById('acad-error')?.classList.add('hidden');
+    document.getElementById('acad-loading')?.classList.remove('hidden');
+
+    const authToken = getAuthToken();
+    if (!authToken) {
+        showAcadError('Please log in with valid credentials to view academic data.');
+        return;
+    }
+
+    try {
+        const [internalsRes, gpaRes, cgpaRes] = await Promise.all([
+            fetch('/api/internals', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ auth_token: authToken }) }),
+            fetch('/api/gpa', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ auth_token: authToken }) }),
+            fetch('/api/cgpa', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ auth_token: authToken }) })
+        ]);
+
+        const internals = await internalsRes.json();
+        const gpa = await gpaRes.json();
+        const cgpa = await cgpaRes.json();
+
+        if (internals.error || gpa.error || cgpa.error) {
+            showAcadError(internals.error || gpa.error || cgpa.error || 'Failed to load academic data.');
+            return;
+        }
+
+        state.academics = { internals, gpa, cgpa, loaded: true };
+
+        document.getElementById('acad-loading')?.classList.add('hidden');
+
+        renderInternals(internals);
+        renderGPA(gpa);
+        renderCGPA(cgpa);
+
+        switchAcadTab(acadActiveTab);
+
+    } catch (err) {
+        showAcadError('Network error. Make sure you are connected.');
+    }
+}
+
+function showAcadError(msg) {
+    document.getElementById('acad-loading')?.classList.add('hidden');
+    const errEl = document.getElementById('acad-error');
+    const msgEl = document.getElementById('acad-error-msg');
+    if (errEl) errEl.classList.remove('hidden');
+    if (msgEl) msgEl.textContent = msg;
+}
+
+// ---- INTERNALS ----
+function renderInternals(internals) {
+    const list = document.getElementById('internals-list');
+    const statusEl = document.getElementById('internals-status');
+    if (!list) return;
+
+    // Filter out subjects without relevant data (labs with no marks yet, etc.)
+    const mainSubjects = internals.filter(s => s.total !== '' || s.row_data.some(v => v && v !== '*' && v !== ''));
+
+    // Count updated subjects
+    const withTotals = mainSubjects.filter(s => {
+        const t = parseFloat(s.total);
+        return !isNaN(t);
+    });
+    if (withTotals.length > 0) {
+        if (statusEl) statusEl.textContent = `${withTotals.length} of ${mainSubjects.length} subjects updated`;
+    } else {
+        if (statusEl) statusEl.textContent = 'Marks not yet entered';
+    }
+
+    if (mainSubjects.length === 0) {
+        list.innerHTML = `<div class="text-center py-10 opacity-50"><div class="text-4xl mb-4">📝</div><p class="text-xs font-bold uppercase tracking-widest text-gray-500">No Marks Available Yet</p></div>`;
+        return;
+    }
+
+    list.innerHTML = '';
+
+    // Initialize global METADATA for simulation
+    if (typeof window.METADATA === 'undefined') {
+        window.METADATA = {
+            t1: { label: 'Test 1 (CA1)', max: 50, weight: 15, color: 'text-blue-400', accent: 'bg-blue-500' },
+            t2: { label: 'Test 2 (CA2)', max: 50, weight: 15, color: 'text-indigo-400', accent: 'bg-indigo-500' },
+            ap: { label: 'Assignment', max: 10, weight: 10, color: 'text-purple-400', accent: 'bg-purple-500' },
+            ap1: { label: 'Assign 1', max: 5, weight: 5, color: 'text-purple-400', accent: 'bg-purple-500' },
+            ap2: { label: 'Assign 2', max: 5, weight: 5, color: 'text-purple-400', accent: 'bg-purple-500' },
+            mq1: { label: 'Quiz 1 (MQ1)', max: 10, weight: 5, color: 'text-pink-400', accent: 'bg-pink-500' },
+            mq2: { label: 'Quiz 2 (MQ2)', max: 10, weight: 5, color: 'text-pink-400', accent: 'bg-pink-500' },
+            ir1: { label: 'Record 1', max: 25, weight: 25, color: 'text-emerald-400', accent: 'bg-emerald-500' },
+            ir2: { label: 'Record 2', max: 25, weight: 25, color: 'text-emerald-400', accent: 'bg-emerald-500' },
+            plro1: { label: 'Pre-Lab 1', max: 10, weight: 10, color: 'text-teal-400', accent: 'bg-teal-500' },
+            plro2: { label: 'Pre-Lab 2', max: 10, weight: 10, color: 'text-teal-400', accent: 'bg-teal-500' },
+            // Fallbacks
+            c1: { label: 'Comp 1', max: 50, weight: 10, color: 'text-gray-400', accent: 'bg-gray-500' },
+            c2: { label: 'Comp 2', max: 50, weight: 10, color: 'text-gray-400', accent: 'bg-gray-500' },
+            c3: { label: 'Comp 3', max: 50, weight: 10, color: 'text-gray-400', accent: 'bg-gray-500' },
+            c4: { label: 'Comp 4', max: 50, weight: 10, color: 'text-gray-400', accent: 'bg-gray-500' },
+            c5: { label: 'Comp 5', max: 50, weight: 10, color: 'text-gray-400', accent: 'bg-gray-500' },
+            c6: { label: 'Comp 6', max: 50, weight: 10, color: 'text-gray-400', accent: 'bg-gray-500' }
+        };
+        window.simState = {};
+    }
+
+    let listHTML = '';
+
+    mainSubjects.forEach((sub, idx) => {
+        const rowData = sub.row_data;
+        const numCols = rowData.length;
+        let expectedKeys = [];
+        if (sub.is_lab) {
+            if (numCols === 5) expectedKeys = ['ir1', 'ir2', 'plro1', 'plro2', 'total'];
+            else expectedKeys = rowData.map((_, i) => `c${i+1}`);
+        } else {
+            if (numCols === 8) expectedKeys = ['t1', 't2', 'best2t', 'ap', 'mq1', 'mq2', 'bestmcq', 'total'];
+            else if (numCols === 9) expectedKeys = ['t1', 't2', 'best2t', 'ap1', 'ap2', 'mq1', 'mq2', 'bestmcq', 'total'];
+            else expectedKeys = rowData.map((_, i) => `c${i+1}`);
+        }
+
+        const d = {};
+        expectedKeys.forEach((k, i) => {
+            const val = rowData[i];
+            d[k] = (!val || val === '*' || val.trim() === '') ? null : parseFloat(val);
+        });
+
+        // Simulator keys exclude derived totals
+        const simKeys = expectedKeys.filter(k => k !== 'best2t' && k !== 'bestmcq' && k !== 'total');
+        const missingKeys = simKeys.filter(k => d[k] === null);
+
+        // Use the API's pre-converted total for card display (most accurate)
+        // API computes: theory → total*0.8 (/40), lab → total*1.2 (/60)
+        const portalTotalConverted = parseFloat(sub.total_converted);
+        const portalTotalRaw = parseFloat(sub.total); // raw from portal (/50 for theory)
+        const hasPortalTotal = !isNaN(portalTotalConverted);
+
+        // Fallback to component calc only when portal total not available
+        const currentTotal = hasPortalTotal ? portalTotalRaw : calcCATotal(sub.is_lab, simKeys, d);
+        const currentOutOf40 = hasPortalTotal
+            ? portalTotalConverted
+            : (sub.is_lab ? Math.min(60, currentTotal * 1.2) : Math.min(40, (currentTotal / 50) * 40));
+        const displayMax = sub.is_lab ? 60 : 40;
+
+        const isTheory = !sub.is_lab;
+        const iconName = isTheory ? 'fa-book-open' : 'fa-flask';
+        const typeColor = isTheory ? 'indigo' : 'teal';
+
+        listHTML += `
+        <div id="card-${sub.course_code}" class="bg-white/[0.03] border border-white/5 backdrop-blur-xl shadow-xl rounded-[28px] overflow-hidden transition-all duration-300 mb-4">
+            <div class="p-5 relative overflow-hidden cursor-pointer active:scale-[0.98] transition-all" onclick="toggleInternalCard('${sub.course_code}')">
+                <div class="absolute -right-4 -top-4 opacity-[0.03] pointer-events-none text-8xl text-white">
+                    <i class="fas ${iconName}"></i>
+                </div>
+                <div class="flex justify-between items-start">
+                    <div class="flex-1 pr-4 z-10">
+                        <div class="flex flex-wrap items-center gap-2 mb-1.5">
+                            <span class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md border bg-${typeColor}-500/10 text-${typeColor}-400 border-${typeColor}-500/20">${sub.course_code}</span>
+                            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">${isTheory ? 'Theory' : 'Laboratory'}</span>
+                        </div>
+                        <h3 class="font-bold text-white text-[13px] leading-snug">${sub.course_name}</h3>
+                    </div>
+                    <div class="flex flex-col items-end z-10 ml-2">
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-2xl font-black text-transparent bg-clip-text ${missingKeys.length > 0 ? 'bg-gradient-to-r from-gray-300 to-gray-500' : 'bg-gradient-to-r from-indigo-300 to-purple-400'}">
+                                ${currentOutOf40.toFixed(1)}
+                            </span>
+                            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">/ ${displayMax}</span>
+                        </div>
+                        <div class="mt-0.5 mb-1.5 opacity-80">
+                            <span class="text-[9px] font-bold text-gray-400">${hasPortalTotal ? `Portal Raw Score: ${portalTotalRaw} / 50` : `Estimated from Pending`}</span>
+                        </div>
+                        <div class="mt-0 flex items-center">
+                            ${missingKeys.length > 0 
+                                ? `<span class="flex items-center gap-1 text-[9px] text-amber-400 font-bold bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20 whitespace-nowrap"><i class="fas fa-exclamation-circle text-[8px]"></i> ${missingKeys.length} Pend</span>`
+                                : `<span class="flex items-center gap-1 text-[9px] text-emerald-400 font-bold bg-emerald-400/10 px-1.5 py-0.5 rounded border border-emerald-400/20 whitespace-nowrap"><i class="fas fa-check-circle text-[8px]"></i> Final</span>`
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 h-1 w-full bg-black/50 rounded-full overflow-hidden" id="bar-${sub.course_code}">
+                     <div class="h-full bg-${typeColor}-500" style="width: ${Math.min(100,(currentOutOf40/displayMax)*100).toFixed(1)}%"></div>
+                </div>
+            </div>
+
+            <div class="expandable-content" id="content-${sub.course_code}">
+                <div class="expandable-inner cursor-default">
+                    <div class="px-5 pb-5">
+                        <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-5 mt-2"></div>
+                        ${renderFullSimulator(sub, d, simKeys)}
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    });
+
+    list.innerHTML = listHTML;
+
+    // Initial calculation run for all simulators
+    mainSubjects.forEach(sub => {
+        if(window.simState[sub.course_code]) calculateSimOutputs(sub.course_code, sub);
+    });
+}
+
+function renderFullSimulator(subject, d, expectedKeys) {
+    const courseCode = subject.course_code;
+    window.simState[courseCode] = { sem: 75 };
+    expectedKeys.forEach(k => { 
+        const actual = d[k];
+        const meta = window.METADATA[k] || window.METADATA['c1'];
+        window.simState[courseCode][k] = actual !== null ? actual : Math.round(meta.max * 0.7); 
+    });
+
+    let actualMarksHTML = '';
+    let slidersHTML = '';
+
+    expectedKeys.forEach(key => {
+        const meta = window.METADATA[key] || window.METADATA['c1'];
+        const isMissing = d[key] === null;
+
+        if (!isMissing) {
+            actualMarksHTML += `
+            <div class="bg-white/5 p-3 rounded-xl border border-white/10 flex justify-between items-center">
+                <span class="text-[11px] font-bold ${meta.color}">${meta.label}</span>
+                <span class="text-sm font-black text-white bg-black/40 px-2.5 py-1 rounded">
+                    ${d[key]} <span class="text-[9px] text-gray-500 font-medium">/ ${meta.max}</span>
+                </span>
+            </div>`;
+        } else {
+            slidersHTML += `
+            <div class="bg-white/5 p-3.5 rounded-2xl border border-amber-500/20 shadow-[inset_0_0_15px_rgba(245,158,11,0.05)]">
+                <div class="flex justify-between items-center mb-3">
+                    <div class="flex flex-col">
+                        <span class="text-xs font-bold ${meta.color}">${meta.label}</span>
+                        <div class="mt-1"><span class="text-[9px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20">Pending</span></div>
+                    </div>
+                    <span class="text-sm font-black text-white bg-black/40 px-2.5 py-1 rounded">
+                        <span id="val-${courseCode}-${key}">${window.simState[courseCode][key]}</span> 
+                        <span class="text-[10px] text-gray-500 font-medium">/ ${meta.max}</span>
+                    </span>
+                </div>
+                <input type="range" min="0" max="${meta.max}" step="1" value="${window.simState[courseCode][key]}" 
+                    oninput="updateSim('${courseCode}', '${key}', this.value)"
+                    class="w-full bg-black/50 rounded-lg appearance-none cursor-pointer accent-indigo-500 acad-slider" style="height: 8px;" />
+            </div>`;
+        }
+    });
+
+    let internalsSimSection = '';
+    if (actualMarksHTML !== '') internalsSimSection += `<div class="mb-4"><p class="text-[9px] text-gray-400 mb-2 uppercase tracking-widest font-bold">Entered Marks</p><div class="grid grid-cols-2 gap-2">${actualMarksHTML}</div></div>`;
+    if (slidersHTML !== '') internalsSimSection += `<div class="mb-6"><p class="text-[9px] text-gray-400 mb-2 uppercase tracking-widest font-bold">Pending Marks (Simulate)</p><div class="grid grid-cols-1 gap-3">${slidersHTML}</div></div>`;
+    else internalsSimSection += `<div class="mb-6 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-center"><span class="text-xs font-bold text-emerald-400">All internal marks finalized!</span></div>`;
+
+    return `
+    <div class="bg-gradient-to-br from-black/60 to-indigo-950/30 p-5 rounded-3xl border border-indigo-500/20 mt-4 relative shadow-inner" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-5 border-b border-white/5 pb-3">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-calculator text-indigo-400 text-xs"></i>
+                <h4 class="text-xs font-bold text-indigo-300 uppercase tracking-widest">Master Simulator</h4>
+            </div>
+            <button onclick="resetSim('${courseCode}')" class="text-[10px] bg-white/10 hover:bg-white/20 text-gray-300 px-3 py-1.5 rounded-lg font-bold transition-colors active:scale-95">Reset</button>
+        </div>
+
+        ${internalsSimSection}
+
+        <p class="text-[10px] text-gray-400 mb-3 uppercase tracking-widest font-bold">Simulate Final Exam</p>
+        <div class="mb-5 bg-gradient-to-r from-purple-900/20 to-indigo-900/20 p-5 rounded-2xl border border-purple-500/20">
+            <div class="flex justify-between items-end mb-4">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-graduation-cap text-purple-400 text-sm"></i>
+                    <span class="text-xs font-bold text-gray-200">Final Sem Exam</span>
+                </div>
+                <div class="flex items-baseline gap-1">
+                    <span class="text-2xl font-black text-purple-300" id="val-${courseCode}-sem">75</span>
+                    <span class="text-[10px] font-bold text-gray-500">/ 100</span>
+                </div>
+            </div>
+            <input type="range" min="0" max="100" value="75" id="slider-${courseCode}-sem"
+                oninput="updateSim('${courseCode}', 'sem', this.value)"
+                class="w-full bg-black/50 rounded-lg appearance-none cursor-pointer accent-purple-500 acad-slider" style="height: 8px;" />
+        </div>
+
+        <div class="flex items-stretch justify-between bg-black/40 p-2 rounded-2xl border border-white/5 mb-5 relative">
+            <div class="flex-1 flex flex-col items-center justify-center p-2">
+                <span class="text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1">CA Weight</span>
+                <span class="text-xl font-black text-indigo-300" id="out-${courseCode}-ca">--</span>
+                <span class="text-[8px] text-gray-600 mt-1" id="out-${courseCode}-ca-raw">--</span>
+            </div>
+            <div class="w-px bg-white/5 my-2"></div>
+            <div class="flex-1 flex flex-col items-center justify-center p-2">
+                <span class="text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-1">Sem Weight</span>
+                <span class="text-xl font-black text-purple-300" id="out-${courseCode}-sem">--</span>
+                <span class="text-[8px] text-gray-600 mt-1" id="out-${courseCode}-sem-raw">--</span>
+            </div>
+            <div class="w-px bg-white/5 my-2"></div>
+            <div id="out-${courseCode}-box" class="flex-[1.2] flex flex-col items-center justify-center p-3 rounded-xl border">
+                <span class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-1">Final Total</span>
+                <span class="text-3xl font-black" id="out-${courseCode}-total">--%</span>
+                <span id="out-${courseCode}-grade" class="text-[10px] font-bold mt-1.5 px-2 py-0.5 rounded bg-black/20 text-center leading-tight"></span>
+            </div>
+        </div>
+
+        <div>
+            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-3">Smart Target — Marks needed in final exam</span>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="targetGrade('${courseCode}', 90)" class="active:scale-95 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs font-bold text-amber-400">Aim Grade O (90)</button>
+                <button onclick="targetGrade('${courseCode}', 80)" class="active:scale-95 py-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs font-bold text-purple-400">Aim A+ (80)</button>
+                <button onclick="targetGrade('${courseCode}', 70)" class="active:scale-95 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs font-bold text-indigo-400">Aim A (70)</button>
+                <button onclick="targetGrade('${courseCode}', 50)" class="active:scale-95 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs font-bold text-rose-400">Just Pass (50%)</button>
+            </div>
+        </div>
+    </div>`;
+}
+
+function getGradeInfo(total) {
+    if (total >= 90) return { grade: 'O', color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/30' };
+    if (total >= 80) return { grade: 'A+', color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/30' };
+    if (total >= 70) return { grade: 'A', color: 'text-indigo-400', bg: 'bg-indigo-400/10', border: 'border-indigo-400/30' };
+    if (total >= 60) return { grade: 'B+', color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/30' };
+    if (total >= 50) return { grade: 'B', color: 'text-teal-400', bg: 'bg-teal-400/10', border: 'border-teal-400/30' };
+    return { grade: 'U', color: 'text-rose-400', bg: 'bg-rose-400/10', border: 'border-rose-400/30' };
+}
+
+function toggleInternalCard(code) {
+    const expand = document.getElementById(`content-${code}`);
+    const card = document.getElementById(`card-${code}`);
+    const bar = document.getElementById(`bar-${code}`);
+    if (!expand) return;
+    
+    expand.classList.toggle('expanded');
+    if(expand.classList.contains('expanded')) {
+        card.classList.add('border-indigo-500/30', 'ring-1', 'ring-indigo-500/20');
+        if(bar) bar.style.display = 'none';
+    } else {
+        card.classList.remove('border-indigo-500/30', 'ring-1', 'ring-indigo-500/20');
+        if(bar) bar.style.display = 'block';
+    }
+}
+
+function updateSim(courseCode, key, val) {
+    window.simState[courseCode][key] = Number(val);
+    document.getElementById(`val-${courseCode}-${key}`).innerText = val;
+    if(key === 'sem') document.getElementById(`slider-${courseCode}-sem`).value = val;
+    calculateSimOutputs(courseCode);
+}
+
+function resetSim(courseCode) {
+    const subject = state.academics.internals.find(s => s.course_code === courseCode);
+    const rowData = subject.row_data;
+    const numCols = rowData.length;
+    let expectedKeys = [];
+    if (subject.is_lab) {
+        if (numCols === 5) expectedKeys = ['ir1', 'ir2', 'plro1', 'plro2', 'total'];
+        else expectedKeys = rowData.map((_, i) => `c${i+1}`);
+    } else {
+        if (numCols === 8) expectedKeys = ['t1', 't2', 'best2t', 'ap', 'mq1', 'mq2', 'bestmcq', 'total'];
+        else if (numCols === 9) expectedKeys = ['t1', 't2', 'best2t', 'ap1', 'ap2', 'mq1', 'mq2', 'bestmcq', 'total'];
+        else expectedKeys = rowData.map((_, i) => `c${i+1}`);
+    }
+    const simKeys = expectedKeys.filter(k => k !== 'best2t' && k !== 'bestmcq' && k !== 'total');
+    
+    const d = {};
+    expectedKeys.forEach((k, i) => {
+        const val = rowData[i];
+        d[k] = (!val || val === '*' || val.trim() === '') ? null : parseFloat(val);
+    });
+
+    window.simState[courseCode] = { sem: 75 };
+    simKeys.forEach(k => { 
+        const actual = d[k];
+        const meta = window.METADATA[k] || window.METADATA['c1'];
+        window.simState[courseCode][k] = actual !== null ? actual : Math.round(meta.max * 0.7); 
+        
+        const slider = document.querySelector(`input[oninput="updateSim('${courseCode}', '${k}', this.value)"]`);
+        if(slider) slider.value = window.simState[courseCode][k];
+        const textVal = document.getElementById(`val-${courseCode}-${k}`);
+        if(textVal) textVal.innerText = window.simState[courseCode][k];
+    });
+
+    document.getElementById(`slider-${courseCode}-sem`).value = 75;
+    document.getElementById(`val-${courseCode}-sem`).innerText = 75;
+
+    calculateSimOutputs(courseCode, subject);
+}
+
+/**
+ * Core CA calculation using correct PSG formula:
+ * Theory: Best2T = (T1+T2)/2, BestMCQ = (MQ1+MQ2)/2
+ *         Total/50 = Best2T + AP + BestMCQ  (T raw = displayed/0.6)
+ * Lab:    Total/50 = IR1 + IR2 + PLRO1 + PLRO2  → ×1.2 for /60
+ */
+function calcCATotal(isLab, simKeys, values) {
+    if (isLab) {
+        // Sum all lab components directly (out of 50)
+        const labKeys = ['ir1', 'ir2', 'plro1', 'plro2'];
+        return labKeys.reduce((sum, k) => sum + (simKeys.includes(k) ? (values[k] || 0) : 0), 0);
+    }
+    // Theory
+    const t1Raw = (values['t1'] || 0) / 0.6;   // revert scale-down
+    const t2Raw = (values['t2'] || 0) / 0.6;
+    const best2T = (t1Raw + t2Raw) / 2;          // average of both tests
+    const ap = (values['ap'] || 0) + (values['ap1'] || 0) + (values['ap2'] || 0);
+    const mq1 = values['mq1'] || 0;
+    const mq2 = values['mq2'] || 0;
+    const bestMCQ = (mq1 + mq2) / 2;             // average of both quizzes
+    return best2T + ap + bestMCQ;                 // raw total out of 50
+}
+
+function calculateSimOutputs(courseCode, subjectObj) {
+    const subject = subjectObj || state.academics.internals.find(s => s.course_code === courseCode);
+    if(!subject) return;
+    
+    const numCols = subject.row_data.length;
+    let expectedKeys = [];
+    if (subject.is_lab) {
+        if (numCols === 5) expectedKeys = ['ir1', 'ir2', 'plro1', 'plro2', 'total'];
+        else expectedKeys = subject.row_data.map((_, i) => `c${i+1}`);
+    } else {
+        if (numCols === 8) expectedKeys = ['t1', 't2', 'best2t', 'ap', 'mq1', 'mq2', 'bestmcq', 'total'];
+        else if (numCols === 9) expectedKeys = ['t1', 't2', 'best2t', 'ap1', 'ap2', 'mq1', 'mq2', 'bestmcq', 'total'];
+        else expectedKeys = subject.row_data.map((_, i) => `c${i+1}`);
+    }
+    const simKeys = expectedKeys.filter(k => k !== 'best2t' && k !== 'bestmcq' && k !== 'total');
+
+    const totalCA = calcCATotal(subject.is_lab, simKeys, window.simState[courseCode]);
+    // Lab: internal max is 60 (×1.2 scaling); Theory: max is 40 (×0.8 scaling)
+    const ca40 = subject.is_lab ? Math.min(60, totalCA * 1.2) : Math.min(40, (totalCA / 50) * 40);
+    const sem60 = (window.simState[courseCode].sem / 100) * 60;
+    const grandTotal = ca40 + sem60;
+    const info = getGradeInfo(grandTotal);
+
+    const caEl = document.getElementById(`out-${courseCode}-ca`);
+    if(caEl) {
+        caEl.innerText = ca40.toFixed(1);
+        document.getElementById(`out-${courseCode}-ca-raw`).innerText = subject.is_lab ? `Lab: ${totalCA.toFixed(1)}→×1.2` : `Theory: ${totalCA.toFixed(1)}/50`;
+        document.getElementById(`out-${courseCode}-sem`).innerText = sem60.toFixed(1);
+        document.getElementById(`out-${courseCode}-sem-raw`).innerText = `Exam ${window.simState[courseCode].sem}/100 × 60%`;
+        
+        document.getElementById(`out-${courseCode}-total`).innerText = grandTotal.toFixed(1) + '%';
+        document.getElementById(`out-${courseCode}-total`).className = `text-3xl font-black ${info.color}`;
+        
+        const box = document.getElementById(`out-${courseCode}-box`);
+        box.className = `flex-[1.2] flex flex-col items-center justify-center p-3 rounded-xl border ${info.bg} ${info.border}`;
+        
+        const gradeBadge = document.getElementById(`out-${courseCode}-grade`);
+        gradeBadge.className = `text-[10px] font-bold mt-1.5 px-2 py-0.5 rounded ${info.color} bg-black/20 text-center leading-tight`;
+        gradeBadge.innerHTML = `Grade: ${info.grade}`;
+    }
+}
+
+function targetGrade(courseCode, targetTotal) {
+    const subject = state.academics.internals.find(s => s.course_code === courseCode);
+    const numCols = subject.row_data.length;
+    let expectedKeys = [];
+    if (subject.is_lab) {
+        if (numCols === 5) expectedKeys = ['ir1', 'ir2', 'plro1', 'plro2', 'total'];
+        else expectedKeys = subject.row_data.map((_, i) => `c${i+1}`);
+    } else {
+        if (numCols === 8) expectedKeys = ['t1', 't2', 'best2t', 'ap', 'mq1', 'mq2', 'bestmcq', 'total'];
+        else if (numCols === 9) expectedKeys = ['t1', 't2', 'best2t', 'ap1', 'ap2', 'mq1', 'mq2', 'bestmcq', 'total'];
+        else expectedKeys = subject.row_data.map((_, i) => `c${i+1}`);
+    }
+    const simKeys = expectedKeys.filter(k => k !== 'best2t' && k !== 'bestmcq' && k !== 'total');
+
+    // Use corrected CA formula
+    const totalCA = calcCATotal(subject.is_lab, simKeys, window.simState[courseCode]);
+    const ca40 = subject.is_lab ? Math.min(60, totalCA * 1.2) : Math.min(40, (totalCA / 50) * 40);
+
+    // Required exam %: (target - ca_weight) / 0.6
+    // Per spec: Since final exam counts 60%, required exam marks = (target - ca40) / 0.6
+    const requiredExamPct = (targetTotal - ca40) / 0.6;
+
+    if (requiredExamPct > 100) {
+        const maxPossible = (ca40 + 60).toFixed(1);
+        showToast(`Max possible: ${maxPossible}% total — cannot reach ${targetTotal}%. Need higher CA marks.`);
+    } else if (requiredExamPct <= 0) {
+        showToast(`Already achieved ${targetTotal}% total with current CA alone!`);
+        updateSim(courseCode, 'sem', 0);
+    } else {
+        const req = Math.ceil(requiredExamPct);
+        showToast(`Need ${req} / 100 in Final Exam to score ${targetTotal}% overall`);
+        updateSim(courseCode, 'sem', req);
+    }
+}
+
+
+// ---- GPA ----
+function renderGPA(gpaData) {
+    const valEl = document.getElementById('gpa-value');
+    const tableEl = document.getElementById('gpa-table');
+    if (!valEl || !tableEl) return;
+
+    const gpa = gpaData.gpa;
+    valEl.textContent = gpa === 'RA' ? 'RA' : (gpa || '--');
+    valEl.style.color = gpa === 'RA' ? '#EF4444' : gpa >= 8.5 ? '#10B981' : gpa >= 7 ? '#6366f1' : gpa >= 5 ? '#F59E0B' : '#EF4444';
+
+    const courses = gpaData.table || [];
+    if (courses.length === 0) {
+        tableEl.innerHTML = '<div class="text-center py-10 text-gray-600 text-xs">No semester data found</div>';
+        return;
+    }
+
+    // Group by sem
+    const sems = {};
+    courses.forEach(c => {
+        if (!sems[c.sem]) sems[c.sem] = [];
+        sems[c.sem].push(c);
+    });
+
+    let html = '';
+    Object.keys(sems).sort((a, b) => b - a).forEach(sem => {
+        html += `<div class="mb-4"><p class="text-[9px] font-black text-indigo-400 uppercase tracking-widest px-1 mb-2">Semester ${sem}</p><div class="bg-black/20 rounded-3xl p-2 border border-white/5 space-y-1">`;
+        sems[sem].forEach(c => {
+            const gradeStr = c.grade || '--';
+            const isPass = c.result === 'Pass';
+            html += `
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-2xl hover:bg-white/5 transition-colors gap-2">
+                <div class="flex-1 pr-2">
+                    <p class="text-[11px] sm:text-xs font-bold text-white mb-0.5 leading-snug">${c.title}</p>
+                    <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wider">${c.course} • ${c.credits || 0} CR</p>
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end mt-1 sm:mt-0 pt-2 sm:pt-0 border-t border-white/5 sm:border-t-0">
+                    <div class="bg-white/5 px-3 py-1.5 rounded-lg border border-white/10 min-w-[70px] text-center">
+                        <span class="text-xs font-black text-indigo-300">${gradeStr}</span>
+                    </div>
+                    ${c.result ? `
+                    <div class="${isPass ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-rose-500/10 border-rose-500/20'} px-3 py-1.5 rounded-lg border">
+                        <span class="text-[10px] font-bold ${isPass ? 'text-emerald-400' : 'text-rose-400'} uppercase tracking-wider">${c.result}</span>
+                    </div>` : ''}
+                </div>
+            </div>`;
+        });
+        html += '</div></div>';
+    });
+
+    tableEl.innerHTML = html;
+}
+
+// ---- CGPA ----
+function renderCGPA(cgpaData) {
+    const valEl = document.getElementById('internals-cgpa-value');
+    const credEl = document.getElementById('cgpa-credits');
+    const chartEl = document.getElementById('cgpa-chart');
+    const semList = document.getElementById('cgpa-semlist');
+    if (!valEl) return;
+
+    const cgpa = cgpaData.cgpa;
+    valEl.textContent = cgpa === 'RA' ? 'RA' : (cgpa || '--');
+    valEl.style.color = cgpa === 'RA' ? '#EF4444' : cgpa >= 8.5 ? '#10B981' : cgpa >= 7 ? '#6366f1' : cgpa >= 5 ? '#F59E0B' : '#EF4444';
+
+    if (credEl) credEl.textContent = `${cgpaData.total_credits || 0} total credits earned`;
+
+    const semData = cgpaData.semwise_data || [];
+
+    // SVG Line Chart
+    if (chartEl && semData.length > 0) {
+        const W = 300, H = 120, padX = 30, padY = 15;
+        const innerW = W - padX * 2;
+        const innerH = H - padY * 2;
+        const minGPA = 5, maxGPA = 10;
+
+        const toX = (i) => padX + (i / Math.max(semData.length - 1, 1)) * innerW;
+        const toY = (g) => padY + (1 - (Math.max(g, minGPA) - minGPA) / (maxGPA - minGPA)) * innerH;
+
+        // Build paths
+        const sgpaPoints = semData.map((d, i) => `${toX(i)},${toY(d.sgpa)}`).join(' ');
+        const cgpaPoints = semData.map((d, i) => `${toX(i)},${toY(d.cgpa)}`).join(' ');
+
+        // Grid lines at 6, 7, 8, 9, 10
+        const gridLines = [6, 7, 8, 9, 10].map(g => {
+            const y = toY(g);
+            return `<line x1="${padX}" y1="${y}" x2="${W - padX}" y2="${y}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+                    <text x="${padX - 4}" y="${y + 4}" font-size="7" fill="rgba(255,255,255,0.2)" text-anchor="end">${g}</text>`;
+        }).join('');
+
+        // Dots
+        const sgpaDots = semData.map((d, i) => `<circle cx="${toX(i)}" cy="${toY(d.sgpa)}" r="3.5" fill="#6366f1"/>`).join('');
+        const cgpaDots = semData.map((d, i) => `<circle cx="${toX(i)}" cy="${toY(d.cgpa)}" r="3.5" fill="#10B981"/>`).join('');
+
+        // Sem labels
+        const semLabels = semData.map((d, i) => `<text x="${toX(i)}" y="${H - 2}" font-size="7" fill="rgba(255,255,255,0.25)" text-anchor="middle">S${d.sem}</text>`).join('');
+
+        chartEl.innerHTML = `
+        <svg viewBox="0 0 ${W} ${H}" class="cgpa-chart-svg">
+            ${gridLines}
+            <!-- CGPA Line -->
+            <polyline points="${cgpaPoints}" fill="none" stroke="#10B981" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+            <!-- SGPA Line -->
+            <polyline points="${sgpaPoints}" fill="none" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="4 3" stroke-linejoin="round" stroke-linecap="round"/>
+            ${cgpaDots}
+            ${sgpaDots}
+            ${semLabels}
+        </svg>
+        <div class="flex gap-4 mt-2 justify-center">
+            <div class="flex items-center gap-1.5"><div class="w-4 h-[2px] bg-emerald-500 rounded-full"></div><span class="text-[9px] font-bold text-gray-500">CGPA</span></div>
+            <div class="flex items-center gap-1.5"><div class="w-4 h-[2px] bg-indigo-500 rounded-full opacity-70" style="background: repeating-linear-gradient(90deg, #6366f1 0px, #6366f1 4px, transparent 4px, transparent 7px);"></div><span class="text-[9px] font-bold text-gray-500">SGPA</span></div>
+        </div>`;
+    }
+
+    // Sem-by-Sem breakdown
+    if (semList && semData.length > 0) {
+        semList.innerHTML = '';
+        semData.forEach(d => {
+            const gpaColor = d.cgpa >= 8.5 ? 'text-emerald-400' : d.cgpa >= 7 ? 'text-indigo-400' : d.cgpa >= 5 ? 'text-amber-400' : 'text-rose-400';
+            semList.innerHTML += `
+            <div class="glass-panel rounded-[24px] p-5 flex items-center justify-between">
+                <div>
+                    <p class="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-1">Semester ${d.sem}</p>
+                    <div class="flex gap-4">
+                        <div>
+                            <span class="text-[8px] font-bold text-indigo-400/60 block uppercase">SGPA</span>
+                            <span class="text-lg font-black text-indigo-300">${d.sgpa}</span>
+                        </div>
+                        <div class="w-px bg-white/5"></div>
+                        <div>
+                            <span class="text-[8px] font-bold text-emerald-400/60 block uppercase">CGPA</span>
+                            <span class="text-lg font-black ${gpaColor}">${d.cgpa}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-gray-500 text-sm font-black">S${d.sem}</div>
+            </div>`;
+        });
+    } else if (semList) {
+        semList.innerHTML = '<div class="text-center py-8 text-gray-600 text-xs">No semester data yet</div>';
+    }
+}
+
+// Hook into switchTab to auto-load academics
+// (Academics auto-load is handled in the existing switchTab function body above)
+// Call this to refresh academics data manually
+function refreshAcademics() {
+    state.academics = { internals: null, gpa: null, cgpa: null, loaded: false };
+    loadAcademics();
+}
+
+

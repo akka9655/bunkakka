@@ -57,20 +57,27 @@
             -webkit-overflow-scrolling: touch;
         }
 
-        /* Hardware acceleration for all interactive elements */
-        * {
+        /* Hardware acceleration ONLY for interactive/animated elements, NOT all */
+        .aurora-blob,
+        .nav-item,
+        .glass-panel,
+        .glass-card,
+        .tab-content,
+        .expandable-content {
             -webkit-backface-visibility: hidden;
             backface-visibility: hidden;
-            -webkit-perspective: 1000;
-            perspective: 1000;
         }
 
         /* Optimize scroll containers */
         .overflow-y-auto,
         .overflow-auto {
             -webkit-overflow-scrolling: touch;
-            scroll-behavior: smooth;
-            scroll-margin: 20px;
+            overscroll-behavior: contain;
+        }
+
+        /* Off-screen content: defer paint */
+        #main-content > .tab-content {
+            contain: layout style;
         }
 
         /* --- BACKGROUND --- */
@@ -98,38 +105,39 @@
         .aurora-blob {
             position: absolute;
             border-radius: 50%;
-            opacity: 0.4;
-            animation: float 25s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0.35;
+            /* Slowed to 40s — less GPU thrash, still atmospheric */
+            animation: float 40s infinite alternate ease-in-out;
             will-change: transform;
+            /* Isolate to own layer */
+            isolation: isolate;
         }
 
         .blob-1 {
             top: -10%;
             left: -20%;
-            width: 100vw;
-            height: 100vw;
-            background: radial-gradient(circle, rgba(67, 56, 202, 0.6) 0%, transparent 70%);
+            width: 90vw;
+            height: 90vw;
+            background: radial-gradient(circle, rgba(67, 56, 202, 0.5) 0%, transparent 70%);
             animation-delay: 0s;
         }
 
         .blob-2 {
             bottom: -20%;
             right: -20%;
-            width: 120vw;
-            height: 120vw;
-            background: radial-gradient(circle, rgba(124, 58, 237, 0.5) 0%, transparent 70%);
-            animation-delay: -5s;
+            width: 100vw;
+            height: 100vw;
+            background: radial-gradient(circle, rgba(124, 58, 237, 0.4) 0%, transparent 70%);
+            animation-delay: -10s;
         }
 
         @keyframes float {
-            0% {
-                transform: translate3d(0, 0, 0) scale(1);
-            }
-
-            100% {
-                transform: translate3d(30px, -30px, 0) scale(1.1);
-            }
+            0%   { transform: translate3d(0, 0, 0) scale(1); }
+            100% { transform: translate3d(20px, -20px, 0) scale(1.05); }
         }
+
+        /* Hide aurora entirely on low-perf */
+        html[data-perf="low"] .aurora-blob { display: none; }
 
         /* --- GLOWING TEXT --- */
         .bunker-glow {
@@ -232,14 +240,15 @@
             transform: translateY(-50%) scale(1.1);
         }
 
-        /* --- NAVIGATION --- */
+        /* Nav Dock — mobile optimized */
         .nav-dock-container {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
             z-index: 50;
-            padding: 0 20px calc(var(--safe-bottom) + 24px) 20px;
+            /* Safe area for notched phones */
+            padding: 0 16px calc(env(safe-area-inset-bottom, 12px) + 16px) 16px;
             pointer-events: none;
             display: flex;
             justify-content: center;
@@ -252,59 +261,70 @@
             align-items: center;
             justify-content: space-evenly;
             width: 100%;
-            max-width: 300px;
-            background: var(--nav-bg);
-            backdrop-filter: var(--glass-filter);
-            -webkit-backdrop-filter: var(--glass-filter);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            max-width: 340px;
+            background: rgba(12, 12, 18, 0.82);
+            /* Reduced blur — big perf win on mid-range */
+            backdrop-filter: blur(16px) saturate(1.3);
+            -webkit-backdrop-filter: blur(16px) saturate(1.3);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
             border-radius: 999px;
             padding: 6px;
-            height: 64px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
-            /* GPU Acceleration */
+            height: 76px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
             will-change: transform;
             transform: translateZ(0);
+            /* Isolate compositing layer */
+            isolation: isolate;
+        }
+
+        /* Low-perf: drop blur entirely */
+        html[data-perf="low"] .nav-dock {
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            background: rgba(10, 10, 14, 0.97);
         }
 
         .nav-item {
             position: relative;
             z-index: 10;
-            width: 52px;
-            height: 52px;
+            /* Min 60px touch target for mobile */
+            width: 60px;
+            height: 60px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: rgba(255, 255, 255, 0.5);
-            transition: all 0.4s var(--bounce-easing);
+            color: rgba(255, 255, 255, 0.38);
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease, background 0.2s ease;
             cursor: pointer;
             border-radius: 50%;
             -webkit-tap-highlight-color: transparent;
+            /* Prevent iOS callout */
+            -webkit-touch-callout: none;
         }
 
         .nav-item i {
             font-size: 22px;
-            transition: transform 0.4s var(--bounce-easing);
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
         }
 
         .nav-item:active {
-            transform: scale(0.85);
+            transform: scale(0.82);
         }
 
         .nav-item.active {
-            background: rgba(99, 102, 241, 0.15);
-            box-shadow: inset 0 0 20px rgba(99, 102, 241, 0.1);
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(168, 85, 247, 0.18));
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 18px rgba(99, 102, 241, 0.25);
             color: #fff;
         }
 
         .nav-item.active i {
             transform: scale(1.15);
-            text-shadow: 0 0 15px var(--primary);
+            filter: drop-shadow(0 0 6px rgba(255,255,255,0.7));
             color: var(--primary);
         }
 
-        .nav-item::after {
-            display: none;
-        }
+        .nav-item::after { display: none; }
 
         /* Utilities */
         .no-scrollbar::-webkit-scrollbar {
@@ -457,8 +477,11 @@
         /* --- THEMES --- */
         /* Exam */
         .theme-exam {
-            background: linear-gradient(145deg, rgba(30, 10, 15, 0.9), rgba(20, 20, 20, 0.9));
+            background: radial-gradient(circle at 100% 0%, rgba(225, 29, 72, 0.4), transparent 60%),
+                        radial-gradient(circle at 0% 100%, rgba(159, 18, 57, 0.5), transparent 70%),
+                        rgba(15, 5, 10, 0.95);
             border-color: rgba(225, 29, 72, 0.3);
+            box-shadow: inset 0 0 30px rgba(225, 29, 72, 0.1);
         }
 
         .badge-exam {
@@ -498,8 +521,11 @@
 
         /* Diwali */
         .theme-diwali {
-            background: linear-gradient(135deg, rgba(69, 26, 3, 0.85), rgba(66, 32, 6, 0.85));
-            border-color: rgba(251, 146, 60, 0.3);
+            background: radial-gradient(circle at 100% 0%, rgba(245, 158, 11, 0.4), transparent 60%),
+                        radial-gradient(circle at 0% 100%, rgba(239, 68, 68, 0.4), transparent 70%),
+                        rgba(20, 10, 5, 0.95);
+            border-color: rgba(245, 158, 11, 0.3);
+            box-shadow: inset 0 0 30px rgba(245, 158, 11, 0.1);
         }
 
         .badge-diwali {
@@ -582,9 +608,11 @@
 
         /* Pongal / Tamil New Year */
         .theme-pongal {
-            background: linear-gradient(135deg, rgba(20, 83, 45, 0.9), rgba(234, 179, 8, 0.3));
-            /* Green/Gold */
-            border-color: rgba(253, 224, 71, 0.3);
+            background: radial-gradient(circle at 0% 0%, rgba(250, 204, 21, 0.4), transparent 60%),
+                        radial-gradient(circle at 100% 100%, rgba(34, 197, 94, 0.3), transparent 70%),
+                        rgba(10, 15, 5, 0.95);
+            border-color: rgba(250, 204, 21, 0.3);
+            box-shadow: inset 0 0 30px rgba(250, 204, 21, 0.1);
         }
 
         .badge-pongal {
@@ -956,8 +984,11 @@
 
         /* Default */
         .theme-default {
-            background: linear-gradient(135deg, rgba(49, 46, 129, 0.85), rgba(76, 29, 149, 0.85));
+            background: radial-gradient(circle at 0% 0%, rgba(99, 102, 241, 0.35), transparent 60%),
+                        radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.35), transparent 70%),
+                        rgba(10, 10, 15, 0.95);
             border-color: rgba(99, 102, 241, 0.3);
+            box-shadow: inset 0 0 30px rgba(99, 102, 241, 0.1);
         }
 
         .badge-default {
@@ -1130,8 +1161,7 @@
             animation: floatSmooth 5s ease-in-out infinite;
         }
 
-        /* PERFORMANCE OPTIMIZATIONS (RAM Based / Toggle Based) */
-        html[data-perf="low"] .float-item,
+        /* Low-perf: kill ONLY heavy internal animations, NOT holiday emojis */
         html[data-perf="low"] .harvest-item,
         html[data-perf="low"] .snow-flake,
         html[data-perf="low"] .moon-star,
@@ -1141,9 +1171,297 @@
             animation: none !important;
             transform: none !important;
             filter: none !important;
-            /* Remove expensive drop-shadows */
             opacity: 0.4;
-            /* Static fallback opacity */
         }
+        /* float-item (holiday emojis) kept alive on ALL devices */
+        .float-item {
+            position: absolute;
+            font-size: 1.8rem;
+            opacity: 0.7;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.25));
+            animation: floatSmooth 6s ease-in-out infinite;
+            will-change: transform;
+            transform: translateZ(0);
+            isolation: isolate;
+        }
+        .float-item.delay-1 { animation-delay: 1s; animation-duration: 7s; }
+        .float-item.delay-2 { animation-delay: 2s; animation-duration: 5s; }
+        .float-item.reverse { animation-name: floatReverse; }
 
         /* Ghost animation enabled on ALL devices */
+
+        /* ================================================
+           ACADEMICS PAGE STYLES
+        ================================================ */
+
+        /* Skeleton Loader */
+        .acad-skeleton {
+            background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.03) 75%);
+            background-size: 200% 100%;
+            animation: acad-shimmer 1.5s infinite;
+        }
+
+        @keyframes acad-shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Mark Progress Bar */
+        .mark-bar-track {
+            height: 4px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+
+        .mark-bar-fill {
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* Grade Badges */
+        .grade-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: 0.05em;
+        }
+
+        .grade-O  { background: rgba(16,185,129,0.15); color: #34D399; border: 1px solid rgba(16,185,129,0.2); }
+        .grade-Ap { background: rgba(99,102,241,0.15); color: #818CF8; border: 1px solid rgba(99,102,241,0.2); }
+        .grade-A  { background: rgba(59,130,246,0.15); color: #60A5FA; border: 1px solid rgba(59,130,246,0.2); }
+        .grade-Bp { background: rgba(245,158,11,0.15); color: #FCD34D; border: 1px solid rgba(245,158,11,0.2); }
+        .grade-B  { background: rgba(249,115,22,0.15); color: #FB923C; border: 1px solid rgba(249,115,22,0.2); }
+        .grade-C  { background: rgba(239,68,68,0.15);  color: #F87171; border: 1px solid rgba(239,68,68,0.2); }
+        .grade-RA { background: rgba(239,68,68,0.25);  color: #FF4444; border: 1px solid rgba(239,68,68,0.4); }
+        .grade-default { background: rgba(255,255,255,0.06); color: #9CA3AF; border: 1px solid rgba(255,255,255,0.1); }
+
+        /* Internal Mark Component Pill */
+        .mark-pill {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 6px 10px;
+            min-width: 44px;
+        }
+
+        .mark-pill .pill-label {
+            font-size: 8px;
+            font-weight: 800;
+            color: rgba(255,255,255,0.3);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 2px;
+        }
+
+        .mark-pill .pill-value {
+            font-size: 13px;
+            font-weight: 900;
+            color: white;
+            line-height: 1;
+        }
+
+        .mark-pill .pill-value.pending {
+            color: rgba(255,255,255,0.2);
+            font-size: 10px;
+        }
+
+        /* Acad Sub-tab active state */
+        .acad-tab-active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(99,102,241,0.3);
+        }
+
+        .acad-tab-inactive {
+            background: rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.4);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* CGPA Chart SVG */
+        .cgpa-chart-svg {
+            width: 100%;
+            height: 140px;
+            overflow: visible;
+        }
+
+        /* Internal Subject Card */
+        .internal-card {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 28px;
+            padding: 18px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s var(--bounce-easing), border-color 0.2s ease;
+        }
+
+        .internal-card:active { transform: scale(0.98); }
+        .internal-card.expanded { border-color: rgba(99,102,241,0.3); }
+
+        /* GPA Course Row */
+        .gpa-row {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 18px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            transition: background 0.15s ease;
+        }
+
+        .gpa-row:active { background: rgba(255,255,255,0.06); }
+
+        /* Simulator Slider */
+        .acad-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            border-radius: 9999px;
+            background: rgba(255,255,255,0.1);
+            outline: none;
+        }
+
+        .acad-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            /* 28px = fat-finger friendly */
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 0 0 4px rgba(99,102,241,0.2), 0 2px 8px rgba(0,0,0,0.4);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            border: 2px solid rgba(255,255,255,0.15);
+        }
+
+        .acad-slider::-webkit-slider-thumb:active {
+            transform: scale(1.2);
+            box-shadow: 0 0 0 8px rgba(99,102,241,0.25);
+        }
+
+        /* Target Indicator */
+        .target-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 9px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 3px 8px;
+            border-radius: 8px;
+        }
+
+        /* Pending mark asterisk pulse */
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .pending-pulse {
+            animation: pulse-soft 2s ease-in-out infinite;
+        }
+
+        /* Smooth Expand/Collapse for Academics Simulator */
+        .expandable-content {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: grid-template-rows;
+        }
+        .expandable-content.expanded {
+            grid-template-rows: 1fr;
+        }
+        .expandable-inner {
+            overflow: hidden;
+        }
+
+        /* ================================================
+           MOBILE-FIRST OPTIMIZATIONS
+        ================================================ */
+
+        /* Ensure scrollable content always clears the nav */
+        #main-content {
+            /* 76px dock + 12px gap + max safe area */
+            padding-bottom: calc(76px + 16px + env(safe-area-inset-bottom, 0px)) !important;
+        }
+
+        /* Larger base text for readability on small screens */
+        @media (max-width: 390px) {
+            body { font-size: 15px; }
+            .nav-item i { font-size: 20px; }
+            .nav-dock { height: 70px; }
+            .nav-item { width: 56px; height: 56px; }
+        }
+
+        /* Prevent layout reflows on subject card open/close */
+        #subject-list-container > div,
+        #internals-list > div {
+            contain: layout;
+        }
+
+        /* Touch action on sliders — allow only horizontal drag */
+        input[type="range"] {
+            touch-action: pan-x;
+        }
+
+        /* MASSIVE touch targets for mobile sliders */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: currentColor;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            border: 4px solid #000;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: currentColor;
+            cursor: pointer;
+            border: 4px solid #000;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        /* Tap area boost for small buttons */
+        button, .nav-item, [onclick] {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        /* Low-perf: kill all non-essential animations */
+        html[data-perf="low"] .pending-pulse,
+        html[data-perf="low"] .acad-shimmer,
+        html[data-perf="low"] #pegtopone {
+            animation: none !important;
+        }
+
+        /* Remove drop shadows from glass panels on low-perf */
+        html[data-perf="low"] .glass-panel {
+            box-shadow: none;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            background: #141418;
+        }
+
+        /* Toast: push up above nav dock */
+        #toast-container {
+            bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+        }
+    </style>

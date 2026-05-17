@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Bunker - Smart Attendance & Bunk Planner</title>
+    <title>Bunker - Smart PSG Tech Attendance & Bunk Planner</title>
 
     <!-- Google Search Console Verification -->
     <meta name="google-site-verification" content="NGyoxybNQ87eTpl7xo17mY4BGTy3kcssC108SPkqIHM" />
@@ -20,10 +20,8 @@
     </script>
 
     <!-- Standard SEO -->
-    <meta name="description"
-        content="Track attendance, calculate safe bunks, view academic calendar, holidays, exam dates & timetable. Smart planner for students, including PSG IAS Bunker logic.">
-    <meta name="keywords"
-        content="bunker, smart bunker, bunk planner, attendance manager, college attendance tracker, safe bunk calculator, psg bunker, psg attendance, psg smart planner, student tools, academic calendar, exam schedule, psg ca test dates, psg re-opening date, attendance hourly calculation, medical condonation psg, psg tech attendance rules, psg ias bunker, psg ias attendance">
+    <meta name="description" content="Track your PSG Tech attendance, sync with E-Campus, and simulate 'bunks' to stay above 75%. The fastest attendance tool for PSG students.">
+    <meta name="keywords" content="bunker, smart bunker, psg tech attendance, bunk planner, e-campus sync, safe bunk calculator, psg bunker, student tools, academic calendar, exam schedule">
     <meta name="author" content="Bunker Team">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://psg-bunk.vercel.app/">
@@ -52,25 +50,25 @@
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
-        "@type": "WebApplication",
+        "@type": "SoftwareApplication",
         "name": "Bunker",
-        "alternateName": ["Smart Bunker", "PSG Bunker", "Bunk Planner"],
+        "alternateName": ["Smart Bunker", "PSG Bunker", "Bunk Planner", "PSG Tech Attendance"],
         "url": "https://psg-bunk.vercel.app/",
         "applicationCategory": "EducationalApplication",
-        "operatingSystem": "Android, iOS, Windows, Linkux",
+        "operatingSystem": "Web, Android, iOS, Windows, Linux",
         "offers": {
             "@type": "Offer",
             "price": "0",
             "priceCurrency": "USD"
         },
-        "description": "The ultimate attendance and bunk planner for students. Features academic calendar, holidays, and exam dates.",
+        "description": "Track your PSG Tech attendance, sync with E-Campus, and simulate 'bunks' to stay above 75%. The fastest attendance tool for PSG students.",
         "image": "https://psg-bunk.vercel.app/static/icon.png",
         "screenshot": "https://psg-bunk.vercel.app/static/screenshot_login.png",
-        "featureList": "Calculate Attendance, Safe Bunk Calculator, Academic Calendar, Exam Schedule, Holiday Widget",
+        "featureList": "Live E-Campus Sync, Safe Bunk Calculator, Academic Calendar, Exam Schedule, Attendance Simulator",
         "aggregateRating": {
             "@type": "AggregateRating",
-            "ratingValue": "4.8",
-            "ratingCount": "120",
+            "ratingValue": "4.9",
+            "ratingCount": "340",
             "bestRating": "5",
             "worstRating": "1"
         },
@@ -153,20 +151,40 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="/static/icon-192.png">
     <link rel="apple-touch-icon" sizes="512x512" href="/static/icon-512.png">
-    <link rel="manifest" href="/manifest.json?v=bunker5">
+    <link rel="manifest" href="/manifest.json?v=bunker6">
 
     <!-- Icons & Fonts -->
     <link rel="icon" type="image/png" href="/static/favicon.png">
     <link rel="shortcut icon" href="/static/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- CSS & Scripts -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <!-- Tailwind & Anime.js -->
+    <link rel="stylesheet" href="/static/style.css?v=3.4.1">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" defer></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    keyframes: {
+                        'splash-draw': {
+                            '0%': { strokeDashoffset: '290' },
+                            '100%': { strokeDashoffset: '0' }
+                        },
+                        'fade-in-up': {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script defer src="/static/app.js?v=3.4.1"></script>
+    <script defer src="/static/legal.js?v=1.0.1"></script>
 
     <script>
         // PWA Manager
@@ -179,7 +197,7 @@
                 // Register Service Worker for total offline functionality
                 if ('serviceWorker' in navigator) {
                     window.addEventListener('load', () => {
-                        navigator.serviceWorker.register('/sw.js').then((reg) => {
+                        navigator.serviceWorker.register('/sw.js?v=9').then((reg) => {
                             console.log('PWA: Service Worker registered.', reg.scope);
                         }).catch((err) => {
                             console.log('PWA: Service Worker registration failed: ', err);
@@ -306,11 +324,52 @@
         })();
     </script>
 
-    <!-- External Styles -->
-    <link rel="stylesheet" href="/static/style.css?v=1.0.0">
+
 </head>
 
 <body>
+
+    <!-- Cinematic Splash Screen (fully opaque — no bleed-through) -->
+    <div id="premium-splash" style="position:fixed;inset:0;z-index:9999;background:#050508;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.6s ease;">
+        <div style="position:relative;display:flex;flex-direction:column;align-items:center;">
+
+            <!-- Animated rings -->
+            <div style="position:relative;width:100px;height:100px;margin-bottom:20px;">
+                <!-- Outer rotating ring -->
+                <svg style="position:absolute;inset:0;width:100%;height:100%;animation:splashSpin 1.8s linear infinite;" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(99,102,241,0.15)" stroke-width="2"/>
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="url(#sg1)" stroke-width="2.5"
+                        stroke-dasharray="70 212" stroke-linecap="round"/>
+                    <defs>
+                        <linearGradient id="sg1" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#818cf8"/>
+                            <stop offset="100%" stop-color="#c084fc"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <!-- Inner counter-rotating ring -->
+                <svg style="position:absolute;inset:8px;animation:splashSpinRev 2.4s linear infinite;" viewBox="0 0 84 84">
+                    <circle cx="42" cy="42" r="38" fill="none" stroke="rgba(168,85,247,0.15)" stroke-width="1.5"/>
+                    <circle cx="42" cy="42" r="38" fill="none" stroke="rgba(168,85,247,0.6)" stroke-width="1.5"
+                        stroke-dasharray="30 208" stroke-linecap="round"/>
+                </svg>
+                <!-- Center glow dot -->
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+                    <div style="width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#a855f7);box-shadow:0 0 20px rgba(99,102,241,0.8),0 0 40px rgba(99,102,241,0.4);animation:splashPulse 1.5s ease-in-out infinite;"></div>
+                </div>
+            </div>
+
+            <!-- Brand text -->
+            <h1 style="font-family:'Outfit',sans-serif;font-size:2.2rem;font-weight:900;letter-spacing:-0.05em;color:white;margin:0 0 6px;text-shadow:0 0 30px rgba(99,102,241,0.5);">Bunker.</h1>
+            <p id="splash-status" style="font-size:8px;font-weight:700;color:#818cf8;text-transform:uppercase;letter-spacing:0.3em;animation:splashPulse 2s ease-in-out infinite;">Loading</p>
+        </div>
+
+        <style>
+            @keyframes splashSpin    { to { transform: rotate(360deg); } }
+            @keyframes splashSpinRev { to { transform: rotate(-360deg); } }
+            @keyframes splashPulse   { 0%,100%{opacity:0.6} 50%{opacity:1} }
+        </style>
+    </div>
 
     <!-- Background -->
     <div class="aurora-container" id="aurora-bg">
@@ -319,7 +378,7 @@
     </div>
 
     <!-- Main App -->
-    <div id="app" class="relative z-10 w-full h-full max-w-md mx-auto flex flex-col bg-transparent">
+    <div id="app" class="relative z-10 w-full h-full max-w-md mx-auto flex flex-col bg-transparent opacity-0 transition-opacity duration-700 ease-out">
 
         <!-- LOGIN VIEW (Redesigned) -->
         <div id="login-view" class="absolute inset-0 z-50 flex flex-col justify-center px-6">
@@ -340,24 +399,29 @@
                 <div
                     class="glass-panel w-full max-w-sm rounded-[32px] p-6 shadow-2xl border border-white/10 relative overflow-hidden">
 
-                    <!-- Updating Overlay -->
+                    <!-- Updating Overlay - full cover with premium spinner -->
                     <div id="updating-overlay"
-                        class="absolute inset-0 bg-[#0a0a0c] z-20 flex flex-col items-center justify-center hidden transition-all duration-300">
-                        <div class="mb-6 scale-125">
-                            <svg id="pegtopone" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-                                <path
-                                    d="M63,37c-6.7-4-4-27-13-27s-6.3,23-13,27-27,4-27,13,20.3,9,27,13,4,27,13,27,6.3-23,13-27,27-4,27-13-20.3-9-27-13Z"
-                                    fill="url(#grad1)" stroke="rgba(255,255,255,0.5)" stroke-width="1"></path>
+                        class="absolute inset-0 rounded-[32px] bg-[#070710]/95 z-20 flex flex-col items-center justify-center hidden">
+                        <!-- Spinning ring -->
+                        <div style="position:relative;width:72px;height:72px;margin-bottom:20px;">
+                            <svg style="position:absolute;inset:0;width:100%;height:100%;animation:splashSpin 1.2s linear infinite;" viewBox="0 0 72 72">
+                                <circle cx="36" cy="36" r="32" fill="none" stroke="rgba(99,102,241,0.15)" stroke-width="2.5"/>
+                                <circle cx="36" cy="36" r="32" fill="none" stroke="url(#grad2)" stroke-width="3"
+                                    stroke-dasharray="55 146" stroke-linecap="round"/>
                                 <defs>
-                                    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
-                                        <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />
+                                    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#6366f1"/>
+                                        <stop offset="100%" stop-color="#a855f7"/>
                                     </linearGradient>
                                 </defs>
                             </svg>
+                            <!-- Center icon -->
+                            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+                                <i class="fas fa-shield-alt" style="color:#6366f1;font-size:18px;filter:drop-shadow(0 0 8px rgba(99,102,241,0.8));"></i>
+                            </div>
                         </div>
-                        <p class="text-[10px] font-bold text-indigo-300 uppercase tracking-[0.2em] animate-pulse">
-                            Syncing...</p>
+                        <p class="text-[11px] font-black text-white uppercase tracking-[0.2em] mb-1">Signing In</p>
+                        <p class="text-[9px] font-bold text-indigo-400 uppercase tracking-widest animate-pulse">Connecting to E-Campus...</p>
                     </div>
 
                     <form id="login-form" class="space-y-4 relative z-10">
@@ -519,9 +583,11 @@
 
                     <!-- SYNC INDICATOR (In-flow) -->
                     <div id="sync-indicator"
-                        class="hidden flex justify-center items-center gap-2 px-4 py-2 mt-4 mx-auto w-max rounded-full bg-indigo-500/20 border border-indigo-500/30 backdrop-blur-xl text-xs font-bold text-indigo-300 shadow-lg transition-all">
-                        <span id="sync-dot" class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
-                        <span id="sync-text">Syncing...</span>
+                        class="hidden flex flex-col items-center gap-2 px-4 py-3 mt-4 mx-auto w-max rounded-2xl bg-indigo-500/20 border border-indigo-500/30 backdrop-blur-xl text-xs font-bold text-indigo-300 shadow-lg transition-all">
+                        <div class="flex items-center gap-2">
+                            <span id="sync-dot" class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+                            <span id="sync-text">Syncing...</span>
+                        </div>
                     </div>
 
                     <!-- Subjects List -->
@@ -620,6 +686,103 @@
                     </div>
                 </div>
 
+                <!-- TAB: ACADEMICS -->
+                <div id="tab-academics" class="tab-content space-y-5 pt-2">
+
+                    <!-- Sub-Tab Switcher -->
+                    <div class="flex bg-black/40 rounded-[24px] p-1.5 shadow-inner backdrop-blur-md gap-1.5">
+                        <button id="acad-tab-internals" onclick="switchAcadTab('internals')" class="flex-1 py-2.5 rounded-[18px] text-[10px] font-black uppercase tracking-widest transition-all bg-indigo-600 text-white shadow-lg">
+                            <i class="fas fa-pen-nib mr-1"></i> Internals
+                        </button>
+                        <button id="acad-tab-results" onclick="switchAcadTab('results')" class="flex-1 py-2.5 rounded-[18px] text-[10px] font-black uppercase tracking-widest transition-all bg-white/5 text-gray-400 border border-white/5">
+                            <i class="fas fa-star mr-1"></i> Results
+                        </button>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div id="acad-loading" class="hidden">
+                        <div class="space-y-3">
+                            <div class="acad-skeleton h-28 rounded-[28px]"></div>
+                            <div class="acad-skeleton h-20 rounded-[28px]"></div>
+                            <div class="acad-skeleton h-20 rounded-[28px]"></div>
+                            <div class="acad-skeleton h-20 rounded-[28px]"></div>
+                        </div>
+                    </div>
+
+                    <!-- Error State -->
+                    <div id="acad-error" class="hidden text-center py-10">
+                        <div class="w-16 h-16 rounded-full bg-rose-500/10 flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-exclamation-circle text-2xl text-rose-400"></i>
+                        </div>
+                        <h3 class="text-white font-bold mb-2">Failed to Load</h3>
+                        <p class="text-gray-500 text-xs px-8" id="acad-error-msg">Could not fetch academic data.</p>
+                        <button onclick="loadAcademics()" class="mt-4 px-5 py-2.5 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 text-xs font-bold uppercase tracking-widest hover:bg-indigo-500/30 transition">
+                            <i class="fas fa-redo mr-1"></i> Retry
+                        </button>
+                    </div>
+
+                    <!-- INTERNALS PANEL -->
+                    <div id="acad-panel-internals" class="space-y-4">
+                        <!-- Hero Summary -->
+                        <div id="internals-hero" class="glass-panel rounded-[32px] p-6 border-l-4 border-indigo-500">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-1">Cumulative GPA</p>
+                                    <div class="flex items-end gap-2">
+                                        <span class="text-4xl font-black text-white leading-none" id="internals-cgpa-value">--</span>
+                                        <span class="text-gray-500 text-xs font-bold mb-1">/10</span>
+                                    </div>
+                                    <p class="text-[10px] text-gray-500 mt-1 font-medium" id="internals-status">Loading marks...</p>
+                                </div>
+                                <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center">
+                                    <i class="fas fa-graduation-cap text-xl text-indigo-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Subject Cards -->
+                        <div id="internals-list" class="space-y-3"></div>
+                    </div>
+
+                    <!-- RESULTS PANEL (Merged GPA & CGPA) -->
+                    <div id="acad-panel-results" class="space-y-4 hidden">
+                        <!-- Hero -->
+                        <div class="glass-panel rounded-[32px] p-6 border-l-4 border-emerald-500">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-[9px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-1">Semester GPA</p>
+                                    <div class="flex items-end gap-2">
+                                        <span class="text-4xl font-black text-white leading-none" id="gpa-value">--</span>
+                                        <span class="text-gray-500 text-xs font-bold mb-1">/10</span>
+                                    </div>
+                                    <p class="text-[10px] text-gray-500 mt-1 font-medium" id="cgpa-credits">-- total credits</p>
+                                </div>
+                                <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                                    <i class="fas fa-star text-xl text-emerald-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Progression Chart -->
+                        <div class="glass-panel rounded-[32px] p-5">
+                            <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-4">Semester Progression</p>
+                            <div id="cgpa-chart" class="w-full overflow-x-auto">
+                                <!-- SVG chart injected by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Sem-by-Sem Breakdown -->
+                        <div id="cgpa-semlist" class="space-y-3"></div>
+
+                        <!-- Full Subject List -->
+                        <div class="pt-2">
+                            <h3 class="font-bold text-lg text-white tracking-tight mb-3 px-1">Recent Semester</h3>
+                            <div id="gpa-table" class="space-y-2"></div>
+                        </div>
+                    </div>
+
+                </div>
+
             </div>
 
             <!-- REDESIGNED FLOATING NAVIGATION -->
@@ -628,10 +791,13 @@
                     <div class="nav-item active" onclick="switchTab('home', 0)" id="nav-home">
                         <i class="fas fa-th-large"></i>
                     </div>
-                    <div class="nav-item" onclick="switchTab('calendar', 1)" id="nav-calendar">
+                    <div class="nav-item" onclick="switchTab('academics', 1)" id="nav-academics">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <div class="nav-item" onclick="switchTab('calendar', 2)" id="nav-calendar">
                         <i class="fas fa-calendar-alt"></i>
                     </div>
-                    <div class="nav-item" onclick="switchTab('planner', 2)" id="nav-planner">
+                    <div class="nav-item" onclick="switchTab('planner', 3)" id="nav-planner">
                         <i class="fas fa-check-double"></i>
                     </div>
                 </nav>

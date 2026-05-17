@@ -819,6 +819,330 @@ def api_calendar(roll):
         return jsonify({'error': 'Server error fetching calendar'}), 500
 
 
+@app.route('/api/internals', methods=['POST'])
+def api_internals():
+    """Fetch CA internal marks from eCampus"""
+    try:
+        data = request.get_json()
+        auth_token = data.get('auth_token', '')
+        
+        if not auth_token:
+            return jsonify({'error': 'Auth token required'}), 401
+        
+        # Parse stored credentials
+        try:
+            import json as _json
+            creds = _json.loads(auth_token)
+            roll = creds.get('roll', '')
+            password = creds.get('password', '')
+        except:
+            return jsonify({'error': 'Invalid auth token'}), 401
+
+        scraper = EcampusScraper(roll, password)
+        if not scraper.authenticated:
+            return jsonify({'error': 'Authentication failed'}), 401
+
+        ca_url = f"{scraper.ECAMPUS_URL}CAMarks_View.aspx"
+        response = scraper.session.get(ca_url, timeout=30)
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        internals = []
+        # Find all tables with IDs like 8^XXXX (the CA mark tables)
+        tables = soup.find_all('table', id=lambda x: x and '^' in str(x))
+        
+        for table in tables:
+            table_id = table.get('id', '')
+            rows = table.find_all('tr')
+            
+            # Get header to find column count/schema
+            header_cells = []
+            for r in rows[:2]:
+                for td in r.find_all('td'):
+                    header_cells.append(td.get_text(strip=True))
+            
+            # Data rows start after 2 header rows
+            data_rows = rows[2:] if len(rows) > 2 else []
+            
+            for row in data_rows:
+                cols = [td.get_text(strip=True) for td in row.find_all('td')]
+                if len(cols) < 3:
+                    continue
+                
+                course_code = cols[0].strip()
+                course_name = cols[1].strip()
+                
+                # row_data is the list of mark columns (skip code+name)
+                row_data = cols[2:]
+                
+                # The last column is 'Total'
+                total_raw = row_data[-1].strip() if row_data else ''
+                total = total_raw if total_raw and total_raw != '' else 'Not Updated Yet'
+                
+                # Calculate converted mark based on table type
+                is_lab = table_id.startswith('8^16') or table_id.startswith('8^10')
+                
+                def safe_float(v):
+                    try:
+                        return float(v.replace('*','').strip()) if v and v != '*' and v.strip() else None
+                    except:
+                        return None
+                
+                total_val = safe_float(total)
+                total_converted = 'Not Updated Yet'
+                target_max = 40
+                
+                if total_val is not None:
+                    if is_lab:
+                        total_converted = str(round(total_val * 1.2))
+                        target_max = 60
+                    else:
+                        total_converted = str(round(total_val * 0.8))
+                        target_max = 40
+
+                internals.append({
+                    'course_code': course_code,
+                    'course_name': course_name,
+                    'table_id': table_id,
+                    'is_lab': is_lab,
+                    'row_data': row_data,
+                    'total': total,
+                    'total_converted': total_converted,
+                    'target_max': target_max
+                })
+
+        return jsonify(internals)
+
+    except Exception as e:
+        logger.error(f"Internals API error: {str(e)}")
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+
+@app.route('/api/gpa', methods=['POST'])
+def api_gpa():
+    """Fetch GPA / semester result from eCampus"""
+    try:
+        data = request.get_json()
+        auth_token = data.get('auth_token', '')
+        
+        if not auth_token:
+            return jsonify({'error': 'Auth token required'}), 401
+        
+        import json as _json
+        try:
+            creds = _json.loads(auth_token)
+            roll = creds.get('roll', '')
+            password = creds.get('password', '')
+        except:
+            return jsonify({'error': 'Invalid auth token'}), 401
+
+        scraper = EcampusScraper(roll, password)
+        if not scraper.authenticated:
+            return jsonify({'error': 'Authentication failed'}), 401
+
+        gpa_url = f"{scraper.ECAMPUS_URL}FrmEpsStudResult.aspx"
+        response = scraper.session.get(gpa_url, timeout=30)
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        result_table = soup.find('table', id='DgResult')
+        courses = []
+        current_sem = None
+
+        if result_table:
+            rows = result_table.find_all('tr')[1:]  # skip header
+            for row in rows:
+                cols = [td.get_text(strip=True) for td in row.find_all('td')]
+                if len(cols) >= 5:
+                    sem_cell = cols[0].strip()
+                    if sem_cell and sem_cell.isdigit():
+                        current_sem = int(sem_cell)
+                    
+                    course_code = cols[1].strip()
+                    title = cols[2].strip()
+                    credits = cols[3].strip()
+                    mark_raw = cols[4].strip()
+                    result = cols[5].strip() if len(cols) > 5 else ''
+
+                    # Parse grade from mark string like "7    B+"
+                    parts = mark_raw.split()
+                    grade_points = None
+                    grade = mark_raw
+                    if len(parts) >= 2:
+                        try:
+                            grade_points = int(parts[0])
+                            grade = ' '.join(parts)
+                        except:
+                            pass
+                    elif mark_raw.lower() == 'completed':
+                        grade = 'Completed'
+
+                    courses.append({
+                        'sem': current_sem or 1,
+                        'course': course_code,
+                        'title': title,
+                        'credits': credits,
+                        'grade': grade,
+                        'grade_points': grade_points,
+                        'result': result
+                    })
+
+        # Calculate GPA for the latest semester
+        if courses:
+            latest_sem = max(c['sem'] for c in courses)
+            latest_courses = [c for c in courses if c['sem'] == latest_sem]
+            
+            total_credits = 0
+            total_cp = 0
+            has_ra = False
+            
+            for c in latest_courses:
+                cr = int(c['credits']) if str(c['credits']).isdigit() else 0
+                if cr == 0:
+                    continue
+                gp = c.get('grade_points')
+                if gp is None:
+                    if c['grade'].startswith('RA') or c['grade'].startswith('0 '):
+                        has_ra = True
+                else:
+                    total_credits += cr
+                    total_cp += gp * cr
+
+            gpa = 'RA' if has_ra else (round(total_cp / total_credits, 2) if total_credits > 0 else 0)
+        else:
+            gpa = 0
+            total_credits = 0
+
+        return jsonify({
+            'gpa': gpa,
+            'total_credits': total_credits,
+            'table': courses
+        })
+
+    except Exception as e:
+        logger.error(f"GPA API error: {str(e)}")
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+
+@app.route('/api/cgpa', methods=['POST'])
+def api_cgpa():
+    """Fetch CGPA from eCampus (all semesters)"""
+    try:
+        data = request.get_json()
+        auth_token = data.get('auth_token', '')
+        
+        if not auth_token:
+            return jsonify({'error': 'Auth token required'}), 401
+        
+        import json as _json
+        try:
+            creds = _json.loads(auth_token)
+            roll = creds.get('roll', '')
+            password = creds.get('password', '')
+        except:
+            return jsonify({'error': 'Invalid auth token'}), 401
+
+        scraper = EcampusScraper(roll, password)
+        if not scraper.authenticated:
+            return jsonify({'error': 'Authentication failed'}), 401
+
+        # Use the same GPA result page - it contains all semesters
+        gpa_url = f"{scraper.ECAMPUS_URL}FrmEpsStudResult.aspx"
+        response = scraper.session.get(gpa_url, timeout=30)
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        result_table = soup.find('table', id='DgResult')
+        all_subjects = []
+        current_sem = None
+
+        grades_map = {'O': 10, 'A+': 9, 'A': 8, 'B+': 7, 'B': 6, 'C': 5, 'RA': 0}
+
+        if result_table:
+            rows = result_table.find_all('tr')[1:]
+            for row in rows:
+                cols = [td.get_text(strip=True) for td in row.find_all('td')]
+                if len(cols) >= 5:
+                    sem_cell = cols[0].strip()
+                    if sem_cell and sem_cell.isdigit():
+                        current_sem = int(sem_cell)
+
+                    course_code = cols[1].strip()
+                    title = cols[2].strip()
+                    credits = cols[3].strip()
+                    mark_raw = cols[4].strip()
+
+                    parts = mark_raw.split()
+                    grade = None
+                    if mark_raw.lower() == 'completed':
+                        grade = 'Completed'
+                    elif len(parts) >= 2:
+                        # e.g. "7    B+"
+                        grade_letter = parts[-1].strip()
+                        if grade_letter in grades_map:
+                            grade = grade_letter
+                        else:
+                            grade = mark_raw
+                    elif mark_raw.startswith('RA'):
+                        grade = 'RA'
+                    else:
+                        grade = mark_raw
+
+                    all_subjects.append({
+                        'sem': current_sem or 1,
+                        'course': course_code,
+                        'title': title,
+                        'credits': credits,
+                        'grade': grade
+                    })
+
+        # Calculate sem-wise and cumulative GPA
+        from collections import defaultdict
+        sem_groups = defaultdict(list)
+        for s in all_subjects:
+            sem_groups[s['sem']].append(s)
+
+        semwise_data = []
+        cumulative_cp = 0
+        cumulative_credits = 0
+        has_ra = False
+
+        for sem_num in sorted(sem_groups.keys()):
+            subjects = sem_groups[sem_num]
+            sem_cp = 0
+            sem_credits = 0
+            for s in subjects:
+                cr = int(s['credits']) if str(s['credits']).isdigit() else 0
+                if cr == 0:
+                    continue
+                g = s['grade']
+                if g == 'RA':
+                    has_ra = True
+                    continue
+                gp = grades_map.get(g, 0)
+                sem_cp += gp * cr
+                sem_credits += cr
+
+            cumulative_cp += sem_cp
+            cumulative_credits += sem_credits
+
+            sgpa = round(sem_cp / sem_credits, 2) if sem_credits > 0 else 0
+            cgpa = round(cumulative_cp / cumulative_credits, 2) if cumulative_credits > 0 else 0
+
+            semwise_data.append({'sem': sem_num, 'sgpa': sgpa, 'cgpa': cgpa})
+
+        overall_cgpa = 'RA' if has_ra else (semwise_data[-1]['cgpa'] if semwise_data else 0)
+
+        return jsonify({
+            'cgpa': overall_cgpa,
+            'total_credits': cumulative_credits,
+            'credit_points_total': cumulative_cp,
+            'semwise_data': semwise_data,
+            'all_subjects': all_subjects
+        })
+
+    except Exception as e:
+        logger.error(f"CGPA API error: {str(e)}")
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+
 @app.route('/api/health')
 def health():
     """Health check endpoint"""

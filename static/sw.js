@@ -1,74 +1,86 @@
-const CACHE_NAME = 'bunker-cache-v6';
-const STATIC_ASSETS = [
+const CACHE_NAME = 'bunker-cache-v9';
+// Only cache assets we control (opaque CDN responses break cache.addAll)
+const PRECACHE_ASSETS = [
     '/',
-    '/static/style.css?v=1.0.0',
-    '/static/app.js?v=1.1.0',
+    '/static/style.css?v=3.0.0',
+    '/static/app.js?v=3.0.0',
     '/static/legal.js?v=1.0.1',
-    '/manifest.json?v=bunker5',
+    '/manifest.json?v=bunker6',
     '/static/icon.png',
     '/static/icon-192.png',
     '/static/icon-512.png',
     '/static/favicon.png',
-    '/static/favicon.ico',
-    'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap',
-    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
-    'https://cdn.tailwindcss.com',
-    'https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js'
+    '/static/favicon.ico'
 ];
 
+// Install: precache only our own assets
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(STATIC_ASSETS);
-        }).then(() => self.skipWaiting())
+        caches.open(CACHE_NAME)
+            .then(cache => cache.addAll(PRECACHE_ASSETS))
+            .then(() => self.skipWaiting())
+            .catch(err => console.error('[SW] Precache failed:', err))
     );
 });
 
+// Activate: clean old caches immediately
 self.addEventListener('activate', (event) => {
     event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
-                cacheNames.map((cacheName) => {
-                    if (cacheName !== CACHE_NAME) {
-                        return caches.delete(cacheName);
-                    }
-                })
-            );
-        }).then(() => self.clients.claim())
+        caches.keys().then(keys =>
+            Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+        ).then(() => self.clients.claim())
     );
 });
 
 self.addEventListener('fetch', (event) => {
-    const requestUrl = new URL(event.request.url);
+    const url = new URL(event.request.url);
 
-    // Skip API calls from cache
-    if (requestUrl.pathname.startsWith('/api/')) {
-        event.respondWith(fetch(event.request));
+    // 1. API calls: always network, never cache
+    if (url.pathname.startsWith('/api/')) {
+        event.respondWith(
+            fetch(event.request).catch(() => new Response(
+                JSON.stringify({ error: 'Offline. Please check your connection.' }),
+                { headers: { 'Content-Type': 'application/json' } }
+            ))
+        );
         return;
     }
 
-    // Cache First for static assets, falling back to network
+    // 2. CDN third-party: network-first, cache fallback (no precache — opaque safe)
+    if (url.origin !== self.location.origin) {
+        event.respondWith(
+            caches.open(CACHE_NAME).then(cache =>
+                fetch(event.request)
+                    .then(res => { if (res && res.status === 200) cache.put(event.request, res.clone()); return res; })
+                    .catch(() => cache.match(event.request))
+            )
+        );
+        return;
+    }
+
+    // 3. Own assets: cache-first, network fallback, then offline page
     event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-            if (cachedResponse) {
-                return cachedResponse;
+        caches.match(event.request).then(cached => {
+            if (cached) {
+                // Background revalidate
+                fetch(event.request).then(res => {
+                    if (res && res.status === 200) {
+                        caches.open(CACHE_NAME).then(c => c.put(event.request, res));
+                    }
+                }).catch(() => {});
+                return cached;
             }
-            return fetch(event.request).then((networkResponse) => {
-                // If the response is valid, cache it
-                if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-                    return networkResponse;
+            return fetch(event.request).then(res => {
+                if (res && res.status === 200) {
+                    const clone = res.clone();
+                    caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
                 }
-                const responseToCache = networkResponse.clone();
-                caches.open(CACHE_NAME).then((cache) => {
-                    cache.put(event.request, responseToCache);
-                });
-                return networkResponse;
+                return res;
+            }).catch(() => {
+                // Offline: serve root for navigation
+                if (event.request.mode === 'navigate') return caches.match('/');
             });
-        }).catch(() => {
-            // Offline fallback 
-            if (event.request.mode === 'navigate') {
-                return caches.match('/');
-            }
         })
     );
 });
+
