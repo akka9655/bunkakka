@@ -783,7 +783,9 @@ function renderSubjects() {
     }
 
     state.subjects.forEach((raw, i) => {
-        const sub = getSubjectStats(raw.code), pct = sub.pct.toFixed(1);
+        const sub = getSubjectStats(raw.code);
+        if (!sub) return; // Skip subjects that can't be resolved
+        const pct = sub.pct.toFixed(1);
         const pctVal = parseFloat(pct);
 
         // New Color Logic
@@ -1624,6 +1626,7 @@ function updateSim(type, change) {
 function updateSimUI() {
     if (!simSubject) return;
     const stats = getSubjectStats(simSubject.code);
+    if (!stats) return; // Guard against null (subject not found in state)
     const newAtt = stats.att + simAddAttend;
     const newTot = stats.tot + simAddAttend + simAddBunk;
     const pct = newTot === 0 ? 0 : (newAtt / newTot) * 100;
