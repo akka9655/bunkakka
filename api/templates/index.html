@@ -286,14 +286,15 @@
         };
         window.pwaManager.init();
 
-        // Register Service Worker
+        // Unregister the old stale /static/sw.js service worker (duplicate that was serving old cached assets)
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/static/sw.js')
-                    .then(reg => console.log('SW registered:', reg))
-                    .catch(err => console.log('SW failed:', err));
+            navigator.serviceWorker.getRegistrations().then(regs => {
+                regs.forEach(reg => {
+                    if (reg.scope.includes('/static/')) reg.unregister();
+                });
             });
         }
+
     </script>
 
     <!-- Performance Optimization Script -->
