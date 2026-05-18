@@ -183,7 +183,7 @@
         }
     </script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <script defer src="/static/app.js?v=3.4.1"></script>
+    <script defer src="/static/app.js?v=3.4.2"></script>
     <script defer src="/static/legal.js?v=1.0.1"></script>
 
     <script>
@@ -197,7 +197,7 @@
                 // Register Service Worker for total offline functionality
                 if ('serviceWorker' in navigator) {
                     window.addEventListener('load', () => {
-                        navigator.serviceWorker.register('/sw.js?v=9').then((reg) => {
+                        navigator.serviceWorker.register('/sw.js?v=10').then((reg) => {
                             console.log('PWA: Service Worker registered.', reg.scope);
                         }).catch((err) => {
                             console.log('PWA: Service Worker registration failed: ', err);
