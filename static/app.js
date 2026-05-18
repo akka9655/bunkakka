@@ -1570,17 +1570,27 @@ function showToast(msg, t = 'info') { const e = document.createElement('div'), c
 let simSubject = null;
 let simAddAttend = 0;
 let simAddBunk = 0;
+let simBaseAtt = 0;
+let simBaseTot = 0;
+let simBasePct = 0;
 
 function openSim(code) {
-    simSubject = state.subjects.find(s => s.code === code);
-    if (!simSubject) return;
+    const found = state.subjects.find(s => s.code === code);
+    if (!found) return;
+    simSubject = found;
 
+    const stats = getSubjectStats(code);
+    if (!stats) return;
+
+    simBaseAtt = stats.att;
+    simBaseTot = stats.tot;
+    simBasePct = stats.pct;
     simAddAttend = 0;
     simAddBunk = 0;
 
     document.getElementById('sim-subject').innerText = simSubject.name;
-    document.getElementById('val-attend').innerText = "0";
-    document.getElementById('val-bunk').innerText = "0";
+    document.getElementById('val-attend').innerText = '0';
+    document.getElementById('val-bunk').innerText = '0';
 
     updateSimUI();
 
@@ -1605,19 +1615,16 @@ function closeSim() {
     p.classList.add('opacity-0', 'scale-95');
     p.classList.remove('scale-100');
 
-    setTimeout(() => {
-        m.classList.add('hidden');
-    }, 300);
+    setTimeout(() => { m.classList.add('hidden'); }, 300);
 }
 
 function updateSim(type, change) {
+    if (!simSubject) return;
     if (type === 'attend') {
-        simAddAttend += change;
-        if (simAddAttend < 0) simAddAttend = 0;
+        simAddAttend = Math.max(0, simAddAttend + change);
         document.getElementById('val-attend').innerText = simAddAttend;
     } else {
-        simAddBunk += change;
-        if (simAddBunk < 0) simAddBunk = 0;
+        simAddBunk = Math.max(0, simAddBunk + change);
         document.getElementById('val-bunk').innerText = simAddBunk;
     }
     updateSimUI();
@@ -1625,33 +1632,27 @@ function updateSim(type, change) {
 
 function updateSimUI() {
     if (!simSubject) return;
-    const stats = getSubjectStats(simSubject.code);
-    if (!stats) return; // Guard against null (subject not found in state)
-    const newAtt = stats.att + simAddAttend;
-    const newTot = stats.tot + simAddAttend + simAddBunk;
+
+    const newAtt = simBaseAtt + simAddAttend;
+    const newTot = simBaseTot + simAddAttend + simAddBunk;
     const pct = newTot === 0 ? 0 : (newAtt / newTot) * 100;
 
     const ring = document.getElementById('sim-ring');
     const pctText = document.getElementById('sim-pct');
     const diffText = document.getElementById('sim-diff');
+    if (!ring || !pctText || !diffText) return;
 
-    // Reduced font size to fit 100% inside ring
     pctText.innerText = pct.toFixed(1) + '%';
-    if (pct >= 100) {
-        pctText.classList.remove('text-6xl');
-        pctText.classList.add('text-5xl');
-    } else {
-        pctText.classList.remove('text-5xl');
-        pctText.classList.add('text-6xl');
-    }
+    pctText.classList.toggle('text-5xl', pct >= 100);
+    pctText.classList.toggle('text-6xl', pct < 100);
 
     // C = 2 * PI * 90 = 565.48
     const offset = 565 - (565 * pct / 100);
-    ring.style.strokeDashoffset = offset;
+    ring.setAttribute('stroke-dashoffset', offset);
 
-    // Color Logic
-    const pVal = parseFloat(pct.toFixed(1));
+    // Color based on percentage
     let color;
+    const pVal = parseFloat(pct.toFixed(1));
     if (pVal === 100) color = '#22C55E';
     else if (pVal >= 95) color = '#6366F1';
     else if (pVal >= 85) color = '#3B82F6';
@@ -1659,25 +1660,23 @@ function updateSimUI() {
     else if (pVal >= 75) color = '#F97316';
     else color = '#EF4444';
 
-    ring.style.stroke = color;
-    // Add dynamic glow to ring
+    ring.setAttribute('stroke', color);
     ring.style.filter = `drop-shadow(0 0 8px ${color})`;
-
     pctText.style.color = color;
 
-    const diff = pct - stats.pct;
+    const diff = pct - simBasePct;
     if (Math.abs(diff) < 0.1) {
-        diffText.innerText = "Current";
-        diffText.className = "text-[10px] font-bold px-3 py-1 rounded-full bg-white/5 mt-2 uppercase tracking-wide border border-white/5";
-        diffText.style.color = "#9CA3AF";
+        diffText.innerText = 'Current';
+        diffText.className = 'text-[10px] font-bold px-3 py-1 rounded-full bg-white/5 mt-2 uppercase tracking-wide border border-white/5';
+        diffText.style.color = '#9CA3AF';
     } else if (diff > 0) {
         diffText.innerText = `+${diff.toFixed(1)}%`;
-        diffText.className = "text-[10px] font-bold px-3 py-1 rounded-full bg-emerald-500/10 mt-2 uppercase tracking-wide border border-emerald-500/20";
-        diffText.style.color = "#34D399";
+        diffText.className = 'text-[10px] font-bold px-3 py-1 rounded-full bg-emerald-500/10 mt-2 uppercase tracking-wide border border-emerald-500/20';
+        diffText.style.color = '#34D399';
     } else {
         diffText.innerText = `${diff.toFixed(1)}%`;
-        diffText.className = "text-[10px] font-bold px-3 py-1 rounded-full bg-rose-500/10 mt-2 uppercase tracking-wide border border-rose-500/20";
-        diffText.style.color = "#FB7185";
+        diffText.className = 'text-[10px] font-bold px-3 py-1 rounded-full bg-rose-500/10 mt-2 uppercase tracking-wide border border-rose-500/20';
+        diffText.style.color = '#FB7185';
     }
 }
 
