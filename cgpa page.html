@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CGPA Viewer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f0f2f5;min-height:100vh;display:flex;justify-content:center;padding:20px}
+.container{width:100%;max-width:500px}
+h1{text-align:center;color:#1a1a2e;margin:30px 0;font-size:1.5rem}
+.card{background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:16px}
+.form-group{margin-bottom:16px}
+label{display:block;font-size:.85rem;color:#555;margin-bottom:4px;font-weight:600}
+input{width:100%;padding:10px 14px;border:2px solid #e0e0e0;border-radius:8px;font-size:1rem;transition:border-color .2s}
+input:focus{outline:none;border-color:#4a6cf7}
+button{width:100%;padding:12px;background:#4a6cf7;color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;transition:background .2s}
+button:hover{background:#3a5ce5}
+button:disabled{background:#a0b4f7;cursor:not-allowed}
+.error{color:#dc3545;font-size:.9rem;margin-top:8px;text-align:center}
+.loading{text-align:center;color:#666;padding:20px}
+.spinner{width:32px;height:32px;border:3px solid #e0e0e0;border-top-color:#4a6cf7;border-radius:50%;animation:spin .6s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+table{width:100%;border-collapse:collapse;margin-top:8px}
+th{text-align:left;padding:10px 8px;font-size:.8rem;color:#666;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #eee}
+td{padding:10px 8px;border-bottom:1px solid #f0f0f0;font-size:.95rem}
+tr:last-child td{border-bottom:none}
+.cgpa-card{background:linear-gradient(135deg,#4a6cf7,#6c63ff);color:#fff;border-radius:12px;padding:20px;text-align:center;margin-bottom:16px}
+.cgpa-card .label{font-size:.85rem;opacity:.9;text-transform:uppercase;letter-spacing:1px}
+.cgpa-card .value{font-size:2.5rem;font-weight:700;margin:4px 0}
+.cgpa-card .sub{font-size:.8rem;opacity:.8}
+.badge{display:inline-block;background:#e8f0fe;color:#4a6cf7;padding:2px 8px;border-radius:4px;font-size:.75rem;font-weight:600}
+.user-info{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px;background:#f8f9ff;border-radius:8px}
+.user-info .avatar{width:40px;height:40px;background:#4a6cf7;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem}
+.user-info .name{font-weight:600;font-size:.95rem}
+.user-info .roll{font-size:.8rem;color:#666}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>CGPA Viewer</h1>
+<div class="card" id="loginForm">
+  <div class="form-group">
+    <label for="rollno">Roll Number</label>
+    <input type="text" id="rollno" placeholder="e.g. 25U201" autocomplete="off">
+  </div>
+  <div class="form-group">
+    <label for="password">Password</label>
+    <input type="password" id="password" placeholder="Ecampus password">
+  </div>
+  <button id="loginBtn" onclick="login()">View CGPA</button>
+  <div id="error" class="error"></div>
+</div>
+<div id="result" style="display:none"></div>
+</div>
+
+<script>
+const API = "https://easycollege-4fiy.onrender.com";
+
+function $(id) { return document.getElementById(id); }
+
+async function login() {
+  const rollno = $("rollno").value.trim();
+  const password = $("password").value;
+  if (!rollno || !password) { showError("Please fill in all fields"); return; }
+
+  $("loginBtn").disabled = true;
+  $("loginBtn").textContent = "Loading...";
+  hideError();
+
+  try {
+    const res = await fetch(`${API}/api/login`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({roll_number: rollno.toUpperCase(), password, login_type: "S"})
+    });
+    const data = await res.json();
+    if (!data.success) { showError(data.error || "Login failed"); return; }
+    console.log("Login success, token:", data.auth_token?.slice(0,20)+"...");
+
+    await fetchCGPA(rollno, data.auth_token, data.user);
+  } catch(e) {
+    showError("Network error. Check your connection.");
+    console.error(e);
+  } finally {
+    $("loginBtn").disabled = false;
+    $("loginBtn").textContent = "View CGPA";
+  }
+}
+
+async function fetchCGPA(rollno, token, user) {
+  $("loginForm").style.display = "none";
+  $("result").style.display = "block";
+  $("result").innerHTML = '<div class="loading"><div class="spinner"></div>Fetching CGPA data...</div>';
+
+  try {
+    const res = await fetch(`${API}/api/cgpa`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({auth_token: token})
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      console.error("CGPA API error:", res.status, err);
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    console.log("CGPA response:", data);
+    renderResult(data, user, rollno);
+  } catch(e) {
+    $("result").innerHTML = `
+      <div class="card">
+        <div style="text-align:center;padding:20px">
+          <div style="color:#dc3545;font-size:1.1rem;margin-bottom:8px">Failed to load CGPA</div>
+          <div style="color:#666;font-size:.9rem">${e.message}</div>
+          <button onclick="reset()" style="width:auto;padding:8px 20px;font-size:.85rem;margin-top:16px">Try Again</button>
+        </div>
+      </div>`;
+  }
+}
+
+function renderResult(data, user, rollno) {
+  let semesters = data.semwise_data || data.semesters || [];
+  if (semesters && typeof semesters === "object" && !Array.isArray(semesters))
+    semesters = Object.values(semesters);
+
+  const semRows = semesters
+    .sort((a,b) => (Number(a.sem)||0) - (Number(b.sem)||0))
+    .map(s => `<tr><td>${s.sem}</td><td>${s.sgpa || s.gpa || '-'}</td><td>${s.cgpa || s.credits || '-'}</td></tr>`)
+    .join("");
+
+  const name = user?.name || "";
+  const roll = user?.roll_number || rollno;
+  const initial = name ? name[0] : roll[0];
+
+  const cgpaObj = data.cgpa || {};
+  const cgpaVal = cgpaObj.cgpa || data.overall_cgpa;
+  const totalCredits = cgpaObj.total_credits;
+  const gpas = semesters.map(s => parseFloat(s.sgpa || s.gpa)).filter(v => !isNaN(v));
+  const avgGpa = gpas.length ? (gpas.reduce((a,b)=>a+b,0) / gpas.length).toFixed(2) : "-";
+
+  $("result").innerHTML = `
+    <div class="cgpa-card">
+      <div class="label">Overall CGPA</div>
+      <div class="value">${cgpaVal || avgGpa}</div>
+      <div class="sub">${semesters.length} semesters | Avg GPA ${avgGpa}</div>
+    </div>
+    <div class="card">
+      <div class="user-info">
+        <div class="avatar">${initial}</div>
+        <div><div class="name">${name}</div><div class="roll">${roll}</div></div>
+      </div>
+      <table>
+        <thead><tr><th>Semester</th><th>GPA</th><th>Credits</th></tr></thead>
+        <tbody>${semRows || "<tr><td colspan='3'>No data</td></tr>"}</tbody>
+      </table>
+      <div style="margin-top:12px;text-align:center">
+        <button onclick="reset()" style="width:auto;padding:8px 20px;font-size:.85rem">Check Another</button>
+      </div>
+    </div>`;
+}
+
+function reset() {
+  $("result").style.display = "none";
+  $("loginForm").style.display = "block";
+  $("rollno").value = "";
+  $("password").value = "";
+  $("rollno").focus();
+}
+
+function showError(msg) { $("error").textContent = msg; }
+function hideError() { $("error").textContent = ""; }
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /static/private/
+
+Sitemap: https://psg-bunk.vercel.app/sitemap.xml

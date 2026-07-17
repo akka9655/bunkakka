@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en" data-perf="high">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Bunker - Smart PSG Tech Attendance & Bunk Planner (2026)</title>
+
+    <!-- Google Search Console Verification -->
+    <meta name="google-site-verification" content="NGyoxybNQ87eTpl7xo17mY4BGTy3kcssC108SPkqIHM" />
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-P86F6KGBJD"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-P86F6KGBJD');
+    </script>
+
+    <!-- Standard SEO -->
+    <meta name="description" content="Track your PSG Tech attendance, sync with E-Campus, and simulate 'bunks' to stay above 75%. The fastest attendance tool for PSG students. Updated for the 2026 academic year.">
+    <meta name="keywords" content="bunker, smart bunker, psg tech attendance, bunk planner, e-campus sync, safe bunk calculator, psg bunker, student tools, academic calendar, exam schedule, psg tech portal login, psg ecampus login, psg tech bunker, 75 percent attendance, coimbatore">
+    <meta name="author" content="Bunker Team">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://psg-bunk.vercel.app/">
+
+    <!-- Open Graph (Facebook/LinkedIn) -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://psg-bunk.vercel.app/">
+    <meta property="og:title" content="Bunker - Smart Attendance & Bunk Planner">
+    <meta property="og:description"
+        content="Track attendance, safe bunks, calendar, holidays, exams & timetable. Smart planner for students.">
+    <meta property="og:image" content="https://psg-bunk.vercel.app/static/icon.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:image:alt" content="Bunker - Smart Attendance Tracker">
+    <meta property="og:site_name" content="Bunker">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://psg-bunk.vercel.app/">
+    <meta name="twitter:title" content="Bunker - Smart Attendance & Bunk Planner">
+    <meta name="twitter:description"
+        content="Track attendance, safe bunks, calendar, holidays, exams & timetable. Smart planner for students.">
+    <meta name="twitter:image" content="https://psg-bunk.vercel.app/static/icon.png">
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Bunker",
+        "alternateName": ["Smart Bunker", "PSG Bunker", "Bunk Planner", "PSG Tech Attendance"],
+        "url": "https://psg-bunk.vercel.app/",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Web, Android, iOS, Windows, Linux",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "description": "Track your PSG Tech attendance, sync with E-Campus, and simulate 'bunks' to stay above 75%. The fastest attendance tool for PSG students.",
+        "image": "https://psg-bunk.vercel.app/static/icon.png",
+        "screenshot": "https://psg-bunk.vercel.app/static/screenshot_login.png",
+        "featureList": "Live E-Campus Sync, Safe Bunk Calculator, Academic Calendar, Exam Schedule, Attendance Simulator",
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "ratingCount": "340",
+            "bestRating": "5",
+            "worstRating": "1"
+        },
+        "author": {
+            "@type": "Organization",
+            "name": "Bunker Team",
+            "url": "https://psg-bunk.vercel.app/",
+            "logo": "https://psg-bunk.vercel.app/static/icon.png"
+        }
+    }
+    </script>
+
+    <!-- Gemini SEO Strategy: Featured Snippet Bait (Event Schedule) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Event",
+      "name": "PSG Tech Academic Schedule",
+      "eventStatus": "https://schema.org/EventScheduled",
+      "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+      "location": {
+        "@type": "Place",
+        "name": "PSG College of Technology",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Avinashi Road, Peelamedu",
+          "addressLocality": "Coimbatore",
+          "postalCode": "641004",
+          "addressCountry": "IN"
+        }
+      },
+      "description": "Complete academic calendar including semester dates, CA tests, and exam schedules. Check the app for live updates on all upcoming events.",
+      "performer": {
+        "@type": "Organization",
+        "name": "PSG Tech"
+      }
+    }
+    </script>
+
+    <!-- Gemini SEO Strategy: FAQ Schema for Long-Tail Keywords -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [{
+        "@type": "Question",
+        "name": "How to calculate attendance on an hourly basis for PSG Tech?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "PSG Tech calculates attendance hourly. If you attend 3 out of 7 hours, it counts as 3/7 (0.42 days), not 1 day. Bunker uses this exact formula."
+        }
+      }, {
+        "@type": "Question",
+        "name": "What is the minimum attendance required for PSG semester exam?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The minimum requirement is 75% overall. However, you need at least 60% in individual subjects to be eligible."
+        }
+      }, {
+        "@type": "Question",
+        "name": "How many days can I bunk in PSG Tech?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "It depends on your current percentage. Use the Safe Bunk Calculator to find the exact number of classes you can miss while maintaining 75%."
+        }
+      }, {
+        "@type": "Question",
+        "name": "When does PSG Tech re-open for even semester?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The Even Semester typically re-opens in late January. Check the Academic Calendar in the app for exact dates."
+        }
+      }]
+    }
+    </script>
+
+    <!-- PWA & Theme -->
+    <meta name="theme-color" content="#030206">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/static/icon-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/static/icon-512.png">
+    <link rel="manifest" href="/manifest.json?v=bunker6">
+
+    <!-- Icons & Fonts -->
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link rel="shortcut icon" href="/static/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- CSS & Scripts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/style.css?v=3.5.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    keyframes: {
+                        'splash-draw': {
+                            '0%': { strokeDashoffset: '290' },
+                            '100%': { strokeDashoffset: '0' }
+                        },
+                        'fade-in-up': {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script defer src="/static/app.js?v=3.5.0"></script>
+    <script defer src="/static/legal.js?v=1.0.1"></script>
+
+    <script>
+        // PWA Manager
+        window.pwaManager = {
+            deferredPrompt: null,
+            isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream,
+            isStandalone: window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone,
+            isAppInstalled: false, // Will be updated after detection
+            init: function () {
+                // Register Service Worker for total offline functionality
+                if ('serviceWorker' in navigator) {
+                    window.addEventListener('load', () => {
+                        navigator.serviceWorker.register('/sw.js?v=10').then((reg) => {
+                            console.log('PWA: Service Worker registered.', reg.scope);
+                        }).catch((err) => {
+                            console.log('PWA: Service Worker registration failed: ', err);
+                        });
+                    });
+                }
+
+                // Check if app is already installed (even if user is in browser)
+                this.checkIfInstalled();
+
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    this.deferredPrompt = e;
+                    this.isAppInstalled = false; // If this event fires, app is NOT installed
+                    console.log("PWA: Install prompt captured");
+                    // Trigger UI update if needed
+                    if (typeof updateInstallUI === 'function') updateInstallUI();
+                });
+
+                window.addEventListener('appinstalled', () => {
+                    this.deferredPrompt = null;
+                    this.isAppInstalled = true;
+                    console.log("PWA: App installed");
+                    if (typeof updateInstallUI === 'function') updateInstallUI();
+                });
+            },
+
+            checkIfInstalled: async function () {
+                // Method 1: Check if running in standalone (already installed and opened)
+                if (this.isStandalone) {
+                    this.isAppInstalled = true;
+                    if (typeof updateInstallUI === 'function') updateInstallUI();
+                    return;
+                }
+
+                // Method 2: Use getInstalledRelatedApps API (Chrome 80+)
+                if ('getInstalledRelatedApps' in navigator) {
+                    try {
+                        const relatedApps = await navigator.getInstalledRelatedApps();
+                        this.isAppInstalled = relatedApps.length > 0;
+                        if (this.isAppInstalled) {
+                            console.log('PWA: App is installed (detected via getInstalledRelatedApps)');
+                            if (typeof updateInstallUI === 'function') updateInstallUI();
+                        }
+                    } catch (e) {
+                        console.log('PWA: getInstalledRelatedApps failed', e);
+                    }
+                }
+
+                // Method 3: Fallback - if beforeinstallprompt doesn't fire after 2 seconds,
+                // assume app might be installed (not 100% reliable but helps)
+                setTimeout(() => {
+                    if (!this.deferredPrompt && !this.isStandalone && !this.isAppInstalled) {
+                        // No prompt fired and not in standalone - might be installed
+                        // Check if Service Worker is registered (indicates previous install)
+                        if ('serviceWorker' in navigator) {
+                            navigator.serviceWorker.getRegistrations().then(regs => {
+                                if (regs.length > 0) {
+                                    this.isAppInstalled = true;
+                                    console.log('PWA: App likely installed (SW registered, no prompt)');
+                                    if (typeof updateInstallUI === 'function') updateInstallUI();
+                                }
+                            });
+                        }
+                    }
+                }, 2000);
+            },
+
+            install: async function () {
+                if (this.deferredPrompt) {
+                    this.deferredPrompt.prompt();
+                    const { outcome } = await this.deferredPrompt.userChoice;
+                    console.log(`PWA: User response to install prompt: ${outcome}`);
+                    this.deferredPrompt = null;
+                } else {
+                    // Fallback feedback
+                    if (window.showToast) {
+                        const isHttp = location.protocol === 'http:' && location.hostname !== 'localhost';
+                        if (isHttp) showToast("Install requires HTTPS or Localhost", "error");
+                        else showToast("App install not ready or already installed using browser menu");
+                    } else {
+                        alert("Install via browser menu (Add to Home Screen)");
+                    }
+                }
+            }
+        };
+        window.pwaManager.init();
+
+        // Unregister the old stale /static/sw.js service worker (duplicate that was serving old cached assets)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(regs => {
+                regs.forEach(reg => {
+                    if (reg.scope.includes('/static/')) reg.unregister();
+                });
+            });
+        }
+
+    </script>
+
+    <!-- Performance Optimization Script -->
+    <script>
+        (function () {
+            // Retrieve user preference from storage
+            const savedPerf = localStorage.getItem('bunker_perf_mode');
+            let perf = 'low'; // Default safe mode
+
+            if (savedPerf) {
+                perf = savedPerf;
+            } else {
+                // Auto-detect RAM: <4GB = Low, >4GB = High
+                // iOS = High (usually powerful enough)
+                const ram = navigator.deviceMemory;
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+                if (isIOS || (ram && ram > 4)) {
+                    perf = 'high';
+                } else {
+                    perf = 'low'; // Default to low for < 4GB for safety
+                }
+            }
+
+            // Apply mode immediately before render
+            document.documentElement.setAttribute('data-perf', perf);
+            console.log(`Smart Bunker: Performance Mode set to ${perf.toUpperCase()} (RAM: ${navigator.deviceMemory || 'Unknown'})`);
+        })();
+    </script>
+
+
+</head>
+
+<body>
+
+    <!-- Cinematic Splash Screen (fully opaque — no bleed-through) -->
+    <div id="premium-splash" style="position:fixed;inset:0;z-index:9999;background:#050508;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.6s ease;">
+        <div style="position:relative;display:flex;flex-direction:column;align-items:center;">
+
+            <!-- Animated rings -->
+            <div style="position:relative;width:100px;height:100px;margin-bottom:20px;">
+                <!-- Outer rotating ring -->
+                <svg style="position:absolute;inset:0;width:100%;height:100%;animation:splashSpin 1.8s linear infinite;" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(99,102,241,0.15)" stroke-width="2"/>
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="url(#sg1)" stroke-width="2.5"
+                        stroke-dasharray="70 212" stroke-linecap="round"/>
+                    <defs>
+                        <linearGradient id="sg1" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#818cf8"/>
+                            <stop offset="100%" stop-color="#c084fc"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <!-- Inner counter-rotating ring -->
+                <svg style="position:absolute;inset:8px;animation:splashSpinRev 2.4s linear infinite;" viewBox="0 0 84 84">
+                    <circle cx="42" cy="42" r="38" fill="none" stroke="rgba(168,85,247,0.15)" stroke-width="1.5"/>
+                    <circle cx="42" cy="42" r="38" fill="none" stroke="rgba(168,85,247,0.6)" stroke-width="1.5"
+                        stroke-dasharray="30 208" stroke-linecap="round"/>
+                </svg>
+                <!-- Center glow dot -->
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+                    <div style="width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#a855f7);box-shadow:0 0 20px rgba(99,102,241,0.8),0 0 40px rgba(99,102,241,0.4);animation:splashPulse 1.5s ease-in-out infinite;"></div>
+                </div>
+            </div>
+
+            <!-- Brand text -->
+            <h1 style="font-family:'Outfit',sans-serif;font-size:2.2rem;font-weight:900;letter-spacing:-0.05em;color:white;margin:0 0 6px;text-shadow:0 0 30px rgba(99,102,241,0.5);">Bunker.</h1>
+            <p id="splash-status" style="font-size:8px;font-weight:700;color:#818cf8;text-transform:uppercase;letter-spacing:0.3em;animation:splashPulse 2s ease-in-out infinite;">Loading</p>
+        </div>
+
+        <style>
+            @keyframes splashSpin    { to { transform: rotate(360deg); } }
+            @keyframes splashSpinRev { to { transform: rotate(-360deg); } }
+            @keyframes splashPulse   { 0%,100%{opacity:0.6} 50%{opacity:1} }
+        </style>
+    </div>
+
+    <!-- Premium Full-Screen Scraper & Login Loading Page -->
+    <div id="login-loading-screen" style="position:fixed;inset:0;z-index:9998;background:#030306;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all 0.5s ease;opacity:0;pointer-events:none;">
+        <!-- Glowing Atmospheric Blobs -->
+        <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;">
+            <div style="position:absolute;top:-10%;left:-20%;width:80vw;height:80vw;background:radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%);filter:blur(80px);animation:splashPulse 4s infinite alternate;"></div>
+            <div style="position:absolute;bottom:-15%;right:-10%;width:70vw;height:70vw;background:radial-gradient(circle, rgba(168,85,247,0.12) 0%, transparent 70%);filter:blur(80px);animation:splashPulse 5s infinite alternate-reverse;"></div>
+        </div>
+
+        <div style="position:relative;z-index:10;width:100%;max-width:360px;padding:0 24px;display:flex;flex-direction:column;align-items:center;">
+            
+            <!-- Animated Concentric Orbital Rings -->
+            <div style="position:relative;width:144px;height:144px;margin-bottom:32px;">
+                <!-- Outer Ring -->
+                <svg style="position:absolute;inset:0;width:100%;height:100%;animation:splashSpin 3.5s linear infinite;" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(99,102,241,0.08)" stroke-width="1.5"/>
+                    <circle cx="50" cy="50" r="46" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-dasharray="65 180" stroke-linecap="round"/>
+                </svg>
+                <!-- Middle Ring -->
+                <svg style="position:absolute;inset:10px;width:calc(100% - 20px);height:calc(100% - 20px);animation:splashSpinRev 2.2s linear infinite;" viewBox="0 0 80 80">
+                    <circle cx="40" cy="40" r="36" fill="none" stroke="rgba(168,85,247,0.08)" stroke-width="1"/>
+                    <circle cx="40" cy="40" r="36" fill="none" stroke="#a855f7" stroke-width="2" stroke-dasharray="40 120" stroke-linecap="round"/>
+                </svg>
+                <!-- Inner Ring -->
+                <svg style="position:absolute;inset:20px;width:calc(100% - 40px);height:calc(100% - 40px);animation:splashSpin 1.4s linear infinite;" viewBox="0 0 60 60">
+                    <circle cx="30" cy="30" r="26" fill="none" stroke="rgba(59,130,246,0.05)" stroke-width="1"/>
+                    <circle cx="30" cy="30" r="26" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="20 80" stroke-linecap="round"/>
+                </svg>
+                <!-- Center Core -->
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+                    <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#a855f7);box-shadow:0 0 30px rgba(99,102,241,0.6);display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.1);">
+                        <i id="loading-center-icon" class="fas fa-shield-alt" style="color:white;font-size:24px;animation:splashPulse 1.2s ease-in-out infinite;"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Title & Status Text -->
+            <div style="text-align:center;width:100%;margin-bottom:24px;">
+                <h2 style="font-size:9px;font-weight:900;color:#818cf8;letter-spacing:0.25em;text-transform:uppercase;margin:0 0 6px;">SECURE ECAMPUS CONNECTION</h2>
+                <div id="loading-main-status" style="font-size:1.25rem;font-weight:800;color:white;letter-spacing:-0.02em;margin-bottom:12px;height:28px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">CONNECTING...</div>
+                
+                <!-- Progress bar -->
+                <div style="height:6px;width:160px;background:rgba(255,255,255,0.05);border-radius:99px;margin:0 auto;overflow:hidden;position:relative;border:1px solid rgba(255,255,255,0.02);">
+                    <div id="loading-progress-bar" style="position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#6366f1,#a855f7);box-shadow:0 0 10px #6366f1;border-radius:99px;transition:width 0.3s cubic-bezier(0.4, 0, 0.2, 1);width:8%;"></div>
+                </div>
+            </div>
+
+            <!-- Terminal Logger Console -->
+            <div id="loading-logs" class="no-scrollbar" style="width:100%;height:140px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.05);border-radius:24px;padding:16px;font-family:monospace;font-size:9.5px;color:#9ca3af;overflow-y:auto;display:flex;flex-direction:column;gap:6px;box-shadow:inset 0 2px 8px rgba(0,0,0,0.8);scroll-behavior:smooth;">
+                <div style="color:#818cf8;font-weight:bold;">[SYSTEM] Scraper protocol initialized.</div>
+            </div>
+
+            <!-- Error State Panel (hidden inside) -->
+            <div id="loading-error-panel" style="position:absolute;inset:0;background:#030306;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;z-index:20;opacity:0;pointer-events:none;transition:opacity 0.3s ease;">
+                <div style="width:64px;height:64px;border-radius:20px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);display:flex;align-items:center;justify-content:center;color:#ef4444;font-size:24px;margin-bottom:16px;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3 id="loading-error-title" style="font-size:16px;font-weight:900;color:white;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">Login Failed</h3>
+                <p id="loading-error-message" style="font-size:11px;color:#9ca3af;margin:0 0 24px;line-height:1.6;padding:0 12px;">Invalid credentials or eCampus gateway timeout. Please try again.</p>
+                <button type="button" onclick="dismissLoadingError()" class="btn-liquid" style="padding:12px 24px;color:white;font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:0.15em;border-radius:16px;outline:none;border:none;cursor:pointer;width:100%;">
+                    Go Back
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Background -->
+    <div class="aurora-container" id="aurora-bg">
+        <div class="aurora-blob blob-1"></div>
+        <div class="aurora-blob blob-2"></div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app" class="relative z-10 w-full h-full max-w-md mx-auto flex flex-col bg-transparent opacity-0 transition-opacity duration-700 ease-out">
+
+        <!-- LOGIN VIEW (Redesigned) -->
+        <div id="login-view" class="absolute inset-0 z-50 flex flex-col justify-center px-6">
+            <div class="flex-1 flex flex-col justify-center items-center w-full">
+                <!-- Header Section -->
+                <div class="text-center mb-8 relative w-full">
+                    <!-- Multi-layer glow rings -->
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full" style="background:radial-gradient(circle, rgba(99,102,241,0.22) 0%, transparent 70%);filter:blur(24px);animation:splashPulse 3s ease-in-out infinite;"></div>
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full" style="background:radial-gradient(circle, rgba(168,85,247,0.18) 0%, transparent 70%);filter:blur(16px);animation:splashPulse 4s ease-in-out infinite reverse;"></div>
+                    <h1 class="text-5xl sm:text-6xl font-black tracking-tighter mb-3 relative z-10 bunker-glow">Bunker.</h1>
+                    <div class="flex items-center justify-center gap-2 relative z-10">
+                        <div class="h-px w-8 bg-gradient-to-r from-transparent to-indigo-500/50"></div>
+                        <h2 class="text-[9px] font-black tracking-[0.35em] uppercase" style="color:rgba(167,139,250,0.6)">Smart Attendance Manager</h2>
+                        <div class="h-px w-8 bg-gradient-to-l from-transparent to-indigo-500/50"></div>
+                    </div>
+                </div>
+
+                <!-- Login Card (Resized & Compact) -->
+                <div class="glass-panel w-full max-w-sm rounded-[32px] p-6 shadow-2xl border border-white/10 relative overflow-hidden" style="box-shadow:0 40px 80px -20px rgba(0,0,0,0.8),0 0 0 1px rgba(99,102,241,0.08),inset 0 1px 0 rgba(255,255,255,0.06);">
+
+                    <form id="login-form" class="space-y-4 relative z-10">
+                        <a href="https://feedback-auto-eubkuw8k4dsyxndd7w7y45.streamlit.app/#feedback" target="_blank"
+                            class="w-full py-3 mb-4 rounded-2xl bg-white/5 border border-indigo-500/30 text-indigo-300 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-3 hover:bg-indigo-500/20 hover:scale-[1.02] transition-all shadow-lg group relative overflow-hidden">
+                            <div
+                                class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-shimmer">
+                            </div>
+                            <i
+                                class="fas fa-robot text-lg text-indigo-400 group-hover:rotate-12 transition-transform"></i>
+                            <div class="flex flex-col items-start text-left">
+                                <span class="text-xs font-black text-white tracking-widest leading-tight">COLLEGE
+                                    FEEDBACK</span>
+                                <span
+                                    class="text-[8px] text-indigo-300 font-bold tracking-[0.2em] leading-tight">AUTOMATED
+                                    ENTRY BOT</span>
+                            </div>
+                            <i
+                                class="fas fa-external-link-alt absolute right-5 text-[10px] text-indigo-400/40 group-hover:text-indigo-400 transition-colors"></i>
+                        </a>
+
+                        <div class="input-group">
+                            <input type="text" id="username" class="glass-input py-4" placeholder="Roll Number" required
+                                autocomplete="username" style="text-transform: uppercase;">
+                            <i class="fas fa-user-graduate input-icon"></i>
+                        </div>
+                        <div class="input-group">
+                            <input type="password" id="password" class="glass-input py-4" placeholder="Password"
+                                required autocomplete="current-password">
+                            <i class="fas fa-lock input-icon"></i>
+                            <i class="fas fa-eye absolute right-5 top-1/2 -translate-y-1/2 text-white/30 cursor-pointer hover:text-white transition-colors"
+                                onclick="togglePassword()"></i>
+                        </div>
+
+                        <div id="login-error"
+                            class="hidden text-rose-400 text-[10px] text-center font-bold bg-rose-500/10 p-3 rounded-2xl border border-rose-500/20">
+                        </div>
+
+                        <button type="submit" id="btn-submit"
+                            class="w-full py-4 rounded-2xl btn-liquid text-white font-bold text-base mt-2 flex items-center justify-center gap-2 group shadow-lg">
+                            <span id="btn-text">Sign In</span>
+                            <i id="btn-icon"
+                                class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+                        </button>
+
+                        <div class="mt-1 flex flex-col items-center gap-2 scale-90 origin-top">
+                            <p class="text-[9px] text-gray-600 text-center leading-none">
+                                By logging in, you agree to our
+                                <span onclick="showPrivacyPolicy()"
+                                    class="text-indigo-400 cursor-pointer hover:underline font-bold inline-flex items-center gap-1">
+                                    <i class="fas fa-lock text-[8px]"></i> Privacy Policy & Terms
+                                </span>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="pb-10 text-center">
+                    <a href="#" onclick="loadDemo()"
+                        class="text-[10px] text-white/40 hover:text-white/90 transition-colors font-bold tracking-[0.2em] uppercase decoration-dotted underline underline-offset-4 opacity-70 hover:opacity-100">
+                        Try Demo Mode
+                    </a>
+                </div>
+                <!-- Login Page PWA Install Prompt -->
+                <div id="login-install-prompt"
+                    class="hidden absolute bottom-4 left-0 right-0 flex justify-center z-50 fade-in-up">
+                    <div
+                        class="glass-panel mx-4 px-6 py-4 rounded-2xl flex items-center justify-between gap-4 w-full max-w-sm shadow-2xl border border-white/10 bg-[#1c1c1e]/90 backdrop-blur-xl">
+                        <div class="flex items-center gap-3">
+                            <img src="/static/icon.png" class="w-10 h-10 rounded-xl shadow-lg">
+                            <div class="flex flex-col">
+                                <span id="install-text" class="text-sm font-bold text-white leading-tight">Install
+                                    Bunker.</span>
+                                <span class="text-[10px] text-gray-400 font-medium">Add to Home Screen for best
+                                    experience</span>
+                            </div>
+                        </div>
+                        <button onclick="triggerInstall()"
+                            class="bg-white text-black text-xs font-bold px-4 py-2 rounded-full hover:scale-105 active:scale-95 transition shadow-lg">
+                            Install
+                        </button>
+                        <button onclick="document.getElementById('login-install-prompt').classList.add('hidden')"
+                            class="text-white/50 hover:text-white p-1">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD VIEW -->
+        <div id="dashboard-view" class="hidden h-full flex flex-col">
+
+            <!-- Compact & Sticky Header -->
+            <div class="px-5 pt-5 pb-2 flex justify-between items-center z-30 sticky top-0 transition-all duration-300"
+                id="main-header" style="background:linear-gradient(to bottom, rgba(4,3,10,0.92) 0%, rgba(4,3,10,0.7) 70%, transparent 100%);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);">
+                <div>
+                    <span class="text-[9px] font-black uppercase tracking-[0.2em] block mb-1" style="color:rgba(139,92,246,0.8)" id="current-date">TODAY</span>
+                    <h2 class="text-3xl font-extrabold text-white leading-none tracking-tight" id="greeting-text">Dashboard</h2>
+                </div>
+                <button onclick="toggleSettings()"
+                    class="w-11 h-11 rounded-2xl flex items-center justify-center text-white/70 hover:text-white active:scale-90 transition-all duration-200"
+                    style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);box-shadow:0 4px 12px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.08);">
+                    <i class="fas fa-sliders-h text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto no-scrollbar px-5 pb-32" id="main-content">
+
+                <!-- TAB: HOME -->
+                <div id="tab-home" class="tab-content active space-y-4 pt-2">
+
+                    <!-- Dynamic Hero Widget -->
+                    <div id="hero-widget-container"></div>
+
+                    <!-- Widgets Grid -->
+                    <div class="grid grid-cols-2 gap-3">
+
+                        <!-- Next Exam -->
+                        <div class="glass-panel rounded-[32px] p-5 h-44 relative overflow-hidden group active:scale-[0.98] transition-all theme-exam"
+                            id="exam-widget-container">
+                            <!-- Content injected by JS -->
+                        </div>
+
+                        <!-- Next Holiday -->
+                        <div class="glass-panel rounded-[32px] p-5 h-44 relative overflow-hidden group active:scale-[0.98] transition-all"
+                            id="holiday-widget-container">
+                            <!-- Content injected by JS -->
+                        </div>
+                    </div>
+
+                    <!-- SYNC INDICATOR (In-flow) -->
+                    <div id="sync-indicator"
+                        class="hidden flex flex-col items-center gap-2 px-4 py-3 mt-4 mx-auto w-max rounded-2xl bg-indigo-500/20 border border-indigo-500/30 backdrop-blur-xl text-xs font-bold text-indigo-300 shadow-lg transition-all">
+                        <div class="flex items-center gap-2">
+                            <span id="sync-dot" class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+                            <span id="sync-text">Syncing...</span>
+                        </div>
+                    </div>
+
+                    <!-- Subjects List -->
+                    <div class="pt-4">
+                        <!-- Dashboard Alerts -->
+                        <div id="dashboard-alerts-container" class="space-y-3 mb-4 hidden"></div>
+
+                        <div class="flex justify-between items-end mb-3 px-1">
+                            <div>
+                                <h3 class="font-bold text-lg text-white tracking-tight">Subjects</h3>
+                                <div class="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Updated:
+                                    <span class="text-indigo-400" id="last-updated-date">--</span>
+                                </div>
+                            </div>
+                            <div class="text-right flex items-center gap-1.5 cursor-pointer opacity-70 active:opacity-100 transition"
+                                onclick="showToast('Tap a card to predict outcomes')">
+                                <i class="fas fa-magic text-indigo-400 text-[10px]"></i>
+                                <span
+                                    class="text-[9px] font-bold text-indigo-300 uppercase tracking-widest">Simulate</span>
+                            </div>
+                        </div>
+
+                        <!-- Attendance Mode Switcher (Dashboard) -->
+                        <div class="glass-panel rounded-2xl p-2.5 border border-white/5 flex gap-2 items-center mb-4" id="dashboard-att-mode-container">
+                            <span class="text-[9px] font-black uppercase tracking-wider text-gray-500 pl-2 pr-1 shrink-0">View Mode</span>
+                            <div class="flex flex-1 gap-1">
+                                <button id="att-mode-normal" onclick="setAttendanceMode('normal')"
+                                    class="flex-1 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition bg-indigo-600 text-white shadow">
+                                    Normal
+                                </button>
+                                <button id="att-mode-exemp" onclick="setAttendanceMode('exemp')"
+                                    class="flex-1 py-1.5 rounded-xl text-[9px] font-bold uppercase tracking-wider transition bg-white/5 text-gray-400 border border-white/5">
+                                    +Exemp
+                                </button>
+                                <button id="att-mode-medical" onclick="setAttendanceMode('medical')"
+                                    class="flex-1 py-1.5 rounded-xl text-[9px] font-bold uppercase tracking-wider transition bg-white/5 text-gray-400 border border-white/5">
+                                    +Medical
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="subject-list-container" class="space-y-3 pb-4"></div>
+                    </div>
+                </div>
+
+                <!-- TAB: CALENDAR -->
+                <div id="tab-calendar" class="tab-content space-y-5 pt-2">
+                    <div class="glass-panel rounded-[32px] p-6 flex items-center gap-5 border-l-[4px] shadow-xl"
+                        style="border-left-color: var(--primary);">
+                        <div
+                            class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-white text-xl font-bold shadow-inner border border-white/5">
+                            <i class="fas fa-hourglass-half"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Working
+                                Days
+                                Left</h4>
+                            <div class="text-3xl font-black text-white tracking-tight" id="cal-remaining-days">...
+                            </div>
+                        </div>
+                    </div>
+                    <div id="academic-list" class="space-y-6 relative pl-2">
+                        <div
+                            class="absolute left-[21px] top-6 bottom-6 w-[2px] bg-gradient-to-b from-white/10 via-white/5 to-transparent">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: SMART TRACKER (Combined Planner & Edit) -->
+                <div id="tab-planner" class="tab-content space-y-5 pt-2">
+
+                    <!-- Smart Tracker Attendance Panel (collapsible, hidden by default) -->
+                    <div id="smart-tracker-panel"
+                        class="hidden glass-panel p-5 rounded-[32px] border-l-4 border-indigo-500 shadow-xl overflow-hidden relative">
+                        <div class="absolute top-0 right-0 p-4 opacity-10 text-4xl">📊</div>
+                        <p class="text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-3">Smart Tracker
+                            Attendance</p>
+                        <div id="planner-impact-list" class="space-y-3">
+                            <div class="text-center py-2 text-gray-500 text-[10px] italic font-medium">Mark classes to
+                                see today's tracker stats</div>
+                        </div>
+                    </div>
+
+                    <!-- Day Selector -->
+                    <div class="flex bg-black/40 rounded-[24px] p-1.5 shadow-inner backdrop-blur-md">
+                        <div class="flex w-full overflow-x-auto no-scrollbar gap-1.5" id="planner-days"></div>
+                    </div>
+
+                    <!-- Row: Mark All + Show Stats toggle -->
+                    <div
+                        class="flex justify-between items-center px-4 py-2 bg-white/5 rounded-2xl border border-white/5">
+                        <button onclick="toggleSelectAllCards()"
+                            class="py-1.5 px-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[9px] font-black uppercase tracking-widest hover:bg-indigo-500/20 transition-all active:scale-95">
+                            Mark All Attended
+                        </button>
+                        <button onclick="toggleSmartTrackerPanel(this)"
+                            class="py-1.5 px-3 rounded-xl bg-white/5 border border-white/10 text-gray-400 text-[9px] font-black uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95 flex items-center gap-1.5">
+                            <i class="fas fa-chart-bar text-[8px]"></i> Show Stats
+                        </button>
+                    </div>
+
+                    <!-- Interactive Timetable Cards -->
+                    <div class="space-y-3" id="planner-classes">
+                        <!-- Class cards injected by JS -->
+                    </div>
+
+                    <!-- Recent History & Logs -->
+                    <div class="glass-panel p-6 rounded-[32px] border-l-4 border-violet-500 mt-4">
+                        <div class="border-t border-white/0 pt-0">
+                            <div class="flex justify-between items-center mb-4 px-1">
+                                <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Recent History
+                                </p>
+                                <button onclick="showFullHistory()"
+                                    class="text-[9px] font-black text-indigo-400 uppercase tracking-widest hover:text-indigo-300 transition">View
+                                    Full Log</button>
+                            </div>
+                            <div id="manual-history" class="space-y-2.5"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: ACADEMICS -->
+                <div id="tab-academics" class="tab-content space-y-5 pt-2">
+
+                    <!-- Sub-Tab Switcher -->
+                    <div class="flex bg-black/40 rounded-[24px] p-1.5 shadow-inner backdrop-blur-md gap-1.5">
+                        <button id="acad-tab-internals" onclick="switchAcadTab('internals')" class="flex-1 py-2.5 rounded-[18px] text-[10px] font-black uppercase tracking-widest transition-all bg-indigo-600 text-white shadow-lg">
+                            <i class="fas fa-pen-nib mr-1"></i> Internals
+                        </button>
+                        <button id="acad-tab-results" onclick="switchAcadTab('results')" class="flex-1 py-2.5 rounded-[18px] text-[10px] font-black uppercase tracking-widest transition-all bg-white/5 text-gray-400 border border-white/5">
+                            <i class="fas fa-star mr-1"></i> Results
+                        </button>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div id="acad-loading" class="hidden py-12 flex flex-col items-center justify-center">
+                        <div style="position:relative;width:96px;height:96px;margin-bottom:20px;">
+                            <!-- Outer Ring -->
+                            <svg style="position:absolute;inset:0;width:100%;height:100%;animation:splashSpin 3.5s linear infinite;" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(99,102,241,0.08)" stroke-width="1.5"/>
+                                <circle cx="50" cy="50" r="46" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-dasharray="65 180" stroke-linecap="round"/>
+                            </svg>
+                            <!-- Middle Ring -->
+                            <svg style="position:absolute;inset:7px;width:calc(100% - 14px);height:calc(100% - 14px);animation:splashSpinRev 2.2s linear infinite;" viewBox="0 0 80 80">
+                                <circle cx="40" cy="40" r="36" fill="none" stroke="rgba(168,85,247,0.08)" stroke-width="1"/>
+                                <circle cx="40" cy="40" r="36" fill="none" stroke="#a855f7" stroke-width="2" stroke-dasharray="40 120" stroke-linecap="round"/>
+                            </svg>
+                            <!-- Inner Ring -->
+                            <svg style="position:absolute;inset:14px;width:calc(100% - 28px);height:calc(100% - 28px);animation:splashSpin 1.4s linear infinite;" viewBox="0 0 60 60">
+                                <circle cx="30" cy="30" r="26" fill="none" stroke="rgba(59,130,246,0.05)" stroke-width="1"/>
+                                <circle cx="30" cy="30" r="26" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="20 80" stroke-linecap="round"/>
+                            </svg>
+                            <!-- Center Core -->
+                            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+                                <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#a855f7);box-shadow:0 0 20px rgba(99,102,241,0.5);display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.1);">
+                                    <i class="fas fa-graduation-cap" style="color:white;font-size:16px;animation:splashPulse 1.2s ease-in-out infinite;"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-[10px] font-black text-indigo-400 uppercase tracking-[0.25em] mb-1 animate-pulse">Syncing Academic Vault</div>
+                        <div class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Connecting to eCampus portal...</div>
+                    </div>
+
+                    <!-- Error State -->
+                    <div id="acad-error" class="hidden text-center py-10">
+                        <div class="w-16 h-16 rounded-full bg-rose-500/10 flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-exclamation-circle text-2xl text-rose-400"></i>
+                        </div>
+                        <h3 class="text-white font-bold mb-2">Failed to Load</h3>
+                        <p class="text-gray-500 text-xs px-8" id="acad-error-msg">Could not fetch academic data.</p>
+                        <button onclick="loadAcademics()" class="mt-4 px-5 py-2.5 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 text-xs font-bold uppercase tracking-widest hover:bg-indigo-500/30 transition">
+                            <i class="fas fa-redo mr-1"></i> Retry
+                        </button>
+                    </div>
+
+                    <!-- INTERNALS PANEL -->
+                    <div id="acad-panel-internals" class="space-y-4">
+                        <!-- Hero Summary -->
+                        <div id="internals-hero" class="glass-panel rounded-[32px] p-6 border-l-4 border-indigo-500">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-1">Cumulative GPA</p>
+                                    <div class="flex items-end gap-2">
+                                        <span class="text-4xl font-black text-white leading-none" id="internals-cgpa-value">--</span>
+                                        <span class="text-gray-500 text-xs font-bold mb-1">/10</span>
+                                    </div>
+                                    <p class="text-[10px] text-gray-500 mt-1 font-medium" id="internals-status">Loading marks...</p>
+                                </div>
+                                <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center">
+                                    <i class="fas fa-graduation-cap text-xl text-indigo-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CGPA Predictor Card -->
+                        <div id="cgpa-predictor" class="glass-panel rounded-[32px] p-6 border-l-4 border-purple-500 hidden">
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <p class="text-[9px] font-black text-purple-400 uppercase tracking-[0.2em] mb-1">Semester & CGPA Predictor</p>
+                                    <h3 class="text-white font-bold text-sm">Predict from Simulated Grades</h3>
+                                </div>
+                                <div class="w-10 h-10 rounded-2xl bg-purple-500/10 flex items-center justify-center animate-pulse">
+                                    <i class="fas fa-chart-line text-purple-400 text-sm"></i>
+                                </div>
+                            </div>
+
+                            <!-- Global Final Exam Scenario Picker -->
+                            <div class="mb-5">
+                                <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-3">Assume Final Exam Score (All Subjects)</p>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button id="btn-scenario-pass" data-val="50"
+                                        onclick="setGlobalSemScenario(50)"
+                                        class="scenario-btn py-3 px-2 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs font-black text-rose-400 transition-all duration-200 active:scale-95">
+                                        <i class="fas fa-check-circle mr-1 text-[10px]"></i>Just Pass<br>
+                                        <span class="text-[9px] font-medium opacity-70">50 / 100</span>
+                                    </button>
+                                    <button id="btn-scenario-a" data-val="72"
+                                        onclick="setGlobalSemScenario(72)"
+                                        class="scenario-btn py-3 px-2 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-xs font-black text-indigo-400 transition-all duration-200 active:scale-95">
+                                        <i class="fas fa-graduation-cap mr-1 text-[10px]"></i>Aim A (71%)<br>
+                                        <span class="text-[9px] font-medium opacity-70">72 / 100</span>
+                                    </button>
+                                    <button id="btn-scenario-aplus" data-val="82"
+                                        onclick="setGlobalSemScenario(82)"
+                                        class="scenario-btn py-3 px-2 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-xs font-black text-purple-400 transition-all duration-200 active:scale-95">
+                                        <i class="fas fa-star mr-1 text-[10px]"></i>Aim A+ (81%)<br>
+                                        <span class="text-[9px] font-medium opacity-70">82 / 100</span>
+                                    </button>
+                                    <button id="btn-scenario-s" data-val="92"
+                                        onclick="setGlobalSemScenario(92)"
+                                        class="scenario-btn py-3 px-2 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs font-black text-amber-400 transition-all duration-200 active:scale-95">
+                                        <i class="fas fa-trophy mr-1 text-[10px]"></i>Aim S (91%)<br>
+                                        <span class="text-[9px] font-medium opacity-70">92 / 100</span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Predictor Stats -->
+                            <div class="grid grid-cols-2 gap-4 bg-black/20 p-4 rounded-[24px] border border-white/5 mb-4 shadow-inner">
+                                <div class="text-center">
+                                    <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">Predicted SGPA</p>
+                                    <span class="text-2xl font-black text-white" id="predicted-sgpa-value">--</span>
+                                </div>
+                                <div class="text-center border-l border-white/5">
+                                    <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">Predicted CGPA</p>
+                                    <span class="text-2xl font-black text-purple-400" id="predicted-cgpa-value">--</span>
+                                </div>
+                            </div>
+
+                            <!-- Subject Credits Breakdown (collapsible details) -->
+                            <details class="group">
+                                <summary class="flex justify-between items-center text-[9px] text-gray-400 font-bold uppercase tracking-widest cursor-pointer list-none select-none">
+                                    <span>Subject Credits & Grades</span>
+                                    <i class="fas fa-chevron-down text-[8px] transition-transform duration-300 group-open:rotate-180"></i>
+                                </summary>
+                                <div id="predictor-subjects-list" class="space-y-3 mt-4 transition-all duration-300">
+                                    <!-- Injected by JS -->
+                                </div>
+                            </details>
+                        </div>
+
+                        <!-- Subject Cards -->
+                        <div id="internals-list" class="space-y-3"></div>
+                    </div>
+
+                    <!-- RESULTS PANEL (Merged GPA & CGPA) -->
+                    <div id="acad-panel-results" class="space-y-4 hidden">
+                        <!-- Hero -->
+                        <div class="glass-panel rounded-[32px] p-6 border-l-4 border-emerald-500">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-[9px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-1">Semester GPA</p>
+                                    <div class="flex items-end gap-2">
+                                        <span class="text-4xl font-black text-white leading-none" id="gpa-value">--</span>
+                                        <span class="text-gray-500 text-xs font-bold mb-1">/10</span>
+                                    </div>
+                                    <p class="text-[10px] text-gray-500 mt-1 font-medium" id="cgpa-credits">-- total credits</p>
+                                </div>
+                                <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                                    <i class="fas fa-star text-xl text-emerald-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Progression Chart -->
+                        <div class="glass-panel rounded-[32px] p-5">
+                            <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-4">Semester Progression</p>
+                            <div id="cgpa-chart" class="w-full overflow-x-auto">
+                                <!-- SVG chart injected by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Degree Classification Projection -->
+                        <div class="glass-panel rounded-[32px] p-5 border-l-4 border-indigo-500" id="degree-classification-card">
+                            <p class="text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-3">Degree Classification</p>
+                            <div class="flex items-center justify-between mb-3">
+                                <div>
+                                    <p id="degree-class-label" class="text-lg font-black text-white">--</p>
+                                    <p id="degree-class-sub" class="text-[10px] text-gray-500 mt-0.5 font-medium">Loading...</p>
+                                </div>
+                                <div id="degree-class-icon" class="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-xl">🎓</div>
+                            </div>
+                            <div id="degree-class-progress" class="bg-black/30 rounded-xl p-3 border border-white/5 text-[10px] text-gray-400 font-medium leading-relaxed"></div>
+                        </div>
+
+                        <!-- Sem-by-Sem Breakdown -->
+                        <div id="cgpa-semlist" class="space-y-3"></div>
+
+
+                        <!-- Full Subject List -->
+                        <div class="pt-2">
+                            <h3 class="font-bold text-lg text-white tracking-tight mb-3 px-1">Recent Semester</h3>
+                            <div id="gpa-table" class="space-y-2"></div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- REDESIGNED FLOATING NAVIGATION -->
+            <div class="nav-dock-container">
+                <nav class="nav-dock relative">
+                    <!-- Dynamic Sliding Glow Indicator -->
+                    <div id="nav-dock-glow" class="absolute -z-10 w-14 h-14 rounded-full blur-2xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] pointer-events-none" style="background:radial-gradient(circle,rgba(139,92,246,0.5),rgba(99,102,241,0.3));left:8px;top:10px;transform:scale(0);"></div>
+                    <div class="nav-item active" onclick="switchTab('home', 0)" id="nav-home">
+                        <i class="fas fa-th-large"></i>
+                        <span class="nav-label">Home</span>
+                    </div>
+                    <div class="nav-item" onclick="switchTab('academics', 1)" id="nav-academics">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span class="nav-label">Marks</span>
+                    </div>
+                    <div class="nav-item" onclick="switchTab('calendar', 2)" id="nav-calendar">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span class="nav-label">Calendar</span>
+                    </div>
+                    <div class="nav-item" onclick="switchTab('planner', 3)" id="nav-planner">
+                        <i class="fas fa-check-double"></i>
+                        <span class="nav-label">Tracker</span>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- REDESIGNED SIMULATOR MODAL -->
+    <div id="sim-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/95 opacity-0 transition-opacity duration-300" id="sim-backdrop"
+            onclick="closeSim()"></div>
+        <div class="w-full max-w-[340px] relative z-10 opacity-0 transition-all duration-300 transform scale-95"
+            id="sim-panel">
+            <div class="bg-[#111] rounded-[40px] p-6 pb-8 border border-white/10 shadow-2xl relative overflow-hidden">
+
+                <!-- Header -->
+                <div class="flex justify-between items-start mb-8 relative z-10">
+                    <div>
+                        <h3 class="text-xl font-bold text-white leading-tight w-48 truncate" id="sim-subject">
+                            Subject
+                        </h3>
+                        <p class="text-[9px] text-indigo-400 font-bold uppercase tracking-widest mt-1">Prediction
+                            Mode
+                        </p>
+                    </div>
+                    <button onclick="closeSim()"
+                        class="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-white/50 hover:bg-white/10 transition"><i
+                            class="fas fa-times text-sm"></i></button>
+                </div>
+
+                <!-- Main Chart -->
+                <div class="flex justify-center mb-8 relative z-10">
+                    <div class="w-52 h-52 relative">
+                        <!-- BG Ring -->
+                        <svg class="w-full h-full transform -rotate-90">
+                            <defs>
+                                <linearGradient id="sim-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#5f5af6" />
+                                    <stop offset="100%" stop-color="#a04ef6" />
+                                </linearGradient>
+                            </defs>
+                            <circle cx="104" cy="104" r="90" stroke="#14141d" stroke-width="10" fill="none">
+                            </circle>
+                            <!-- FG Ring -->
+                            <circle id="sim-ring" cx="104" cy="104" r="90" stroke="url(#sim-grad)" stroke-width="12"
+                                fill="none" stroke-dasharray="565" stroke-dashoffset="0" stroke-linecap="round"
+                                class="transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] filter drop-shadow-[0_0_12px_rgba(99,102,241,0.5)]"></circle>
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span id="sim-pct"
+                                class="text-6xl font-black text-white tracking-tighter transition-colors duration-300">0%</span>
+                            <span id="sim-diff"
+                                class="text-[10px] font-bold px-3 py-1 rounded-full bg-white/5 mt-2 uppercase tracking-wide border border-white/5">Current</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="space-y-4 relative z-10">
+                    <!-- Attend Control -->
+                    <div
+                        class="bg-white/5 rounded-3xl p-2 pr-3 flex items-center justify-between pl-5 border border-white/5">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <span class="text-[11px] font-bold text-gray-300 uppercase tracking-wider">Attend</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="updateBunkSim('attend', -1)"
+                                class="w-10 h-10 rounded-2xl bg-black/40 text-white/50 hover:text-white hover:bg-black/60 active:scale-90 transition flex items-center justify-center"><i
+                                    class="fas fa-minus text-[10px]"></i></button>
+                            <span id="val-attend" class="w-8 text-center font-black text-white text-lg">0</span>
+                            <button onclick="updateBunkSim('attend', 1)"
+                                class="w-10 h-10 rounded-2xl bg-emerald-500 text-black font-bold active:scale-90 transition flex items-center justify-center shadow-lg shadow-emerald-500/20"><i
+                                    class="fas fa-plus text-[10px]"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Bunk Control -->
+                    <div
+                        class="bg-white/5 rounded-3xl p-2 pr-3 flex items-center justify-between pl-5 border border-white/5">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400 text-xs">
+                                <i class="fas fa-times"></i>
+                            </div>
+                            <span class="text-[11px] font-bold text-gray-300 uppercase tracking-wider">Bunk</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="updateBunkSim('bunk', -1)"
+                                class="w-10 h-10 rounded-2xl bg-black/40 text-white/50 hover:text-white hover:bg-black/60 active:scale-90 transition flex items-center justify-center"><i
+                                    class="fas fa-minus text-[10px]"></i></button>
+                            <span id="val-bunk" class="w-8 text-center font-black text-white text-lg">0</span>
+                            <button onclick="updateBunkSim('bunk', 1)"
+                                class="w-10 h-10 rounded-2xl bg-rose-500 text-black font-bold active:scale-90 transition flex items-center justify-center shadow-lg shadow-rose-500/20"><i
+                                    class="fas fa-plus text-[10px]"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 text-center">
+                    <button onclick="openSim(simSubject.code)"
+                        class="text-[10px] text-gray-500 font-bold uppercase tracking-widest hover:text-white transition">Reset
+                        Simulation</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="settings-modal" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-black/90 opacity-0 transition-opacity duration-300" id="settings-backdrop"
+            onclick="toggleSettings()"></div>
+        <div class="absolute bottom-0 left-0 right-0 glass-panel rounded-t-[40px] p-8 pb-16 translate-y-full transition-transform duration-300"
+            id="settings-panel">
+            <div class="w-12 h-1.5 bg-white/10 rounded-full mx-auto mb-8"></div>
+            <div class="flex items-center gap-4 mb-6">
+                <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-xl">⚙️</div>
+                <div>
+                    <h3 class="text-xl font-bold text-white">Settings</h3>
+                    <p class="text-[10px] text-gray-400 mt-0.5">App Preferences</p>
+                </div>
+            </div>
+
+            <!-- Demo Time Travel (Hidden by default) -->
+            <div id="demo-date-picker"
+                class="hidden mb-4 bg-indigo-500/10 rounded-[24px] p-5 border border-indigo-500/20">
+                <div class="flex justify-between items-center mb-3">
+                    <div>
+                        <div class="text-xs font-bold text-indigo-300">Time Travel</div>
+                        <div class="text-[10px] text-indigo-400/60 font-bold uppercase tracking-widest">Demo Mode
+                            Only
+                        </div>
+                    </div>
+                    <i class="fas fa-history text-indigo-400"></i>
+                </div>
+                <input type="date" id="sim-date-input" onchange="updateSimDate(this)"
+                    class="w-full bg-[#111] text-white text-sm font-bold p-3 rounded-xl border border-white/10 outline-none focus:border-indigo-500 transition shadow-inner">
+            </div>
+
+            <div class="space-y-4">
+                <!-- User Info -->
+                <div class="bg-white/5 rounded-[24px] p-5 border border-white/5">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="text-xs font-bold text-white">Logged In As</div>
+                            <div class="text-[10px] text-indigo-400 mt-0.5 font-medium uppercase" id="settings-roll">--
+                            </div>
+                        </div>
+                        <div
+                            class="px-4 py-2 rounded-lg bg-white/5 text-gray-400 text-[10px] font-bold border border-white/10">
+                            Read Only</div>
+                    </div>
+                </div>
+
+                <!-- Install App (PWA) -->
+                <div class="bg-white/5 rounded-[24px] p-5 border border-white/5 hidden" id="settings-install-btn">
+                    <div class="flex justify-between items-center cursor-pointer" onclick="triggerInstall()">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
+                                <i class="fas fa-download"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-white">Install App</div>
+                                <div class="text-[10px] text-gray-400 mt-0.5">Add to Home Screen</div>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-white/20 text-xs"></i>
+                    </div>
+                </div>
+
+
+
+                <!-- Manual Attendance Include Toggle -->
+                <div class="bg-white/5 rounded-[24px] p-5 border border-white/5 flex justify-between items-center">
+                    <div>
+                        <div class="text-xs font-bold text-white">Include Manual Entries in Dashboard</div>
+                        <div class="text-[10px] text-gray-400 mt-0.5 font-medium">Affects home dashboard stats</div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="settings-include-manual" class="sr-only peer"
+                            onchange="toggleManualImpact(this)">
+                        <div
+                            class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600">
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Academic Regulations & Grading Button -->
+                <div class="bg-white/5 rounded-[24px] p-5 border border-white/5 flex justify-between items-center cursor-pointer hover:bg-white/10 transition-colors" onclick="showAcademicRegulations()">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400">
+                            <i class="fas fa-book-reader"></i>
+                        </div>
+                        <div>
+                            <div class="text-sm font-bold text-white">Academic Regulations</div>
+                            <div class="text-[10px] text-gray-400 mt-0.5 font-medium">PSG College of Technology Rules</div>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right text-white/20 text-xs"></i>
+                </div>
+            </div>
+            <button onclick="logout()"
+                class="w-full py-5 rounded-2xl bg-rose-500/10 border border-rose-500/10 text-rose-400 font-bold text-xs hover:bg-rose-500/20 active:scale-95 transition mt-4">Sign
+                Out</button>
+
+            <div class="mt-6 text-center pb-4">
+                <button onclick="showPrivacyPolicy()"
+                    class="text-[10px] text-gray-600 font-bold uppercase tracking-widest hover:text-white transition">Privacy
+                    Policy & Terms</button>
+            </div>
+        </div>
+    </div>
+    <!-- HISTORY MODAL -->
+    <div id="history-modal" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-black/90 opacity-0 transition-opacity duration-300" id="history-backdrop"
+            onclick="closeHistory()"></div>
+        <div class="absolute bottom-0 left-0 right-0 glass-panel rounded-t-[40px] p-8 pb-16 translate-y-full transition-transform duration-300 h-[80vh] flex flex-col"
+            id="history-panel">
+            <div class="w-12 h-1.5 bg-white/10 rounded-full mx-auto mb-8"></div>
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-xl">📜
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white">Full History</h3>
+                        <p class="text-[10px] text-gray-400 mt-0.5" id="history-count">0 Entries</p>
+                    </div>
+                </div>
+                <button onclick="closeHistory()"
+                    class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div id="full-history-content" class="flex-1 overflow-y-auto no-scrollbar space-y-4 pb-10">
+                <!-- History entries will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast-container"
+        class="fixed top-14 left-1/2 -translate-x-1/2 z-[80] flex flex-col gap-2 w-max max-w-[90%] pointer-events-none">
+    </div>
+
+    <!-- Semantically Rich SEO & Accessibility Section (Hidden from visual view, indexed by Search Engines) -->
+    <section class="sr-only" aria-label="Bunker Attendance Tracker for PSG Tech Students">
+        <h2>Smart Attendance &amp; Bunk Planner for PSG College of Technology</h2>
+        <p>
+            Bunker is a specialized utility designed for students of PSG College of Technology (PSG Tech) and PSG Institute of Advanced Studies (PSG IAS). 
+            It simplifies the process of checking academic attendance logs by providing a direct sync with the official eCampus login portal.
+        </p>
+        
+        <h3>Why Use Bunker?</h3>
+        <ul>
+            <li><strong>eCampus Portal Integration:</strong> Securely log in using your student roll number and eCampus password to instantly retrieve your official attendance register.</li>
+            <li><strong>75 Percent Rule Compliance:</strong> Determine exactly how many classes you can safely miss (bunk) or how many consecutive classes you must attend to maintain the mandatory 75% attendance threshold.</li>
+            <li><strong>Academic Calendar &amp; Schedule:</strong> Track holidays, CA test dates, laboratory exams, and semester end dates with a custom interactive timeline.</li>
+            <li><strong>Timetable Tracker:</strong> View your daily lecture periods and course mapping codes dynamically synced from the college database.</li>
+        </ul>
+
+        <h3>PSG Tech Attendance Formula</h3>
+        <p>
+            Attendance is calculated on an hourly basis. Each period attended counts towards your total percentage. 
+            Bunker uses the formula: <code>Percentage = (Hours Attended / Total Conducted Hours) * 100</code>. 
+            The simulator allows you to test mock scenarios (e.g., medical leave exemptions) to plan your schedule without falling below 75% or 65% (the condonation boundary).
+        </p>
+
+        <h3>Keywords &amp; Queries Covered</h3>
+        <p>
+            PSG eCampus, PSG Tech portal, PSG Tech attendance login, PSG Tech exam schedule, PSG College of Technology student login, PSG IAS portal, eCampus attendance calculator, PSG Tech academic planner, Smart Bunker app, PSG bunk calculator.
+        </p>
+    </section>
+</body>
+
+</html>
