@@ -1737,6 +1737,7 @@ function toggleSelectAllCards() {
     state.selectedCards = {};
     saveState();
     renderSemesterHero(); renderWidgets(); renderSubjects(); initPlanner(); initManual();
+    hapticFeedback('success');
     showToast(`✅ Marked entire day Attended (${validCodes.length} classes)!`, 'success');
 }
 
@@ -1774,7 +1775,18 @@ function markTimetableAttendance(code, status) {
 
     saveState();
     renderSemesterHero(); renderWidgets(); renderSubjects(); initPlanner(); initManual();
+    hapticFeedback(status === 'Present' ? 'tap' : 'warning');
     showToast(`✅ Marked ${status === 'Present' ? 'Attended' : 'Bunked'}: ${code}`, 'success');
+}
+
+// Vibration API helper — respects devices that don't support it
+function hapticFeedback(type = 'tap') {
+    if (!navigator.vibrate) return;
+    switch (type) {
+        case 'tap':     navigator.vibrate(40); break;             // single short tap
+        case 'warning': navigator.vibrate([40, 60, 40]); break;  // double pulse (bunk)
+        case 'success': navigator.vibrate([30, 40, 30, 40, 60]); break; // triple for all-day
+    }
 }
 
 
