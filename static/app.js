@@ -3209,6 +3209,7 @@ function renderCGPA(cgpaData) {
     const credEl = document.getElementById('cgpa-credits');
     const chartEl = document.getElementById('cgpa-chart');
     const semList = document.getElementById('cgpa-semlist');
+    const sgpaBadge = document.getElementById('internals-sgpa-badge');
     if (!valEl) return;
 
     const cgpa = cgpaData.cgpa;
@@ -3218,6 +3219,16 @@ function renderCGPA(cgpaData) {
     if (credEl) credEl.textContent = `${cgpaData.total_credits || 0} total credits earned`;
 
     const semData = cgpaData.semwise_data || [];
+
+    if (sgpaBadge) {
+        if (semData.length > 0) {
+            const latest = semData[semData.length - 1];
+            sgpaBadge.textContent = `Sem ${latest.sem} GPA: ${latest.sgpa}`;
+            sgpaBadge.classList.remove('hidden');
+        } else {
+            sgpaBadge.classList.add('hidden');
+        }
+    }
 
     // SVG Line Chart
     if (chartEl && semData.length > 0) {
