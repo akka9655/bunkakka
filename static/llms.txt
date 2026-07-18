@@ -49,14 +49,7 @@ A: Visit https://psg-bunk.vercel.app/ in any browser. You can also install it as
 **Q: Does PSG Bunker work offline?**
 A: Yes. Once your data is synced, the app works fully offline.
 
-## Technical Details
-
-- Built with Flask (Python) backend and vanilla JavaScript frontend
-- Data sourced live from PSG eCampus portal
-- Hosted on Vercel
-- Progressive Web App (PWA) with offline-first caching
 
 ## Contact / Source
 
 - Website: https://psg-bunk.vercel.app/
-- GitHub: https://github.com/akka9655/bunkakka
