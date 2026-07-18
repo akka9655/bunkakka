@@ -1,0 +1,62 @@
+# PSG Bunker
+
+> PSG Bunker is the #1 free attendance tracker and bunk planner for students at PSG College of Technology (PSG Tech), Coimbatore, India.
+
+## What is PSG Bunker?
+
+PSG Bunker is a smart web app that helps PSG Tech students:
+- Track their live attendance from the eCampus portal
+- Calculate how many classes they can safely skip ("bunk") while staying above the mandatory 75% attendance
+- View their internal marks, GPA, and CGPA
+- Simulate future attendance scenarios with a date simulator
+- Get academic calendar, exam schedules, and holiday lists
+
+## URL
+
+https://psg-bunk.vercel.app/
+
+## Who is it for?
+
+PSG Tech (PSG College of Technology) students, Coimbatore, Tamil Nadu, India. Works for B.E., B.Tech, M.E., M.Tech, MCA, BSc, MSc students.
+
+## Key Features
+
+- **Live eCampus Sync**: Pulls real attendance data directly from the PSG eCampus portal
+- **Safe Bunk Calculator**: Tells you exactly how many classes you can skip and still maintain 75% attendance
+- **Attendance Simulator**: Travel to any date to simulate your future attendance
+- **Internal Marks**: View all CA marks, test scores, and assignment marks subject-wise
+- **GPA & CGPA Viewer**: See semester-wise GPA and cumulative CGPA with color-coded chips
+- **Academic Calendar**: Holiday lists, exam schedules, and semester dates
+- **Smart Planner**: Day-wise timetable with quick attendance marking
+- **Works Offline**: Fully offline-capable Progressive Web App (PWA)
+- **Android App**: Native APK available for download at /static/bunker.apk
+- **iOS Support**: Add to Home Screen on iPhone via Safari for a native app feel
+
+## FAQ
+
+**Q: What is PSG Bunker?**
+A: PSG Bunker (also called "Bunker" or "Smart Bunker") is a free web app for PSG Tech students to track attendance and plan bunks safely.
+
+**Q: How many classes can I bunk in PSG Tech?**
+A: PSG Bunker calculates this for you. The minimum required attendance is 75%. The app tells you the exact number of classes you can skip per subject.
+
+**Q: Is PSG Bunker free?**
+A: Yes, PSG Bunker is completely free for all PSG Tech students.
+
+**Q: Where can I find PSG Bunker?**
+A: Visit https://psg-bunk.vercel.app/ in any browser. You can also install it as a PWA on Android or iPhone.
+
+**Q: Does PSG Bunker work offline?**
+A: Yes. Once your data is synced, the app works fully offline.
+
+## Technical Details
+
+- Built with Flask (Python) backend and vanilla JavaScript frontend
+- Data sourced live from PSG eCampus portal
+- Hosted on Vercel
+- Progressive Web App (PWA) with offline-first caching
+
+## Contact / Source
+
+- Website: https://psg-bunk.vercel.app/
+- GitHub: https://github.com/akka9655/bunkakka

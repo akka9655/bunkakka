@@ -21,6 +21,10 @@
       "destination": "static/sitemap.xml"
     },
     {
+      "source": "/llms.txt",
+      "destination": "static/llms.txt"
+    },
+    {
       "source": "/static/(.*)",
       "destination": "static/$1"
     },
