@@ -3209,7 +3209,8 @@ function renderCGPA(cgpaData) {
     const credEl = document.getElementById('cgpa-credits');
     const chartEl = document.getElementById('cgpa-chart');
     const semList = document.getElementById('cgpa-semlist');
-    const sgpaBadge = document.getElementById('internals-sgpa-badge');
+    const semChipsWrapper = document.getElementById('internals-sem-chips');
+    const semChipsList = document.getElementById('internals-sem-chips-list');
     if (!valEl) return;
 
     const cgpa = cgpaData.cgpa;
@@ -3220,13 +3221,23 @@ function renderCGPA(cgpaData) {
 
     const semData = cgpaData.semwise_data || [];
 
-    if (sgpaBadge) {
+    // Render all sem GPA chips inside the hero card
+    if (semChipsList && semChipsWrapper) {
         if (semData.length > 0) {
-            const latest = semData[semData.length - 1];
-            sgpaBadge.textContent = `Sem ${latest.sem} GPA: ${latest.sgpa}`;
-            sgpaBadge.classList.remove('hidden');
+            semChipsList.innerHTML = semData.map(d => {
+                const g = parseFloat(d.sgpa);
+                const color = g >= 8.5 ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                            : g >= 7   ? 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20'
+                            : g >= 5   ? 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+                            :            'text-rose-400 bg-rose-500/10 border-rose-500/20';
+                return `<div class="flex flex-col items-center px-3 py-1.5 rounded-xl border ${color}">
+                    <span class="text-[8px] font-black uppercase tracking-widest opacity-60">S${d.sem}</span>
+                    <span class="text-xs font-black leading-tight">${d.sgpa}</span>
+                </div>`;
+            }).join('');
+            semChipsWrapper.classList.remove('hidden');
         } else {
-            sgpaBadge.classList.add('hidden');
+            semChipsWrapper.classList.add('hidden');
         }
     }
 

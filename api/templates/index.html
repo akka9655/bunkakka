@@ -782,21 +782,23 @@
                     <div id="acad-panel-internals" class="space-y-4">
                         <!-- Hero Summary -->
                         <div id="internals-hero" class="glass-panel rounded-[32px] p-6 border-l-4 border-indigo-500">
-                            <div class="flex items-start justify-between">
+                            <div class="flex items-start justify-between mb-3">
                                 <div>
                                     <p class="text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-1">Cumulative GPA</p>
                                     <div class="flex items-end gap-2">
                                         <span class="text-4xl font-black text-white leading-none" id="internals-cgpa-value">--</span>
                                         <span class="text-gray-500 text-xs font-bold mb-1">/10</span>
                                     </div>
-                                    <p class="text-[10px] text-gray-500 mt-1 mb-2 font-medium" id="internals-status">Loading marks...</p>
-                                    <div id="internals-sgpa-badge" class="hidden bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 px-2 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest w-max shadow-sm">
-                                        Sem GPA: --
-                                    </div>
+                                    <p class="text-[10px] text-gray-500 mt-1 font-medium" id="internals-status">Loading marks...</p>
                                 </div>
                                 <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center shrink-0">
                                     <i class="fas fa-graduation-cap text-xl text-indigo-400"></i>
                                 </div>
+                            </div>
+                            <!-- Sem-wise GPA chips -->
+                            <div id="internals-sem-chips" class="hidden pt-3 border-t border-white/5">
+                                <p class="text-[8px] font-black text-gray-600 uppercase tracking-widest mb-2">Semester GPA</p>
+                                <div id="internals-sem-chips-list" class="flex flex-wrap gap-2"></div>
                             </div>
                         </div>
 
