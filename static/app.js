@@ -51,6 +51,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const cachedCalendar = localStorage.getItem('bunker_calendar_cache');
         if (cachedCalendar) { try { ACADEMIC_DATA = JSON.parse(cachedCalendar); state.calendarCache = ACADEMIC_DATA; } catch { } }
 
+        // Restore academics from cache for instant display
+        try {
+            const cachedAcad = localStorage.getItem(`bunker_academics_${savedRoll}`);
+            if (cachedAcad) {
+                const { internals, gpa, cgpa } = JSON.parse(cachedAcad);
+                state.academics = { internals, gpa, cgpa, loaded: true, loading: false, fromCache: true };
+            }
+        } catch { }
+
         localStorage.setItem('bunker_roll', savedRoll);
 
         // Show dashboard immediately with cached data
@@ -118,6 +127,11 @@ async function backgroundSync(roll, password) {
         // Run cleanup with fresh last_update, then refresh UI
         cleanupManualEntries();
         renderSemesterHero(); renderWidgets(); renderSubjects(); initPlanner(); initManual();
+
+        // Background revalidate academics after attendance sync
+        if (state.college !== 'PSGIAS') {
+            revalidateAcademicsInBackground();
+        }
 
         showSyncIndicator('done');
         setTimeout(() => hideSyncIndicator(), 2500);
@@ -1101,9 +1115,10 @@ function initDashboard() {
         if (!state.simulatedDate) switchTab('home', 0);
         if (window.pwaManager) updateInstallUI();
 
-        // Background prefetch: silently load academics data so Marks tab is instant
-        if (state.college !== 'PSGIAS' && state.rollNumber !== 'DEMO') {
-            setTimeout(() => loadAcademics(false, true), 2000);
+        // Background prefetch for fresh logins (no cache yet): load academics silently
+        // For returning users, revalidateAcademicsInBackground() in backgroundSync handles this
+        if (state.college !== 'PSGIAS' && state.rollNumber !== 'DEMO' && !state.academics.loaded) {
+            setTimeout(() => loadAcademics(false, true), 1500);
         }
     }, 0);
 }
@@ -2371,7 +2386,7 @@ function switchAcadTab(tab) {
 }
 
 async function loadAcademics(force = false, silent = false) {
-    if (state.academics.loaded && !force) return;
+    if (state.academics.loaded && !state.academics.fromCache && !force) return;
     if (state.academics.loading) return; // prevent duplicate requests
 
     // PSG IAS doesn't have CA Marks / GPA pages on eCampus
@@ -2383,10 +2398,20 @@ async function loadAcademics(force = false, silent = false) {
         return;
     }
 
+    // If we have cached data, render it immediately for instant display
+    if (state.academics.loaded && state.academics.fromCache) {
+        document.getElementById('acad-loading')?.classList.add('hidden');
+        renderInternals(state.academics.internals);
+        renderGPA(state.academics.gpa);
+        renderCGPA(state.academics.cgpa);
+        if (!silent) switchAcadTab(acadActiveTab);
+        // Don't return — still revalidate from server below
+    }
+
     state.academics.loading = true;
 
-    if (!silent) {
-        // Show loading only if user is looking at the academics tab
+    if (!silent && !state.academics.fromCache) {
+        // Show loading only if no cache available
         const panels = ['internals', 'results'];
         panels.forEach(p => document.getElementById(`acad-panel-${p}`)?.classList.add('hidden'));
         document.getElementById('acad-error')?.classList.add('hidden');
@@ -2417,20 +2442,39 @@ async function loadAcademics(force = false, silent = false) {
             return;
         }
 
-        state.academics = { internals, gpa, cgpa, loaded: true, loading: false };
+        // Detect if marks changed vs cached data
+        const wasFromCache = state.academics.fromCache;
+        const oldCGPA = state.academics.cgpa?.cgpa;
+        const newCGPA = cgpa?.cgpa;
+        const oldInternalsStr = JSON.stringify(state.academics.internals?.map(s => s.total) || []);
+        const newInternalsStr = JSON.stringify(internals?.map(s => s.total) || []);
+        const marksChanged = wasFromCache && (oldCGPA !== newCGPA || oldInternalsStr !== newInternalsStr);
 
-        // Always render the data — panels are hidden until user navigates there
+        state.academics = { internals, gpa, cgpa, loaded: true, loading: false, fromCache: false };
+
+        // Persist fresh academics to localStorage for next launch
+        if (state.rollNumber) {
+            try {
+                localStorage.setItem(`bunker_academics_${state.rollNumber}`, JSON.stringify({ internals, gpa, cgpa }));
+            } catch { }
+        }
+
+        // Always render the fresh data
         document.getElementById('acad-loading')?.classList.add('hidden');
         renderInternals(internals);
         renderGPA(gpa);
         renderCGPA(cgpa);
+
+        // Notify user if new marks were found
+        if (marksChanged) {
+            showToast('📊 Marks updated!', 'success');
+        }
 
         // If user is already on the academics tab, show the correct sub-tab
         const acadPanel = document.getElementById('acad-panel-internals');
         if (acadPanel && !acadPanel.classList.contains('hidden')) {
             switchAcadTab(acadActiveTab);
         } else if (!silent) {
-            // If triggered manually (not silent), show correct tab
             switchAcadTab(acadActiveTab);
         }
 
@@ -2439,6 +2483,18 @@ async function loadAcademics(force = false, silent = false) {
         if (!silent) showAcadError('Network error. Make sure you are connected.');
     }
 }
+
+// Silently revalidate academic data in the background (called after attendance backgroundSync)
+async function revalidateAcademicsInBackground() {
+    // Only revalidate if we have cached data — otherwise loadAcademics handles it
+    if (!state.rollNumber || state.rollNumber === 'DEMO') return;
+    const authToken = getAuthToken();
+    if (!authToken) return;
+    // Reset fromCache flag so loadAcademics does a fresh fetch
+    if (state.academics.loaded) state.academics.fromCache = true;
+    await loadAcademics(false, true);
+}
+
 
 function showAcadError(msg) {
     document.getElementById('acad-loading')?.classList.add('hidden');
