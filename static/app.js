@@ -440,15 +440,20 @@ function updateInstallUI() {
     if (!window.pwaManager) return;
     const isInstalled = window.pwaManager.isStandalone || window.pwaManager.isAppInstalled;
     const isIOS = window.pwaManager.isIOS;
+    const isAndroid = /Android/i.test(navigator.userAgent);
     const canInstall = !!window.pwaManager.deferredPrompt;
     const prompt = document.getElementById('login-install-prompt');
     const settingBtn = document.getElementById('settings-install-btn');
     const installText = document.getElementById('install-text');
+    const settingsInstallText = settingBtn ? settingBtn.querySelector('.text-sm') : null;
+    const settingsInstallDesc = settingBtn ? settingBtn.querySelector('.text-\\[10px\\]') : null;
 
     // Personalize Text (Simple: Android vs iPhone)
     if (installText) {
         if (isIOS) {
             installText.textContent = 'Install on iPhone';
+        } else if (isAndroid && isInstalled) {
+            installText.textContent = 'Get Android App';
         } else {
             installText.textContent = 'Install Bunker.';
         }
@@ -457,7 +462,11 @@ function updateInstallUI() {
     // Login Page Prompt
     if (prompt) {
         if (isInstalled) {
-            prompt.classList.add('hidden');
+            if (isAndroid) {
+                prompt.classList.remove('hidden');
+            } else {
+                prompt.classList.add('hidden');
+            }
         } else {
             // ALWAYS SHOW if not installed for easier testing/access
             prompt.classList.remove('hidden');
@@ -467,15 +476,28 @@ function updateInstallUI() {
     // Settings Button
     if (settingBtn) {
         if (isInstalled) {
-            settingBtn.classList.add('hidden');
+            if (isAndroid) {
+                settingBtn.classList.remove('hidden');
+                if (settingsInstallText) settingsInstallText.textContent = 'Download Android App';
+                if (settingsInstallDesc) settingsInstallDesc.textContent = 'Get the native APK experience';
+            } else {
+                settingBtn.classList.add('hidden');
+            }
         } else {
-            if (canInstall || isIOS) settingBtn.classList.remove('hidden');
+            if (canInstall || isIOS || isAndroid) {
+                settingBtn.classList.remove('hidden');
+                if (settingsInstallText) settingsInstallText.textContent = 'Install App';
+                if (settingsInstallDesc) settingsInstallDesc.textContent = 'Add to Home Screen';
+            }
             else settingBtn.classList.add('hidden');
         }
     }
 }
 
 function triggerInstall() {
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const isInstalled = window.pwaManager.isStandalone || window.pwaManager.isAppInstalled;
+
     if (window.pwaManager.isIOS) {
         // Show iOS Instructions
         const modal = document.createElement('div');
@@ -494,28 +516,76 @@ function triggerInstall() {
                     </div>
                  `;
         document.body.appendChild(modal);
+    } else if (isAndroid) {
+        if (isInstalled) {
+            downloadAndroidApk();
+            return;
+        }
+
+        const modal = document.createElement('div');
+        modal.className = "fixed inset-0 z-50 flex items-end justify-center bg-black/80 backdrop-blur-sm p-4 fade-in-up";
+        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+        modal.innerHTML = `
+            <div class="bg-[#1c1c1e] w-full max-w-sm rounded-[2rem] p-6 pb-8 relative overflow-hidden text-center border border-white/10 shadow-2xl">
+                <div class="mx-auto w-16 h-1 bg-white/20 rounded-full mb-6"></div>
+                <img src="/static/icon.png" class="w-20 h-20 rounded-[1.2rem] mx-auto mb-4 shadow-2xl border border-white/10">
+                <h3 class="text-xl font-bold text-white mb-2">Install App</h3>
+                <p class="text-gray-400 text-sm mb-6 leading-relaxed">
+                    Choose how you want to install Bunker.
+                </p>
+                <div class="space-y-3">
+                    <button id="btn-install-apk" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-4 rounded-2xl transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 border border-indigo-500/50">
+                        <i class="fab fa-android text-lg"></i> Download Android App (.apk)
+                    </button>
+                    <button id="btn-install-pwa" class="w-full bg-white/5 hover:bg-white/10 text-white font-bold py-3.5 px-4 rounded-2xl transition flex items-center justify-center gap-2 border border-white/10">
+                        <i class="fas fa-globe text-lg text-gray-400"></i> Install Web App (PWA)
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        document.getElementById('btn-install-apk').onclick = () => {
+            modal.remove();
+            downloadAndroidApk();
+        };
+
+        document.getElementById('btn-install-pwa').onclick = () => {
+            modal.remove();
+            triggerPwaInstall();
+        };
     } else {
-        // Android/Desktop Helper
-        if (window.pwaManager.deferredPrompt) {
-            window.pwaManager.deferredPrompt.prompt();
-            window.pwaManager.deferredPrompt.userChoice.then((choice) => {
-                if (choice.outcome === 'accepted') {
-                    // User clicked "Install" in Chrome dialog
-                    // Show helpful toast about installation process
-                    showInstallationGuidance();
-                }
-                window.pwaManager.deferredPrompt = null;
-                updateInstallUI();
-            });
-        } else {
-            // No install prompt available - provide helpful feedback
-            if (window.pwaManager.isStandalone || window.pwaManager.isAppInstalled) {
-                showToast('App already installed! Check your home screen or apps', 'success');
-            } else if (location.protocol === 'http:' && location.hostname !== 'localhost') {
-                showToast('Install requires HTTPS. Deploy to production first!', 'error');
-            } else {
-                showToast('Install via browser menu (⋮ → Install app)', 'info');
+        triggerPwaInstall();
+    }
+}
+
+function downloadAndroidApk() {
+    const a = document.createElement('a');
+    a.href = "/static/smart-bunker.apk";
+    a.download = "Smart Bunker.apk";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showToast('Downloading Smart Bunker APK...', 'success');
+}
+
+function triggerPwaInstall() {
+    if (window.pwaManager.deferredPrompt) {
+        window.pwaManager.deferredPrompt.prompt();
+        window.pwaManager.deferredPrompt.userChoice.then((choice) => {
+            if (choice.outcome === 'accepted') {
+                showInstallationGuidance();
             }
+            window.pwaManager.deferredPrompt = null;
+            updateInstallUI();
+        });
+    } else {
+        if (window.pwaManager.isStandalone || window.pwaManager.isAppInstalled) {
+            showToast('App already installed! Check your home screen or apps', 'success');
+        } else if (location.protocol === 'http:' && location.hostname !== 'localhost') {
+            showToast('Install requires HTTPS. Deploy to production first!', 'error');
+        } else {
+            showToast('Install via browser menu (⋮ → Install app)', 'info');
         }
     }
 }
