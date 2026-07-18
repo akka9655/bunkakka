@@ -3229,6 +3229,31 @@ function recalculateCGPAPrediction() {
         cgpaValEl.textContent = hasUGrade ? 'RA' : predictedCGPA.toFixed(2);
     }
 
+    // Calculate SGPA needed for 8.5 CGPA
+    const targetContainer = document.getElementById('target-cgpa-container');
+    const reqSgpaEl = document.getElementById('required-sgpa-85');
+    
+    if (totalCredits > 0 && pastCredits > 0) {
+        const requiredCreditPoints = 8.5 * (pastCredits + totalCredits) - pastCreditPoints;
+        const requiredSgpa = requiredCreditPoints / totalCredits;
+        
+        if (targetContainer && reqSgpaEl) {
+            targetContainer.classList.remove('hidden');
+            if (requiredSgpa > 10) {
+                reqSgpaEl.textContent = "Impossible (>10)";
+                reqSgpaEl.className = "font-black text-rose-400 text-sm";
+            } else if (requiredSgpa <= 5) {
+                reqSgpaEl.textContent = "Safe (≤5.0)";
+                reqSgpaEl.className = "font-black text-emerald-400 text-sm";
+            } else {
+                reqSgpaEl.textContent = requiredSgpa.toFixed(2);
+                reqSgpaEl.className = "font-black text-indigo-400 text-sm";
+            }
+        }
+    } else if (targetContainer) {
+        targetContainer.classList.add('hidden');
+    }
+
     // Update individual subject badges in the predictor section
     state.academics.internals.forEach(sub => {
         const badgeEl = document.getElementById(`pred-badge-${sub.course_code}`);
