@@ -1100,6 +1100,11 @@ function initDashboard() {
         // Init nav only on first load
         if (!state.simulatedDate) switchTab('home', 0);
         if (window.pwaManager) updateInstallUI();
+
+        // Background prefetch: silently load academics data so Marks tab is instant
+        if (state.college !== 'PSGIAS' && state.rollNumber !== 'DEMO') {
+            setTimeout(() => loadAcademics(false, true), 2000);
+        }
     }, 0);
 }
 
@@ -2057,8 +2062,12 @@ function switchTab(id, index) {
     else if (id === 'calendar') t = "Timeline"; else if (id === 'planner') t = "Smart Tracker";
     else if (id === 'academics') {
         t = "Academics";
-        if (state.academics && !state.academics.loaded) {
+        if (state.academics && !state.academics.loaded && !state.academics.loading) {
             setTimeout(() => loadAcademics(), 150);
+        } else if (state.academics && state.academics.loaded) {
+            // Data already ready from background fetch — just show the right tab
+            document.getElementById('acad-loading')?.classList.add('hidden');
+            switchAcadTab(acadActiveTab);
         }
     }
     document.getElementById('greeting-text').innerText = t;
@@ -2361,25 +2370,33 @@ function switchAcadTab(tab) {
     });
 }
 
-async function loadAcademics(force = false) {
+async function loadAcademics(force = false, silent = false) {
     if (state.academics.loaded && !force) return;
+    if (state.academics.loading) return; // prevent duplicate requests
 
     // PSG IAS doesn't have CA Marks / GPA pages on eCampus
     if (state.college === 'PSGIAS') {
-        document.getElementById('acad-loading')?.classList.add('hidden');
-        showAcadError('Academic data (Internals / GPA / CGPA) is only available for PSG Tech students.');
+        if (!silent) {
+            document.getElementById('acad-loading')?.classList.add('hidden');
+            showAcadError('Academic data (Internals / GPA / CGPA) is only available for PSG Tech students.');
+        }
         return;
     }
 
-    // Show loading
-    const panels = ['internals', 'results'];
-    panels.forEach(p => document.getElementById(`acad-panel-${p}`)?.classList.add('hidden'));
-    document.getElementById('acad-error')?.classList.add('hidden');
-    document.getElementById('acad-loading')?.classList.remove('hidden');
+    state.academics.loading = true;
+
+    if (!silent) {
+        // Show loading only if user is looking at the academics tab
+        const panels = ['internals', 'results'];
+        panels.forEach(p => document.getElementById(`acad-panel-${p}`)?.classList.add('hidden'));
+        document.getElementById('acad-error')?.classList.add('hidden');
+        document.getElementById('acad-loading')?.classList.remove('hidden');
+    }
 
     const authToken = getAuthToken();
     if (!authToken) {
-        showAcadError('Please log in with valid credentials to view academic data.');
+        state.academics.loading = false;
+        if (!silent) showAcadError('Please log in with valid credentials to view academic data.');
         return;
     }
 
@@ -2395,22 +2412,31 @@ async function loadAcademics(force = false) {
         const cgpa = await cgpaRes.json();
 
         if (internals.error || gpa.error || cgpa.error) {
-            showAcadError(internals.error || gpa.error || cgpa.error || 'Failed to load academic data.');
+            state.academics.loading = false;
+            if (!silent) showAcadError(internals.error || gpa.error || cgpa.error || 'Failed to load academic data.');
             return;
         }
 
-        state.academics = { internals, gpa, cgpa, loaded: true };
+        state.academics = { internals, gpa, cgpa, loaded: true, loading: false };
 
+        // Always render the data — panels are hidden until user navigates there
         document.getElementById('acad-loading')?.classList.add('hidden');
-
         renderInternals(internals);
         renderGPA(gpa);
         renderCGPA(cgpa);
 
-        switchAcadTab(acadActiveTab);
+        // If user is already on the academics tab, show the correct sub-tab
+        const acadPanel = document.getElementById('acad-panel-internals');
+        if (acadPanel && !acadPanel.classList.contains('hidden')) {
+            switchAcadTab(acadActiveTab);
+        } else if (!silent) {
+            // If triggered manually (not silent), show correct tab
+            switchAcadTab(acadActiveTab);
+        }
 
     } catch (err) {
-        showAcadError('Network error. Make sure you are connected.');
+        state.academics.loading = false;
+        if (!silent) showAcadError('Network error. Make sure you are connected.');
     }
 }
 
