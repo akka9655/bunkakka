@@ -513,23 +513,76 @@ function triggerInstall() {
     const isInstalled = window.pwaManager.isStandalone || window.pwaManager.isAppInstalled;
 
     if (window.pwaManager.isIOS) {
-        // Show iOS Instructions
         const modal = document.createElement('div');
-        modal.className = "fixed inset-0 z-50 flex items-end justify-center bg-black/80 backdrop-blur-sm p-4 fade-in-up";
+        modal.className = "fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-md p-4";
+        modal.style.cssText = 'animation: fadeIn 0.25s ease';
         modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
         modal.innerHTML = `
-                    <div class="bg-[#1c1c1e] w-full max-w-sm rounded-[2rem] p-6 pb-12 relative overflow-hidden text-center border border-white/10 shadow-2xl">
-                        <div class="mx-auto w-16 h-1 bg-white/20 rounded-full mb-6"></div>
-                        <img src="/static/icon.png" class="w-20 h-20 rounded-[1.2rem] mx-auto mb-4 shadow-2xl border border-white/10">
-                        <h3 class="text-xl font-bold text-white mb-2">Install App</h3>
-                        <p class="text-gray-400 text-sm mb-6 leading-relaxed">
-                            For the best experience, open in <span class="text-blue-400 font-bold">Safari</span>.<br>
-                            Tap <span class="text-blue-400 font-bold"><i class="fas fa-share-from-square"></i> Share</span> below and select <span class="text-white font-bold"><i class="fas fa-plus-square"></i> Add to Home Screen</span>.
-                        </p>
-                        <i class="fas fa-arrow-down text-blue-500 text-2xl animate-bounce"></i>
+            <div style="background:linear-gradient(145deg,#1c1c1e,#111)" class="w-full max-w-sm rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl">
+                <!-- Header gradient -->
+                <div style="background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%)" class="p-6 text-center relative overflow-hidden">
+                    <div class="absolute inset-0 opacity-20" style="background:radial-gradient(circle at 70% 30%,#fff 0%,transparent 60%)"></div>
+                    <img src="/static/icon.png" class="w-16 h-16 rounded-[1.1rem] mx-auto mb-3 shadow-xl border-2 border-white/20 relative z-10">
+                    <h3 class="text-lg font-black text-white relative z-10">Add to Home Screen</h3>
+                    <p class="text-indigo-200 text-[11px] mt-1 relative z-10 font-medium">Install Bunker as a native app on your iPhone</p>
+                </div>
+
+                <!-- Steps -->
+                <div class="p-6 space-y-4">
+                    <div class="flex items-start gap-4">
+                        <div class="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shrink-0">
+                            <span class="text-blue-400 font-black text-xs">1</span>
+                        </div>
+                        <div>
+                            <p class="text-white font-bold text-sm">Open in Safari</p>
+                            <p class="text-gray-400 text-[11px] mt-0.5">This page must be open in Safari, not Chrome or other browsers.</p>
+                        </div>
                     </div>
-                 `;
+                    <div class="flex items-start gap-4">
+                        <div class="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shrink-0">
+                            <span class="text-blue-400 font-black text-xs">2</span>
+                        </div>
+                        <div>
+                            <p class="text-white font-bold text-sm">Tap <i class="fas fa-arrow-up-from-bracket text-blue-400"></i> Share</p>
+                            <p class="text-gray-400 text-[11px] mt-0.5">Find the Share button at the bottom of your screen.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-4">
+                        <div class="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shrink-0">
+                            <span class="text-blue-400 font-black text-xs">3</span>
+                        </div>
+                        <div>
+                            <p class="text-white font-bold text-sm">Select "Add to Home Screen"</p>
+                            <p class="text-gray-400 text-[11px] mt-0.5">Scroll down in the share sheet and tap <span class="text-white font-bold">Add to Home Screen</span>.</p>
+                        </div>
+                    </div>
+
+                    <!-- Benefits row -->
+                    <div class="grid grid-cols-3 gap-2 pt-2 border-t border-white/5">
+                        <div class="text-center p-2 rounded-xl bg-white/5">
+                            <i class="fas fa-bolt text-yellow-400 text-sm mb-1"></i>
+                            <p class="text-[9px] text-gray-400 font-bold">Instant</p>
+                        </div>
+                        <div class="text-center p-2 rounded-xl bg-white/5">
+                            <i class="fas fa-wifi-slash text-indigo-400 text-sm mb-1"></i>
+                            <p class="text-[9px] text-gray-400 font-bold">Offline</p>
+                        </div>
+                        <div class="text-center p-2 rounded-xl bg-white/5">
+                            <i class="fas fa-expand text-emerald-400 text-sm mb-1"></i>
+                            <p class="text-[9px] text-gray-400 font-bold">Fullscreen</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Arrow hint -->
+                <div class="text-center pb-6">
+                    <p class="text-[10px] text-gray-600 font-bold uppercase tracking-widest mb-2">Tap outside to close</p>
+                    <i class="fas fa-arrow-down text-indigo-500/40 animate-bounce"></i>
+                </div>
+            </div>
+        `;
         document.body.appendChild(modal);
+
     } else if (isAndroid) {
         if (isInstalled) {
             downloadAndroidApk();
@@ -537,23 +590,49 @@ function triggerInstall() {
         }
 
         const modal = document.createElement('div');
-        modal.className = "fixed inset-0 z-50 flex items-end justify-center bg-black/80 backdrop-blur-sm p-4 fade-in-up";
+        modal.className = "fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-md p-4";
+        modal.style.cssText = 'animation: fadeIn 0.25s ease';
         modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
         modal.innerHTML = `
-            <div class="bg-[#1c1c1e] w-full max-w-sm rounded-[2rem] p-6 pb-8 relative overflow-hidden text-center border border-white/10 shadow-2xl">
-                <div class="mx-auto w-16 h-1 bg-white/20 rounded-full mb-6"></div>
-                <img src="/static/icon.png" class="w-20 h-20 rounded-[1.2rem] mx-auto mb-4 shadow-2xl border border-white/10">
-                <h3 class="text-xl font-bold text-white mb-2">Install App</h3>
-                <p class="text-gray-400 text-sm mb-6 leading-relaxed">
-                    Choose how you want to install Bunker.
-                </p>
-                <div class="space-y-3">
-                    <button id="btn-install-apk" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-4 rounded-2xl transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 border border-indigo-500/50">
-                        <i class="fab fa-android text-lg"></i> Download Android App (.apk)
+            <div style="background:linear-gradient(145deg,#1c1c1e,#111)" class="w-full max-w-sm rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl">
+                <!-- Header gradient -->
+                <div style="background:linear-gradient(135deg,#4338ca 0%,#6d28d9 100%)" class="p-6 text-center relative overflow-hidden">
+                    <div class="absolute inset-0 opacity-20" style="background:radial-gradient(circle at 70% 30%,#fff 0%,transparent 60%)"></div>
+                    <img src="/static/icon.png" class="w-16 h-16 rounded-[1.1rem] mx-auto mb-3 shadow-xl border-2 border-white/20 relative z-10">
+                    <h3 class="text-lg font-black text-white relative z-10">Install Bunker</h3>
+                    <p class="text-indigo-200 text-[11px] mt-1 relative z-10 font-medium">Choose your preferred installation method</p>
+                </div>
+
+                <div class="p-5 space-y-3">
+                    <!-- APK option -->
+                    <button id="btn-install-apk" class="w-full text-left p-4 rounded-2xl border transition active:scale-95" style="background:rgba(99,102,241,0.12);border-color:rgba(99,102,241,0.3)">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(99,102,241,0.2)">
+                                <i class="fab fa-android text-indigo-400 text-lg"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-white font-black text-sm">Native Android App</p>
+                                <p class="text-gray-400 text-[10px] mt-0.5">Download APK &bull; Full features &bull; Faster</p>
+                            </div>
+                            <i class="fas fa-arrow-down text-indigo-400 text-xs"></i>
+                        </div>
                     </button>
-                    <button id="btn-install-pwa" class="w-full bg-white/5 hover:bg-white/10 text-white font-bold py-3.5 px-4 rounded-2xl transition flex items-center justify-center gap-2 border border-white/10">
-                        <i class="fas fa-globe text-lg text-gray-400"></i> Install Web App (PWA)
+
+                    <!-- PWA option -->
+                    <button id="btn-install-pwa" class="w-full text-left p-4 rounded-2xl border transition active:scale-95" style="background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.08)">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(255,255,255,0.06)">
+                                <i class="fas fa-globe text-gray-400 text-lg"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-white font-black text-sm">Web App (PWA)</p>
+                                <p class="text-gray-400 text-[10px] mt-0.5">Instant install &bull; No APK needed &bull; Always updated</p>
+                            </div>
+                            <i class="fas fa-plus text-gray-500 text-xs"></i>
+                        </div>
                     </button>
+
+                    <p class="text-center text-[9px] text-gray-600 pt-1 font-medium">If APK won’t install, use Web App (PWA) instead</p>
                 </div>
             </div>
         `;
@@ -1779,14 +1858,31 @@ function markTimetableAttendance(code, status) {
     showToast(`✅ Marked ${status === 'Present' ? 'Attended' : 'Bunked'}: ${code}`, 'success');
 }
 
-// Vibration API helper — respects devices that don't support it
+// Vibration API helper — only fires in simulation mode; iOS gets AudioContext click
 function hapticFeedback(type = 'tap') {
-    if (!navigator.vibrate) return;
-    switch (type) {
-        case 'tap':     navigator.vibrate(40); break;             // single short tap
-        case 'warning': navigator.vibrate([40, 60, 40]); break;  // double pulse (bunk)
-        case 'success': navigator.vibrate([30, 40, 30, 40, 60]); break; // triple for all-day
+    // Only trigger during attendance simulation (date travel mode)
+    if (!state.simulatedDate) return;
+
+    // Android/Chrome — Vibration API
+    if (navigator.vibrate) {
+        switch (type) {
+            case 'tap':     navigator.vibrate(40); break;
+            case 'warning': navigator.vibrate([40, 60, 40]); break;
+            case 'success': navigator.vibrate([30, 40, 30, 40, 60]); break;
+        }
+        return;
     }
+
+    // iOS fallback — silent AudioContext click (provides native-like tactile cue on some devices)
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const buf = ctx.createBuffer(1, ctx.sampleRate * 0.01, ctx.sampleRate);
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.connect(ctx.destination);
+        src.start(0);
+        setTimeout(() => ctx.close(), 100);
+    } catch { }
 }
 
 
