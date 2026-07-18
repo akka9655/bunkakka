@@ -476,13 +476,8 @@ function updateInstallUI() {
     // Login Page Prompt
     if (prompt) {
         if (isInstalled) {
-            if (isAndroid) {
-                prompt.classList.remove('hidden');
-            } else {
-                prompt.classList.add('hidden');
-            }
+            prompt.classList.add('hidden');
         } else {
-            // ALWAYS SHOW if not installed for easier testing/access
             prompt.classList.remove('hidden');
         }
     }
@@ -490,13 +485,7 @@ function updateInstallUI() {
     // Settings Button
     if (settingBtn) {
         if (isInstalled) {
-            if (isAndroid) {
-                settingBtn.classList.remove('hidden');
-                if (settingsInstallText) settingsInstallText.textContent = 'Download Android App';
-                if (settingsInstallDesc) settingsInstallDesc.textContent = 'Get the native APK experience';
-            } else {
-                settingBtn.classList.add('hidden');
-            }
+            settingBtn.classList.add('hidden');
         } else {
             if (canInstall || isIOS || isAndroid) {
                 settingBtn.classList.remove('hidden');
