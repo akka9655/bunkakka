@@ -654,12 +654,12 @@ function triggerInstall() {
 
 function downloadAndroidApk() {
     const a = document.createElement('a');
-    a.href = "/static/smart-bunker.apk";
-    a.download = "Smart Bunker.apk";
+    a.href = "/static/bunker.apk";
+    a.download = "Bunker.apk";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    showToast('Downloading Smart Bunker APK...', 'success');
+    showToast('Downloading Bunker APK...', 'success');
 }
 
 function triggerPwaInstall() {
