@@ -108,6 +108,13 @@ async function backgroundSync(roll, password) {
         state.college = loginData.college || state.college;
         state.hasCalendar = loginData.has_calendar !== false;
 
+        // Re-apply threshold based on college
+        if (state.college === 'CEG') {
+            state.threshold = loginData.min_attendance || 75;
+        } else {
+            state.threshold = 80;
+        }
+
         // Persist fresh data
         localStorage.setItem('bunker_subjects', JSON.stringify(state.subjects));
         localStorage.setItem(`bunker_subjects_${roll}`, JSON.stringify(state.subjects));
@@ -129,7 +136,8 @@ async function backgroundSync(roll, password) {
         renderSemesterHero(); renderWidgets(); renderSubjects(); initPlanner(); initManual();
 
         // Background revalidate academics after attendance sync
-        if (state.college !== 'PSGIAS') {
+        // CEG and PSGIAS don't have internals/GPA on their portals
+        if (state.college !== 'PSGIAS' && state.college !== 'CEG') {
             revalidateAcademicsInBackground();
         }
 
@@ -204,7 +212,7 @@ function getLoginErrorMessage(rawError, roll) {
     if (err.includes('invalid roll') || err.includes('roll number format')) {
         return {
             title: 'Unrecognised Roll Number',
-            body: `"${roll}" doesn't match any known PSG Tech or PSG IAS format. Check for typos (e.g. 22CSA01).`
+            body: `"${roll}" doesn't match any known PSG Tech, PSG IAS, or CEG format. Check for typos (e.g. 22CSA01 for PSG, 2023103001 for CEG).`
         };
     }
     // eCampus returned no timetable / attendance
@@ -218,7 +226,7 @@ function getLoginErrorMessage(rawError, roll) {
     if (err.includes('unsupported')) {
         return {
             title: 'College Not Supported',
-            body: `Only PSG Tech and PSG IAS accounts are supported right now.`
+            body: `Only PSG Tech, PSG IAS, and CEG (Anna University) accounts are supported right now.`
         };
     }
     // Credentials missing (shouldn't normally happen)
@@ -246,8 +254,12 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         showInlineError('Password is required.');
         return;
     }
-    if (roll.length !== 6 && roll.length !== 7) {
-        showInlineError(`"${roll}" isn't a valid roll number. It should be 6–7 characters (e.g. 22CSA01).`);
+    // PSG Tech: 6-7 chars (e.g. 22CSA01)
+    // PSG IAS : 7 chars   (e.g. 25IR007)
+    // CEG     : exactly 10 digits (e.g. 2023103001)
+    const isCEGFormat = /^\d{10}$/.test(roll);
+    if (!isCEGFormat && roll.length !== 6 && roll.length !== 7) {
+        showInlineError(`"${roll}" isn't a valid roll number. Use 6–7 chars for PSG Tech/IAS (e.g. 22CSA01) or 10 digits for CEG (e.g. 2023103001).`);
         return;
     }
 
@@ -292,6 +304,13 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         state.courseMapping = loginData.course_mapping || {};
         state.college = loginData.college || 'PSGTECH';
         state.hasCalendar = loginData.has_calendar !== false;
+
+        // CEG uses 75% minimum attendance; PSG Tech/IAS use 80% for bunk planning
+        if (state.college === 'CEG') {
+            state.threshold = loginData.min_attendance || 75;
+        } else {
+            state.threshold = 80;
+        }
 
         localStorage.setItem('bunker_subjects', JSON.stringify(state.subjects));
         localStorage.setItem(`bunker_subjects_${roll}`, JSON.stringify(state.subjects));
@@ -1135,6 +1154,11 @@ function initDashboard() {
                 <span class="bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded text-[10px] font-bold mr-2 border border-indigo-500/30">IAS BUNKER</span>
                 ${state.rollNumber || "GUEST"}
             `;
+        } else if (state.college === 'CEG') {
+            rollEl.innerHTML = `
+                <span class="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded text-[10px] font-bold mr-2 border border-emerald-500/30">CEG BUNKER</span>
+                ${state.rollNumber || "GUEST"}
+            `;
         } else {
             rollEl.innerText = state.rollNumber || "GUEST";
         }
@@ -1153,10 +1177,27 @@ function initDashboard() {
     }
 
     // Sync Dashboard Attendance Mode Switcher visibility and styling
+    // Only PSG Tech supports normal/exemption/medical mode switching
     const dashAttModeContainer = document.getElementById('dashboard-att-mode-container');
     if (dashAttModeContainer) {
-        dashAttModeContainer.style.display = state.college === 'PSGIAS' ? 'none' : 'flex';
+        dashAttModeContainer.style.display = (state.college === 'PSGIAS' || state.college === 'CEG') ? 'none' : 'flex';
     }
+    // Sync navigation tabs visibility (Hide Marks/Academics for CEG & IAS; hide Calendar for CEG only)
+    const navAcademics = document.getElementById('nav-academics');
+    const navCalendar = document.getElementById('nav-calendar');
+    if (navAcademics && navCalendar) {
+        if (state.college === 'CEG') {
+            navAcademics.style.display = 'none';
+            navCalendar.style.display = 'none';
+        } else if (state.college === 'PSGIAS') {
+            navAcademics.style.display = 'none';
+            navCalendar.style.display = '';
+        } else {
+            navAcademics.style.display = '';
+            navCalendar.style.display = '';
+        }
+    }
+
     ['normal', 'exemp', 'medical'].forEach(m => {
         const btn = document.getElementById(`att-mode-${m}`);
         if (btn) {
@@ -1185,7 +1226,8 @@ function initDashboard() {
 
         // Background prefetch for fresh logins (no cache yet): load academics silently
         // For returning users, revalidateAcademicsInBackground() in backgroundSync handles this
-        if (state.college !== 'PSGIAS' && state.rollNumber !== 'DEMO' && !state.academics.loaded) {
+        // CEG and PSGIAS don't have an internals/GPA endpoint
+        if (state.college !== 'PSGIAS' && state.college !== 'CEG' && state.rollNumber !== 'DEMO' && !state.academics.loaded) {
             setTimeout(() => loadAcademics(false, true), 1500);
         }
     }, 0);
@@ -1267,80 +1309,82 @@ function renderSubjects() {
         return;
     }
 
-    // --- Regulation Alerts Check ---
-    let redoCount = 0;
-    state.subjects.forEach(raw => {
-        const sub = getSubjectStats(raw.code);
-        if (sub && sub.pct < 75) {
-            redoCount++;
-        }
-    });
-
-    let eligibleHonours = false;
-    if (state.academics && state.academics.cgpa) {
-        const currentCGPA = parseFloat(state.academics.cgpa.cgpa);
-        const hasBacklogs = state.academics.cgpa.all_subjects && state.academics.cgpa.all_subjects.some(sub => 
-            sub.grade.includes('RA') || sub.grade === 'U' || sub.grade.includes('0 ')
-        );
-        if (!isNaN(currentCGPA) && currentCGPA >= 8.00 && !hasBacklogs) {
-            eligibleHonours = true;
-        }
-    }
-
+    // --- Regulation Alerts (PSG Tech only — Redo/Honours are PSG-specific rules) ---
     const alertsContainer = document.getElementById('dashboard-alerts-container');
     if (alertsContainer) {
-        let alertsHTML = '';
-        if (redoCount > 0) {
-            if (redoCount > 2) {
+        if (state.college !== 'PSGTECH') {
+            // CEG and PSG IAS do not have Redo/Honours regulation widgets
+            alertsContainer.classList.add('hidden');
+            alertsContainer.innerHTML = '';
+        } else {
+            let redoCount = 0;
+            state.subjects.forEach(raw => {
+                const sub = getSubjectStats(raw.code);
+                if (sub && sub.pct < 75) redoCount++;
+            });
+
+            let eligibleHonours = false;
+            if (state.academics && state.academics.cgpa) {
+                const currentCGPA = parseFloat(state.academics.cgpa.cgpa);
+                const hasBacklogs = state.academics.cgpa.all_subjects && state.academics.cgpa.all_subjects.some(sub =>
+                    sub.grade.includes('RA') || sub.grade === 'U' || sub.grade.includes('0 ')
+                );
+                if (!isNaN(currentCGPA) && currentCGPA >= 8.00 && !hasBacklogs) eligibleHonours = true;
+            }
+
+            let alertsHTML = '';
+            if (redoCount > 0) {
+                if (redoCount > 2) {
+                    alertsHTML += `
+                    <div class="glass-panel rounded-[24px] p-4 border-l-4 border-rose-500 bg-rose-500/10 flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400 shrink-0 mt-0.5">
+                            <i class="fas fa-exclamation-triangle text-xs"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-black text-white uppercase tracking-wider">Next Semester Registration at Risk!</h4>
+                            <p class="text-[10px] text-rose-300/80 mt-1 leading-normal font-medium">
+                                You have <b>${redoCount}</b> courses under 75% attendance. Students with more than 2 Redo courses are barred from registering for the next semester.
+                            </p>
+                        </div>
+                    </div>`;
+                } else {
+                    alertsHTML += `
+                    <div class="glass-panel rounded-[24px] p-4 border-l-4 border-amber-500 bg-amber-500/10 flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
+                            <i class="fas fa-exclamation-circle text-xs"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-black text-white uppercase tracking-wider">Redo Course Warning</h4>
+                            <p class="text-[10px] text-amber-300/80 mt-1 leading-normal font-medium">
+                                You have <b>${redoCount}</b> course(s) under 75% attendance. Keep Redo courses below 3 to prevent registration blockage.
+                            </p>
+                        </div>
+                    </div>`;
+                }
+            }
+
+            if (eligibleHonours) {
                 alertsHTML += `
-                <div class="glass-panel rounded-[24px] p-4 border-l-4 border-rose-500 bg-rose-500/10 flex items-start gap-3">
-                    <div class="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400 shrink-0 mt-0.5">
-                        <i class="fas fa-exclamation-triangle text-xs"></i>
+                <div class="glass-panel rounded-[24px] p-4 border-l-4 border-emerald-500 bg-emerald-500/10 flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
+                        <i class="fas fa-medal text-xs"></i>
                     </div>
                     <div>
-                        <h4 class="text-xs font-black text-white uppercase tracking-wider">Next Semester Registration at Risk!</h4>
-                        <p class="text-[10px] text-rose-300/80 mt-1 leading-normal font-medium">
-                            You have <b>${redoCount}</b> courses under 75% attendance. Students with more than 2 Redo courses are barred from registering for the next semester.
-                        </p>
-                    </div>
-                </div>`;
-            } else {
-                alertsHTML += `
-                <div class="glass-panel rounded-[24px] p-4 border-l-4 border-amber-500 bg-amber-500/10 flex items-start gap-3">
-                    <div class="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
-                        <i class="fas fa-exclamation-circle text-xs"></i>
-                    </div>
-                    <div>
-                        <h4 class="text-xs font-black text-white uppercase tracking-wider">Redo Course Warning</h4>
-                        <p class="text-[10px] text-amber-300/80 mt-1 leading-normal font-medium">
-                            You have <b>${redoCount}</b> course(s) under 75% attendance. Keep Redo courses below 3 to prevent registration blockage.
+                        <h4 class="text-xs font-black text-white uppercase tracking-wider">Honours & Minor Eligible</h4>
+                        <p class="text-[10px] text-emerald-300/80 mt-1 leading-normal font-medium">
+                            Your CGPA is <b>${state.academics.cgpa.cgpa}</b> with no backlogs. You are eligible to register for Honours or Minor degrees (+18 credits).
                         </p>
                     </div>
                 </div>`;
             }
-        }
 
-        if (eligibleHonours) {
-            alertsHTML += `
-            <div class="glass-panel rounded-[24px] p-4 border-l-4 border-emerald-500 bg-emerald-500/10 flex items-start gap-3">
-                <div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
-                    <i class="fas fa-medal text-xs"></i>
-                </div>
-                <div>
-                    <h4 class="text-xs font-black text-white uppercase tracking-wider">Honours & Minor Eligible</h4>
-                    <p class="text-[10px] text-emerald-300/80 mt-1 leading-normal font-medium">
-                        Your CGPA is <b>${state.academics.cgpa.cgpa}</b> with no backlogs. You are eligible to register for Honours or Minor degrees (+18 credits).
-                    </p>
-                </div>
-            </div>`;
-        }
-
-        if (alertsHTML !== '') {
-            alertsContainer.innerHTML = alertsHTML;
-            alertsContainer.classList.remove('hidden');
-        } else {
-            alertsContainer.classList.add('hidden');
-            alertsContainer.innerHTML = '';
+            if (alertsHTML !== '') {
+                alertsContainer.innerHTML = alertsHTML;
+                alertsContainer.classList.remove('hidden');
+            } else {
+                alertsContainer.classList.add('hidden');
+                alertsContainer.innerHTML = '';
+            }
         }
     }
 
@@ -2486,8 +2530,8 @@ async function loadAcademics(force = false, silent = false) {
     if (state.academics.loaded && !state.academics.fromCache && !force) return;
     if (state.academics.loading) return; // prevent duplicate requests
 
-    // PSG IAS doesn't have CA Marks / GPA pages on eCampus
-    if (state.college === 'PSGIAS') {
+    // PSG IAS and CEG don't have CA Marks / GPA on their portals
+    if (state.college === 'PSGIAS' || state.college === 'CEG') {
         if (!silent) {
             document.getElementById('acad-loading')?.classList.add('hidden');
             showAcadError('Academic data (Internals / GPA / CGPA) is only available for PSG Tech students.');

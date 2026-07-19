@@ -1,6 +1,37 @@
 """
 Smart Bunker - Flask Backend
-PSG Tech Attendance & Bunker Planning System
+============================
+Attendance tracking and bunker-planning system that supports three colleges:
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│  College  │  Roll No Format     │  Portal URL                  │  Min Att.  │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ PSG Tech  │ 6-7 alphanumeric    │ ecampus.psgtech.ac.in        │  75% (exam)│
+│           │ e.g. 22CSA01        │ /studzone2/                  │  80% bunk  │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ PSG IAS   │ 7 chars w/ letters  │ ecampus.psgias.ac.in/        │  75%       │
+│           │ e.g. 25IR007        │ Login/UserLogin               │            │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ CEG / AU  │ exactly 10 digits   │ www.auegov.ac.in/            │  75%       │
+│ (Anna Uni)│ e.g. 2023103001     │ Login/UserLogin (CeGov)      │            │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+College Detection Logic (detect_college):
+  1. If roll number matches r'^\d{10}$'        → CEG  (CeGov / Anna Univ portal)
+  2. If roll has a known PSG Tech course code  → PSGTECH
+  3. Otherwise                                 → PSGIAS
+
+Scraper Classes:
+  - EcampusScraper      : PSG Tech  (ecampus.psgtech.ac.in/studzone2/)
+  - EcampusIASScraper   : PSG IAS   (ecampus.psgias.ac.in/)
+  - EcampusCEGScraper   : CEG/AU    (www.auegov.ac.in/) — min attendance 75%
+
+API Endpoints:
+  POST /api/login           → Authenticate + fetch attendance/timetable
+  GET  /api/calendar/<roll> → Academic calendar (PSG Tech only; CEG/IAS return empty)
+  POST /api/internals       → CA marks          (PSG Tech only)
+  POST /api/gpa             → GPA / results     (PSG Tech only)
+  POST /api/cgpa            → CGPA history      (PSG Tech only)
 """
 
 from flask import Flask, render_template, request, jsonify
@@ -149,22 +180,41 @@ def get_planner_id(roll_number):
 
 
 def detect_college(roll_number):
-    """Detect college based on known course codes present in the roll number"""
+    """
+    Determine which college a student belongs to, based on roll number format.
+
+    Rules (applied in order):
+      1. Exactly 10 digits  →  'CEG'     (Anna Univ. / CeGov portal: auegov.ac.in)
+         e.g. 2023103001
+      2. Contains a known PSG Tech course code letter(s)  →  'PSGTECH'
+         e.g. 22CSA01  (C = BE course code)
+      3. Anything else  →  'PSGIAS'
+         e.g. 25IR007
+    """
     if not roll_number:
         return None
     
     roll_number = roll_number.strip().upper()
     
+    # --- Rule 1: CEG (Anna University constituent colleges) ---
+    # CEG roll numbers are exactly 10 numeric digits, e.g. 2023103001
+    # They are purely numeric, so we check before looking for letters.
     import re
-    match = re.search(r'[A-Z]+', roll_number)
+    if re.match(r'^\d{10}$', roll_number):
+        return 'CEG'
     
+    # --- Rule 2: PSG Tech ---
+    # PSG Tech roll numbers contain uppercase letters (course code) after the year.
+    # e.g. 22CSA01 → letters 'C' or 'CS' map to a known course type.
+    match = re.search(r'[A-Z]+', roll_number)
     if match:
         course_code = match.group(0)
         if course_code in CONFIG['COURSE_CODES']:
             return 'PSGTECH'
-            
-    # If it has a course code but it's not in the PSG Tech list (or no letters found), default to IAS
-    # E.g., IAS roll numbers might use different formats like '25IR007' where 'IR' is not in Tech list
+
+    # --- Rule 3: PSG IAS (default) ---
+    # Roll numbers with letters not in PSG Tech's course code list (e.g. 25IR007)
+    # or other unrecognised formats fall through to PSG IAS.
     return 'PSGIAS'
 
 
@@ -181,7 +231,19 @@ def is_absolute_grading(roll_number):
 
 
 class EcampusScraper:
-    """Web scraper for eCampus attendance data"""
+    """
+    Web scraper for PSG College of Technology (PSG Tech) eCampus portal.
+
+    Portal   : https://ecampus.psgtech.ac.in/studzone2/
+    College  : PSG College of Technology, Coimbatore
+    Roll No  : 6-7 alphanumeric characters (e.g. 22CSA01, 22U315)
+    Min Att. : 75% to write exams; Bunker uses 80% as safe planning threshold
+    Features : Attendance, Timetable, Weekly Schedule, CA Marks, GPA, CGPA
+
+    Login flow:
+      1. GET /studzone2/ → grab ViewState + EventValidation tokens
+      2. POST /studzone2/ with rdolst=S (student mode) + credentials
+    """
     ECAMPUS_URL = "https://ecampus.psgtech.ac.in/studzone2/"
     
     def __init__(self, username, password):
@@ -408,7 +470,20 @@ class EcampusScraper:
 
 
 class EcampusIASScraper:
-    """Web scraper for PSG IAS eCampus attendance data"""
+    """
+    Web scraper for PSG Institute of Advanced Studies (PSG IAS) eCampus portal.
+
+    Portal   : https://ecampus.psgias.ac.in/
+    College  : PSG Institute of Advanced Studies, Coimbatore
+    Roll No  : 7 chars with letters not in PSG Tech list (e.g. 25IR007)
+    Min Att. : 75%
+    Features : Attendance, Course name mapping, Weekly Schedule
+               NOTE: CA Marks / GPA / CGPA are NOT available on this portal.
+
+    Login flow:
+      1. GET /Login/UserLogin → grab __RequestVerificationToken (CSRF)
+      2. POST /Login/UserLoginTest with email + password + token
+    """
     ECAMPUS_URL = "https://ecampus.psgias.ac.in/"
     
     def __init__(self, username, password):
@@ -682,9 +757,177 @@ class EcampusIASScraper:
 
 
 
+class EcampusCEGScraper:
+    """
+    Web scraper for Anna University CeGov portal — covers CEG and all constituent colleges.
 
+    Portal   : https://www.auegov.ac.in/
+    College  : College of Engineering Guindy (CEG) & other Anna University constituent colleges
+    Roll No  : Exactly 10 numeric digits, e.g. 2023103001
+               Format: YYYY + dept code digits + sequence
+    Min Att. : 75% (as per Anna University regulations)
+    Features : Attendance, Course name mapping
+               NOTE: CA Marks / GPA / CGPA are NOT available on this portal.
+               NOTE: Weekly timetable scraping not yet implemented (returns empty).
 
+    Login flow:
+      1. GET /Login/UserLogin → Establish session cookies
+      2. POST /Login/LoginVerification (AJAX) with inRegNo + inPassword
+      3. POST /Login/SetUserSessionData (AJAX) to finalize session variables
+    """
+    ECAMPUS_URL = "https://www.auegov.ac.in/"
+    MIN_ATTENDANCE = 75
 
+    def __init__(self, username, password):
+        self.session = requests.Session()
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json, text/javascript, */*; q=0.01',
+            'Accept-Language': 'en-IN,en;q=0.5',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Referer': 'https://www.auegov.ac.in/Login/UserLogin',
+        })
+        self.username = username
+        self.authenticated = self._login(username, password)
+
+    def _login(self, username, password):
+        """Authenticate with CeGov portal using AJAX login verification flow"""
+        try:
+            # 1. GET UserLogin to fetch cookies
+            login_url = f"{self.ECAMPUS_URL}Login/UserLogin"
+            self.session.get(login_url, timeout=30)
+
+            # 2. POST to LoginVerification
+            verification_url = f"{self.ECAMPUS_URL}Login/LoginVerification"
+            login_data = {
+                'inRegNo': username,
+                'inPassword': password
+            }
+            
+            response = self.session.post(verification_url, data=login_data, timeout=30)
+            res_data = response.json()
+            logger.info(f"CEG LoginVerification Response: {res_data}")
+
+            # status 1 = Success
+            if res_data.get('status') != 1:
+                logger.error(f"CEG CeGov login fail: {res_data.get('errorMsg', 'Unknown error')}")
+                return False
+
+            # 3. Finalize session variables using SetUserSessionData
+            session_data_url = f"{self.ECAMPUS_URL}Login/SetUserSessionData"
+            session_payload = {
+                'ipAddress': '127.0.0.1',
+                'loginActivity': 'User Logged In'
+            }
+            self.session.post(session_data_url, data=session_payload, timeout=30)
+            
+            return True
+        except Exception as e:
+            logger.error(f"CEG CeGov Login error: {str(e)}")
+            return False
+
+    def get_attendance(self):
+        """Fetch attendance data via JSON endpoints directly"""
+        if not self.authenticated:
+            return None, None, "Authentication failed"
+
+        try:
+            headers = {
+                'Referer': f"{self.ECAMPUS_URL}Students_Attendance"
+            }
+            
+            # Fetch the courses for current semester
+            courses_url = f"{self.ECAMPUS_URL}Student/Students_Attendance_Detail/fetchCourseCodeForCurrSemester"
+            courses_resp = self.session.post(courses_url, headers=headers, timeout=30)
+            courses_data = courses_resp.json()
+            
+            course_details = courses_data.get('courseDetail', [])
+            if not course_details:
+                return None, "No data", "No attendance records found for this semester"
+
+            attendance_data = []
+            
+            for item in course_details:
+                course_code = item.get('ASE_COURSE_CODE')
+                staff_id = item.get('ASE_STAFFID')
+                session_id = item.get('ASE_SESSIONID')
+                mark_id = item.get('ASE_MARKID')
+                
+                # Fetch class details (held & absent)
+                detail_url = f"{self.ECAMPUS_URL}Student/Students_Attendance_Detail/fetchSelectedCourseAttendanceInfo"
+                payload = {
+                    'course_code': course_code,
+                    'staff_id': staff_id,
+                    'session_id': session_id,
+                    'mark_id': mark_id
+                }
+                detail_resp = self.session.post(detail_url, data=payload, headers=headers, timeout=30)
+                detail_data = detail_resp.json()
+                
+                course_name = detail_data.get('courseTitle', course_code)
+                held = detail_data.get('courseHeld', []) or []
+                absent = detail_data.get('absenceDetail', []) or []
+                
+                total = len(held)
+                attended = total - len(absent)
+                percentage = (attended / total * 100) if total > 0 else 0.0
+                
+                attendance_data.append({
+                    'code': course_code,
+                    'name': course_name,
+                    'total': total,
+                    'attended': attended,
+                    'percentage': round(percentage, 2),
+                })
+
+            last_update = datetime.now().strftime("%d-%b-%Y %I:%M %p")
+            return attendance_data, last_update, "Success"
+        except Exception as e:
+            logger.error(f"CEG Attendance fetch error: {str(e)}")
+            return None, "No data", f"Error: {str(e)}"
+
+    def get_timetable(self):
+        """Build course code→name mapping from attendance data"""
+        if not self.authenticated:
+            return {}, "Authentication failed"
+        try:
+            attendance_data, _, _ = self.get_attendance()
+            course_mapping = {}
+            if attendance_data:
+                for subject in attendance_data:
+                    course_mapping[subject['code']] = subject['name']
+            return course_mapping, "Success"
+        except Exception as e:
+            logger.error(f"CEG Timetable fetch error: {str(e)}")
+            return {}, f"Error: {str(e)}"
+
+    def get_weekly_schedule(self):
+        """CEG portal does not expose a weekly timetable in a parseable form yet.
+        Return an empty schedule so the app gracefully falls back.
+        """
+        return {day: [] for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']}, "Success"
+
+    def get_student_name(self):
+        """Get student name from CeGov portal profile page"""
+        if not self.authenticated:
+            return "Student"
+        try:
+            home_url = f"{self.ECAMPUS_URL}Home/Index"
+            response = self.session.get(home_url, timeout=20)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            # Try common name placements in CeGov portal
+            for selector in [
+                {'class': lambda x: x and 'student-name' in x},
+                {'id': 'lblStudentName'},
+                {'id': 'lbluser'},
+            ]:
+                el = soup.find(attrs=selector) if isinstance(selector, dict) else soup.select_one(selector)
+                if el and el.text.strip():
+                    return el.text.strip()
+            return "Student"
+        except Exception as e:
+            logger.error(f"CEG Student name fetch error: {str(e)}")
+            return "Student"
 
 
 @app.route('/manifest.json')
@@ -730,6 +973,8 @@ def api_login():
             scraper = EcampusScraper(username, password)
         elif college == 'PSGIAS':
             scraper = EcampusIASScraper(username, password)
+        elif college == 'CEG':
+            scraper = EcampusCEGScraper(username, password)
         else:
             return jsonify({'success': False, 'error': 'Unsupported college'})
         
@@ -742,12 +987,28 @@ def api_login():
         weekly_schedule, _ = scraper.get_weekly_schedule()
         student_name = scraper.get_student_name()
         
-        # Success if we have timetable (attendance optional)
-        if not weekly_schedule or not course_mapping:
-            return jsonify({
-                'success': False,
-                'error': 'Unable to fetch timetable data. Please try again.'
-            })
+        # For CEG: success is based on having attendance data (timetable is optional/synthetic)
+        # For PSG: must have timetable+course_mapping
+        if college == 'CEG':
+            if not attendance_data:
+                return jsonify({
+                    'success': False,
+                    'error': 'Unable to fetch attendance data. Please try again.'
+                })
+            # Build a synthetic timetable from the course codes so Smart Tracker works.
+            # Since CeGov doesn't expose a day-wise schedule, we spread all courses across weekdays.
+            codes = [s['code'] for s in attendance_data]
+            days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+            synthetic_tt = {}
+            for i, day in enumerate(days):
+                synthetic_tt[day] = [codes[j] for j in range(len(codes)) if j % len(days) == i]
+            weekly_schedule = synthetic_tt
+        else:
+            if not weekly_schedule or not course_mapping:
+                return jsonify({
+                    'success': False,
+                    'error': 'Unable to fetch timetable data. Please try again.'
+                })
         
         # Process subjects if available
         processed_subjects = []
@@ -755,7 +1016,7 @@ def api_login():
             for subject in attendance_data:
                 processed_subjects.append({
                     'code': subject['code'],
-                    'name': course_mapping.get(subject['code'], subject['code']),
+                    'name': course_mapping.get(subject['code'], subject['name']),
                     'total': subject['total'],
                     'attended': subject['attended'],
                     'exemption': subject.get('exemption', 0),
@@ -763,7 +1024,8 @@ def api_login():
                     'pct_exemp': subject.get('pct_exemp', 0),
                     'pct_medical': subject.get('pct_medical', 0),
                 })
-               # Prepare response data
+
+        # Prepare response data
         response_data = {
             'success': True,
             'subjects': processed_subjects,
@@ -774,12 +1036,16 @@ def api_login():
             'has_calendar': college == 'PSGTECH'  # Only PSG Tech has calendar support
         }
         
-        # Add student name if available (PSG IAS specific feature for now)
-        if college == 'PSGIAS':
+        # Add student name if available
+        if college in ('PSGIAS', 'CEG'):
             student_name = scraper.get_student_name()
             if student_name and student_name != "Student":
                 response_data['student_name'] = student_name
-        
+
+        # For CEG, expose minimum attendance so frontend can show correct threshold
+        if college == 'CEG':
+            response_data['min_attendance'] = EcampusCEGScraper.MIN_ATTENDANCE
+
         return jsonify(response_data)
     
     except Exception as e:
@@ -801,6 +1067,17 @@ def api_calendar(roll):
             from datetime import datetime
             return jsonify({
                 'name': 'PSG IAS Academic Year',
+                'startDate': datetime.now().isoformat(),
+                'lastDate': datetime.now().isoformat(),
+                'calendar': {'holidays': []},
+                'activities': []
+            })
+
+        if college == 'CEG':
+            # CEG (Anna University) does not expose a calendar via the same API
+            from datetime import datetime
+            return jsonify({
+                'name': 'CEG Academic Year',
                 'startDate': datetime.now().isoformat(),
                 'lastDate': datetime.now().isoformat(),
                 'calendar': {'holidays': []},
