@@ -31,15 +31,15 @@
     },
     {
       "source": "/",
-      "destination": "/public/index.html"
+      "destination": "/index.html"
     },
     {
       "source": "/calendar",
-      "destination": "/public/calendar.html"
+      "destination": "/calendar.html"
     },
     {
       "source": "/calendar.html",
-      "destination": "/public/calendar.html"
+      "destination": "/calendar.html"
     },
     {
       "source": "/(.*)",
@@ -70,7 +70,7 @@
       ]
     },
     {
-      "source": "/public/(.*)",
+      "source": "/(index\\.html|calendar\\.html|calendar)?",
       "headers": [
         {
           "key": "Cache-Control",
