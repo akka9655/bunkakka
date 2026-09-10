@@ -40,6 +40,7 @@ from bs4 import BeautifulSoup
 import math
 from datetime import datetime
 import os
+import json
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -57,7 +58,7 @@ CONFIG = {
     # Format: "COURSE_YEAR": PLANNER_ID
     'PLANNER_MAP': {
         # BE/BTech Programs
-        "BE_1": 36, "BTech_1": 36,
+        "BE_1": 39, "BTech_1": 39,
         "BE_2": 33, "BTech_2": 33,
         "BE_3": 32, "BTech_3": 32,
         "BE_4": 32, "BTech_4": 32,
@@ -70,11 +71,11 @@ CONFIG = {
         "MSc_1": 32, "MSc_2": 32,
         
         # ME/MTech Programs
-        "ME_1": 36, "MTech_1": 36,
+        "ME_1": 32, "MTech_1": 32,
         "ME_2": 32, "MTech_2": 32,
         
         # MCA Program
-        "MCA_1": 36, "MCA_2": 36,
+        "MCA_1": 33, "MCA_2": 32,
     },
     
     # Course code mapping (usually stable - based on roll number letter)
@@ -942,10 +943,29 @@ def serve_favicon():
 def serve_sw():
     return app.send_static_file('sw.js')
 
+@app.route('/robots.txt')
+def serve_robots():
+    return app.send_static_file('robots.txt')
+
+@app.route('/sitemap.xml')
+def serve_sitemap():
+    return app.send_static_file('sitemap.xml')
+
+@app.route('/llms.txt')
+def serve_llms():
+    return app.send_static_file('llms.txt')
+
 @app.route('/')
 def index():
     """Serve main application"""
     return render_template('index.html')
+
+
+@app.route('/calendar')
+@app.route('/calendar.html')
+def calendar_page():
+    """Serve standalone Google Calendar style academic calendar & event planner (public, no auth required)"""
+    return render_template('calendar.html')
 
 
 @app.route('/api/login', methods=['POST'])
@@ -1105,9 +1125,85 @@ def api_login():
         return jsonify({'success': False, 'error': f"Server error: {str(e)}"})
 
 
+ALL_CALENDARS_CACHE = {
+    'data': None,
+    'timestamp': 0
+}
+
+@app.route('/api/all-calendars')
+def api_all_calendars():
+    """Returns calendar planners for all departments with caching and fallback"""
+    import time
+    now = time.time()
+    
+    # 1 hour server cache (works for warm containers)
+    if ALL_CALENDARS_CACHE['data'] and (now - ALL_CALENDARS_CACHE['timestamp'] < 3600):
+        resp = jsonify(ALL_CALENDARS_CACHE['data'])
+        resp.headers['Cache-Control'] = 'public, s-maxage=3600, stale-while-revalidate=7200'
+        return resp
+    
+    # Baseline from disk cache
+    cached_data = {}
+    fallback_path = os.path.join(os.path.dirname(__file__), '..', 'static', 'all_calendars_cache.json')
+    if os.path.exists(fallback_path):
+        try:
+            with open(fallback_path, 'r', encoding='utf-8') as f:
+                cached_data = json.load(f)
+        except Exception as e:
+            logger.warning(f"Failed to read disk cache: {e}")
+    
+    departments = [
+        {"id": "be_3_4", "name": "3rd & 4th Year BE / B.Tech", "planner_odd": 32, "planner_even": 40, "color": "#6366f1"},
+        {"id": "be_2", "name": "2nd Year BE / B.Tech", "planner_odd": 33, "planner_even": 41, "color": "#a855f7"},
+        {"id": "be_1", "name": "1st Year BE / B.Tech", "planner_odd": 39, "planner_even": 42, "color": "#ec4899"},
+        {"id": "bsc_msc", "name": "B.Sc & M.Sc (All Years)", "planner_odd": 32, "planner_even": 40, "color": "#06b6d4"},
+        {"id": "pg", "name": "ME / M.Tech & MCA", "planner_odd": 32, "planner_even": 40, "color": "#f59e0b"},
+        {"id": "sandwich", "name": "BE Sandwich (SW)", "planner_odd": 35, "planner_even": 44, "color": "#10b981"}
+    ]
+
+    # If we have disk cache, use it and skip live fetch (fast path for Vercel 10s limit)
+    if cached_data:
+        result = {
+            'success': True,
+            'year': CONFIG['API_YEAR'],
+            'planners': cached_data,
+            'departments': departments
+        }
+        ALL_CALENDARS_CACHE['data'] = result
+        ALL_CALENDARS_CACHE['timestamp'] = now
+        resp = jsonify(result)
+        resp.headers['Cache-Control'] = 'public, s-maxage=3600, stale-while-revalidate=7200'
+        return resp
+
+    # No cache at all — try fetching fresh planners with tight timeouts
+    planners = [32, 33, 34, 35, 39, 40, 41, 42, 43, 44]
+    live_data = {}
+    for pid in planners:
+        try:
+            url = f"https://academicschedule.psgtech.ac.in/api/calendar/{CONFIG['API_YEAR']}/planner/{pid}"
+            res = requests.get(url, timeout=2)
+            if res.status_code == 200:
+                live_data[str(pid)] = res.json()
+        except Exception:
+            pass
+            
+    result = {
+        'success': True,
+        'year': CONFIG['API_YEAR'],
+        'planners': live_data if live_data else cached_data,
+        'departments': departments
+    }
+    
+    ALL_CALENDARS_CACHE['data'] = result
+    ALL_CALENDARS_CACHE['timestamp'] = now
+    resp = jsonify(result)
+    resp.headers['Cache-Control'] = 'public, s-maxage=3600, stale-while-revalidate=7200'
+    return resp
+
+
 @app.route('/api/calendar/<roll>')
 def api_calendar(roll):
-    """Proxy calendar API to avoid CORS issues"""
+    """Proxy calendar API to avoid CORS issues with offline fallback"""
     try:
         roll = roll.strip().upper()
         
@@ -1115,7 +1211,6 @@ def api_calendar(roll):
         college = detect_college(roll)
         
         if college == 'PSGIAS':
-            # Return empty placeholder for PSG IAS
             from datetime import datetime
             return jsonify({
                 'name': 'PSG IAS Academic Year',
@@ -1126,7 +1221,6 @@ def api_calendar(roll):
             })
 
         if college == 'CEG':
-            # CEG (Anna University) does not expose a calendar via the same API
             from datetime import datetime
             return jsonify({
                 'name': 'CEG Academic Year',
@@ -1148,12 +1242,25 @@ def api_calendar(roll):
         # Fetch from academic schedule API
         calendar_url = f"https://academicschedule.psgtech.ac.in/api/calendar/{CONFIG['API_YEAR']}/planner/{planner_id}"
         
-        response = requests.get(calendar_url, timeout=10)
+        try:
+            response = requests.get(calendar_url, timeout=5)
+            if response.status_code == 200:
+                return jsonify(response.json())
+        except Exception:
+            pass
         
-        if response.status_code != 200:
-            return jsonify({'error': 'Failed to fetch calendar data'}), response.status_code
-        
-        return jsonify(response.json())
+        # Fallback to local cache if network/API fails
+        fallback_path = os.path.join(os.path.dirname(__file__), '..', 'static', 'all_calendars_cache.json')
+        if os.path.exists(fallback_path):
+            try:
+                with open(fallback_path, 'r', encoding='utf-8') as f:
+                    cdata = json.load(f)
+                    if str(planner_id) in cdata:
+                        return jsonify(cdata[str(planner_id)])
+            except Exception:
+                pass
+                
+        return jsonify({'error': 'Failed to fetch calendar data'}), 502
         
     except Exception as e:
         logger.error(f"Calendar API error: {str(e)}")
@@ -1540,10 +1647,6 @@ def health():
     })
 
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(debug=True, host='0.0.0.0', port=port)
-
 class VercelPathFix:
     def __init__(self, app):
         self.app = app
@@ -1563,3 +1666,8 @@ class VercelPathFix:
         return self.app(environ, start_response)
 
 app.wsgi_app = VercelPathFix(app.wsgi_app)
+
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=True, host='0.0.0.0', port=port)

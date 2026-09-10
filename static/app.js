@@ -661,12 +661,8 @@ function triggerInstall() {
 }
 
 function downloadAndroidApk() {
-    const a = document.createElement('a');
-    a.href = "/static/bunker.apk";
-    a.download = "Bunker.apk";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    // Serve from GitHub to save Vercel bandwidth (9.3MB per download)
+    window.open("https://github.com/akka9655/bunkakka/raw/main/static/bunker.apk", "_blank");
     showToast('Downloading Bunker APK...', 'success');
 }
 
@@ -1839,6 +1835,16 @@ function initAcademicCalendar() {
         l.innerHTML += `<div class="relative pl-10 mb-6 group transition-all duration-300"><div class="absolute left-[19px] top-3 w-3 h-3 rounded-full bg-[#000000] border-2 border-indigo-500 z-10 transform -translate-x-1/2"></div><div class="glass-card p-5 rounded-[20px] flex items-center justify-between border-b border-white/5 active:scale-[0.98]"><div class="flex items-center gap-4"><div class="flex flex-col items-center justify-center min-w-[40px] text-center"><span class="text-[10px] font-bold uppercase text-gray-500">${d.toLocaleDateString('en-US', { weekday: 'short' })}</span><span class="text-2xl font-black text-white leading-none">${d.getDate()}</span></div><div><h4 class="font-bold text-sm text-white leading-tight">${e.name}</h4></div></div><div class="text-[10px] font-bold uppercase ${cls} whitespace-nowrap">${txt}</div></div></div>`;
     });
 }
+
+function openFullAcademicCalendar() {
+    const roll = (typeof state !== 'undefined' && state.rollNumber) || localStorage.getItem('bunker_roll') || '';
+    let url = '/calendar';
+    if (roll && roll !== 'DEMO') {
+        url += '?roll=' + encodeURIComponent(roll);
+    }
+    window.open(url, '_blank');
+}
+
 function initPlanner() {
     const t = document.getElementById('planner-days'), c = document.getElementById('planner-classes');
     const hasTimetable = state.timetable && Object.keys(state.timetable).length > 0 &&
@@ -2414,6 +2420,7 @@ function openSim(code) {
     const found = state.subjects.find(s => s.code === code);
     if (!found) return;
     simSubject = found;
+    window.simSubject = found;
 
     const stats = getSubjectStats(code);
     if (!stats) return;
@@ -2441,6 +2448,31 @@ function openSim(code) {
         p.classList.add('scale-100');
     });
 }
+
+function resetPredictionSim() {
+    if (!simSubject && window.simSubject) {
+        simSubject = window.simSubject;
+    }
+    if (!simSubject) return;
+
+    const stats = getSubjectStats(simSubject.code);
+    if (stats) {
+        simBaseAtt = stats.att;
+        simBaseTot = stats.tot;
+        simBasePct = stats.pct;
+    }
+
+    simAddAttend = 0;
+    simAddBunk = 0;
+
+    const attendEl = document.getElementById('val-attend');
+    const bunkEl = document.getElementById('val-bunk');
+    if (attendEl) attendEl.innerText = '0';
+    if (bunkEl) bunkEl.innerText = '0';
+
+    updateSimUI();
+}
+window.resetPredictionSim = resetPredictionSim;
 
 function closeSim() {
     const m = document.getElementById('sim-modal');
@@ -3145,6 +3177,10 @@ function updateSim(courseCode, key, val) {
 }
 
 function resetSim(courseCode) {
+    if (!courseCode) {
+        resetPredictionSim();
+        return;
+    }
     const subject = state.academics.internals.find(s => s.course_code === courseCode);
     const rowData = subject.row_data;
     const numCols = rowData.length;

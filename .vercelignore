@@ -1,0 +1,12 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.git/
+test_wsgi.py
+api/test_wsgi.py
+api/test_headers.py
+github token.md
+m.md
+n.md
+static/bunker.apk

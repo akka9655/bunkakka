@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en" data-perf="high">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Academic Calendar &amp; Event Planner - PSG Tech | Smart Bunker</title>
+
+    <!-- SEO & Metadata -->
+    <meta name="description" content="Complete Academic Calendar, CA test timetable, Assessment Tutorial dates, and Exam schedule for all PSG Tech departments. Includes Single Calendar Mode and clash-free Event Mode.">
+    <meta name="keywords" content="psg tech academic calendar, psg tech ca test schedule, psg tech assessment tutorials, psg tech exam timetable, college event planner, bunker calendar, psg tech holiday list">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://psg-bunk.vercel.app/calendar">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="PSG Tech Academic Calendar &amp; Event Planner | Smart Bunker">
+    <meta property="og:description" content="View CA tests, assessment tutorials, lab &amp; semester exams for all departments. Smart clash-free event planner for student symposiums and workshops.">
+    <meta property="og:image" content="/static/icon.png">
+
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="/static/calendar.css?v=2.1.0">
+
+    <style>
+        .glass-header {
+            background: rgba(8, 7, 16, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        html[data-perf="low"] .glass-header {
+            background: #090812;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+        }
+    </style>
+</head>
+
+<body class="bg-[#05040a] text-white selection:bg-indigo-500 selection:text-white min-h-screen flex flex-col">
+
+    <!-- Global Loader -->
+    <div id="cal-global-loader" class="fixed inset-0 z-50 bg-[#05040a] flex flex-col items-center justify-center gap-3">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white text-xl shadow-xl shadow-indigo-500/30 animate-pulse">
+            <i class="fas fa-calendar-alt"></i>
+        </div>
+        <p class="text-xs font-bold text-gray-400 tracking-wider uppercase">Loading Academic Schedules...</p>
+    </div>
+
+    <!-- Sticky Navigation Bar (Mobile Optimized) -->
+    <header class="sticky top-0 z-40 glass-header px-3 py-2.5 sm:px-6 sm:py-3 transition-colors">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-2">
+            
+            <!-- Left: Brand & Return -->
+            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+                <a href="/" class="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white transition active:scale-95 text-xs flex items-center gap-1.5 flex-shrink-0" title="Back to Smart Bunker">
+                    <i class="fas fa-arrow-left text-[11px]"></i>
+                    <span class="font-bold text-xs">Bunker</span>
+                </a>
+                <div class="min-w-0">
+                    <h1 class="text-xs sm:text-base font-black text-white tracking-tight flex items-center gap-1.5 truncate">
+                        <span class="bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400 bg-clip-text text-transparent">Academic Calendar</span>
+                    </h1>
+                    <p class="text-[9px] sm:text-[10px] text-gray-400 font-medium truncate">PSG Tech &bull; 2026–27</p>
+                </div>
+            </div>
+
+            <!-- Right: Event Mode Toggle & View Switcher -->
+            <div class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                <!-- 🎯 Event Mode Toggle Button -->
+                <button id="btn-toggle-event-mode" onclick="window.calendarApp.toggleEventMode()"
+                    class="px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold transition-all duration-200 flex items-center gap-1.5 border border-purple-500/30 bg-purple-950/30 text-purple-300 hover:bg-purple-900/50 active:scale-95 shadow-sm"
+                    title="Toggle Clash-Free Event Mode">
+                    <i class="fas fa-bullseye text-[11px] text-pink-400"></i>
+                    <span class="event-mode-btn-text">Event Mode</span>
+                </button>
+
+                <!-- Month / Schedule View Switcher -->
+                <div class="flex bg-black/60 p-0.5 rounded-xl border border-white/10">
+                    <button onclick="window.calendarApp.setView('month')" data-view="month"
+                        class="view-tab-btn active px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 bg-indigo-600 text-white shadow-sm"
+                        title="Month View">
+                        <i class="fas fa-calendar-grid text-[10px]"></i>
+                        <span class="hidden md:inline">Month</span>
+                    </button>
+                    <button onclick="window.calendarApp.setView('agenda')" data-view="agenda"
+                        class="view-tab-btn px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 bg-transparent text-gray-400 hover:text-white"
+                        title="Schedule List">
+                        <i class="fas fa-list-ul text-[10px]"></i>
+                        <span class="hidden md:inline">List</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-2.5 sm:px-6 py-3 sm:py-4 space-y-3 sm:space-y-4 flex-1 w-full">
+
+        <!-- ============================================================= -->
+        <!-- TOP TOOLBAR: SINGLE CALENDAR SELECTOR & SEARCH                -->
+        <!-- ============================================================= -->
+        <div class="cal-glass p-3 sm:p-4 rounded-2xl sm:rounded-3xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 shadow-lg">
+            
+            <!-- Single Calendar Department Switcher -->
+            <div class="flex items-center gap-2 min-w-0 flex-1">
+                <label for="cal-dept-select" class="text-[10px] font-black uppercase tracking-wider text-gray-400 flex-shrink-0 flex items-center gap-1">
+                    <i class="fas fa-graduation-cap text-indigo-400 text-xs"></i>
+                    <span class="hidden xs:inline">Calendar:</span>
+                </label>
+                <div class="relative flex-1 max-w-full sm:max-w-xs">
+                    <select id="cal-dept-select" onchange="window.calendarApp.changeDepartment(this.value)"
+                        class="w-full appearance-none bg-white/5 hover:bg-white/10 border border-white/15 rounded-xl px-3 py-2 pr-8 text-xs font-bold text-white focus:outline-none focus:border-indigo-500 transition cursor-pointer">
+                        <!-- Populated dynamically by calendar.js -->
+                    </select>
+                    <i class="fas fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-[10px]"></i>
+                </div>
+                <!-- User Dept Auto-Detected Pill -->
+                <span id="user-dept-badge" class="hidden px-2 py-0.5 rounded-lg text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex-shrink-0">
+                    My Dept
+                </span>
+            </div>
+
+            <!-- Search Input -->
+            <div class="relative w-full sm:w-64 flex-shrink-0">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                <input type="text" id="cal-search-input" placeholder="Search test, tutorial, holiday..."
+                    class="w-full bg-white/5 border border-white/10 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition">
+            </div>
+        </div>
+
+        <!-- ============================================================= -->
+        <!-- EVENT MODE BAR (Visible ONLY when Event Mode is active)        -->
+        <!-- ============================================================= -->
+        <div id="event-mode-panel" class="hidden cal-glass p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-purple-500/30 bg-gradient-to-r from-purple-950/40 via-black/50 to-pink-950/30 space-y-3 transition-all">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-lg bg-purple-500/20 text-purple-300 flex items-center justify-center text-xs">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xs sm:text-sm font-black text-white flex items-center gap-1.5">
+                            <span>Clash-Free Date Finder Active</span>
+                            <span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-purple-500/30 text-purple-200 uppercase">Live</span>
+                        </h3>
+                        <p class="text-[10px] text-gray-400">Calendar days are now color-coded based on test &amp; exam conflicts.</p>
+                    </div>
+                </div>
+
+                <!-- Target Audience Selector -->
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Target:</span>
+                    <select id="event-audience-select" onchange="window.calendarApp.changeAudience(this.value)"
+                        class="bg-black/60 border border-purple-500/30 rounded-lg px-2.5 py-1 text-xs font-bold text-purple-200 focus:outline-none focus:border-purple-400 cursor-pointer">
+                        <option value="all">Entire College (All Students)</option>
+                        <option value="ug">Undergraduates (BE / B.Tech)</option>
+                        <option value="pg">Postgraduates (ME / MCA / MSc)</option>
+                        <option value="current">Current Department Only</option>
+                    </select>
+                    <button onclick="window.calendarApp.toggleEventMode(false)"
+                        class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[10px] font-bold text-gray-300 active:scale-95 transition">
+                        Exit Event Mode
+                    </button>
+                </div>
+            </div>
+
+            <!-- Event Mode Color Legend -->
+            <div class="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-white/5 text-[10px] sm:text-xs font-bold">
+                <div class="flex items-center gap-4 flex-wrap">
+                    <span class="flex items-center gap-1.5 text-emerald-400">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>
+                        <span>Clash-Free (Ideal Date)</span>
+                    </span>
+                    <span class="flex items-center gap-1.5 text-amber-400">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50"></span>
+                        <span>Caution (&le; 2 days from exam)</span>
+                    </span>
+                    <span class="flex items-center gap-1.5 text-rose-400">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50"></span>
+                        <span>Exam Clash (CA / Exam on date)</span>
+                    </span>
+                </div>
+                <span class="text-gray-400 text-[10px]">Tap any day to see conflict details</span>
+            </div>
+        </div>
+
+        <!-- ============================================================= -->
+        <!-- MONTH SWITCHING BAR (Universal for all months)                -->
+        <!-- ============================================================= -->
+        <div class="cal-glass p-2.5 sm:p-3.5 rounded-2xl sm:rounded-3xl shadow-md flex items-center justify-between gap-2">
+            <div class="flex items-center gap-1.5 sm:gap-2">
+                <button onclick="window.calendarApp.changeMonth(-1)"
+                    class="cal-nav-btn w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-gray-300 hover:text-white active:scale-90 transition"
+                    title="Previous Month (or swipe right)" aria-label="Previous Month">
+                    <i class="fas fa-chevron-left text-xs"></i>
+                </button>
+
+                <!-- Month Title & Native Month Picker Button -->
+                <div class="relative">
+                    <button onclick="window.calendarApp.openMonthPicker()"
+                        class="px-2.5 py-1.5 rounded-xl hover:bg-white/5 transition flex items-center gap-1.5 group active:scale-95"
+                        title="Choose any month & year">
+                        <h2 id="cal-month-title" class="text-sm sm:text-base font-black text-white tracking-tight select-none">
+                            September 2026
+                        </h2>
+                        <i class="fas fa-calendar-days text-[10px] text-indigo-400 group-hover:text-indigo-300 transition"></i>
+                    </button>
+                    <!-- Hidden native input to select ANY month in ANY year -->
+                    <input type="month" id="cal-month-picker" class="sr-only" onchange="window.calendarApp.onMonthPickerChange(this.value)">
+                </div>
+
+                <button onclick="window.calendarApp.changeMonth(1)"
+                    class="cal-nav-btn w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-gray-300 hover:text-white active:scale-90 transition"
+                    title="Next Month (or swipe left)" aria-label="Next Month">
+                    <i class="fas fa-chevron-right text-xs"></i>
+                </button>
+            </div>
+
+            <!-- Right: Today Button & Swipe Hint -->
+            <div class="flex items-center gap-2">
+                <span class="hidden md:inline text-[10px] text-gray-500 font-medium">
+                    <i class="fas fa-arrows-left-right text-[9px] mr-1"></i>Swipe to change month
+                </span>
+                <button onclick="window.calendarApp.jumpToToday()"
+                    class="px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 text-xs font-extrabold active:scale-95 transition">
+                    Today
+                </button>
+            </div>
+        </div>
+
+        <!-- ============================================================= -->
+        <!-- VIEW 1: GOOGLE CALENDAR MONTH GRID                            -->
+        <!-- ============================================================= -->
+        <section id="view-month" class="space-y-3">
+            <!-- Calendar Grid Card -->
+            <div id="calendar-grid-card" class="cal-glass p-2 sm:p-4 rounded-2xl sm:rounded-3xl shadow-xl relative overflow-hidden">
+                <!-- 7 Column Weekday Headers -->
+                <div class="grid grid-cols-7 gap-1 sm:gap-2 mb-1 border-b border-white/5 pb-2 text-center select-none">
+                    <div class="cal-weekday-header">Mon</div>
+                    <div class="cal-weekday-header">Tue</div>
+                    <div class="cal-weekday-header">Wed</div>
+                    <div class="cal-weekday-header">Thu</div>
+                    <div class="cal-weekday-header">Fri</div>
+                    <div class="cal-weekday-header text-amber-400">Sat</div>
+                    <div class="cal-weekday-header text-rose-400">Sun</div>
+                </div>
+
+                <!-- Grid Day Cells (Injected dynamically & supports swipe gestures) -->
+                <div id="month-grid-cells" class="month-grid transition-opacity duration-200"></div>
+            </div>
+        </section>
+
+        <!-- ============================================================= -->
+        <!-- VIEW 2: AGENDA / SCHEDULE LIST VIEW                           -->
+        <!-- ============================================================= -->
+        <section id="view-agenda" class="hidden space-y-3">
+            <div id="agenda-list-container" class="space-y-3">
+                <!-- Injected dynamically by calendar.js -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ================================================================= -->
+    <!-- MODAL: DAY DETAIL BOTTOM SHEET / DRAWER (MOBILE OPTIMIZED)        -->
+    <!-- ================================================================= -->
+    <div id="day-detail-drawer" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity duration-200">
+        <!-- Backdrop Tap -->
+        <div class="absolute inset-0" onclick="window.calendarApp.closeDayDetail()"></div>
+
+        <!-- Sheet Panel -->
+        <div id="drawer-panel" class="cal-glass relative z-10 w-full sm:max-w-lg rounded-t-[28px] sm:rounded-3xl p-5 sm:p-6 border border-white/10 shadow-2xl max-h-[85vh] flex flex-col transform transition-transform duration-250">
+            <!-- Mobile Drag Handle -->
+            <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-3 sm:hidden cursor-grab"></div>
+
+            <!-- Drawer Header -->
+            <div class="flex items-start justify-between border-b border-white/10 pb-3 mb-3">
+                <div>
+                    <span id="drawer-scope-tag" class="text-[10px] font-black uppercase tracking-wider text-indigo-400">Day Details</span>
+                    <h3 id="drawer-date-title" class="text-base sm:text-lg font-black text-white leading-tight mt-0.5">
+                        Monday, 26 October 2026
+                    </h3>
+                </div>
+                <button onclick="window.calendarApp.closeDayDetail()"
+                    class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-gray-300 hover:text-white transition active:scale-90"
+                    aria-label="Close details">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Event Mode Conflict Summary (if Event Mode is active) -->
+            <div id="drawer-conflict-banner" class="hidden mb-3 p-3 rounded-xl border text-xs">
+                <!-- Injected dynamically -->
+            </div>
+
+            <!-- Drawer Events List -->
+            <div id="drawer-events-list" class="overflow-y-auto space-y-2.5 flex-1 pr-1 overscroll-contain">
+                <!-- Injected dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar JavaScript Engine -->
+    <script src="/static/calendar.js?v=2.1.0"></script>
+</body>
+
+</html>

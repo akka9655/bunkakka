@@ -48,12 +48,6 @@
             -moz-osx-font-smoothing: grayscale;
             overscroll-behavior-y: none;
             touch-action: manipulation;
-
-            /* Smoothness optimizations */
-            will-change: scroll-position;
-            backface-visibility: hidden;
-            perspective: 1000px;
-            transform: translateZ(0);
             -webkit-overflow-scrolling: touch;
         }
 
@@ -191,8 +185,6 @@
         .glass-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            transform: translateZ(0);
-            will-change: transform;
             transition: transform 0.2s var(--spring-easing), background-color 0.2s, box-shadow 0.2s;
             backdrop-filter: var(--glass-filter);
             -webkit-backdrop-filter: var(--glass-filter);
@@ -1551,10 +1543,14 @@
             -webkit-overflow-scrolling: touch;
         }
 
-        /* Prevent layout reflows on subject card open/close */
+        /* Prevent layout reflows and boost scrolling performance on mobile */
         #subject-list-container > div,
-        #internals-list > div {
-            contain: layout;
+        #internals-list > div,
+        #academic-list > div,
+        #planner-classes > div {
+            contain: layout style paint;
+            content-visibility: auto;
+            contain-intrinsic-size: 0 85px;
         }
 
         /* Touch action on sliders — allow only horizontal drag */
@@ -1591,27 +1587,27 @@
             min-height: 36px;
         }
 
-        /* --- BREAKPOINT 1: ULTRA-COMPACT MOBILE (≤ 360px: iPhone SE, Galaxy A-series) --- */
+        /* --- BREAKPOINT 1: ULTRA-COMPACT MOBILE (≤ 360px: iPhone SE, Galaxy Fold cover) --- */
         @media (max-width: 360px) {
-            body { font-size: 14px; }
+            body { font-size: 13.5px; }
             #main-content {
-                padding-left: 12px !important;
-                padding-right: 12px !important;
+                padding-left: 10px !important;
+                padding-right: 10px !important;
             }
             .nav-dock {
-                max-width: 320px !important;
-                padding: 4px 6px !important;
-                height: 60px !important;
+                max-width: calc(100vw - 16px) !important;
+                padding: 4px 4px !important;
+                height: 58px !important;
             }
             .nav-item {
-                width: 50px !important;
-                height: 50px !important;
+                width: 46px !important;
+                height: 48px !important;
             }
             .nav-item i {
-                font-size: 17px !important;
+                font-size: 16px !important;
             }
             .nav-label {
-                font-size: 8px !important;
+                font-size: 7.5px !important;
             }
             /* Adjust 2-col widget text */
             .glass-panel h3 {
@@ -1619,14 +1615,14 @@
             }
             .theme-exam .text-4xl,
             .theme-noexams .text-4xl {
-                font-size: 1.85rem !important;
+                font-size: 1.65rem !important;
             }
         }
 
         /* --- BREAKPOINT 2: STANDARD MOBILE (361px - 430px: iPhone 13/14/15/16, Galaxy S, Pixel) --- */
         @media (min-width: 361px) and (max-width: 430px) {
             .nav-dock {
-                max-width: 355px !important;
+                max-width: calc(100vw - 24px) !important;
                 height: 66px !important;
             }
             .nav-item {
@@ -1651,19 +1647,29 @@
             }
         }
 
-        /* Low-perf: kill all non-essential animations */
+        /* Low-perf: kill all non-essential animations, blurs, and filters */
         html[data-perf="low"] .pending-pulse,
         html[data-perf="low"] .acad-shimmer,
-        html[data-perf="low"] #pegtopone {
+        html[data-perf="low"] #pegtopone,
+        html[data-perf="low"] .aurora-blob {
             animation: none !important;
+            display: none !important;
         }
 
-        /* Remove drop shadows from glass panels on low-perf */
-        html[data-perf="low"] .glass-panel {
-            box-shadow: none;
-            backdrop-filter: none;
-            -webkit-backdrop-filter: none;
-            background: #141418;
+        html[data-perf="low"] .aurora-container::after {
+            display: none !important;
+        }
+
+        /* Remove heavy drop shadows and backdrop filters on low-perf */
+        html[data-perf="low"] .glass-panel,
+        html[data-perf="low"] .glass-card {
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            background: #100f1c !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+            transform: none !important;
+            will-change: auto !important;
         }
 
         /* Toast: push up above nav dock */

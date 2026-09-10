@@ -1,0 +1,362 @@
+/* ==========================================================================
+   BUNKER ACADEMIC CALENDAR & EVENT PLANNER - CSS
+   Ultra-smooth, mobile-first responsive, 60fps animations, touch optimized.
+   ========================================================================== */
+
+:root {
+    --cal-bg: #05040a;
+    --cal-card-bg: rgba(18, 16, 32, 0.75);
+    --cal-card-border: rgba(255, 255, 255, 0.08);
+    --cal-primary: #6366f1;
+    --cal-primary-glow: rgba(99, 102, 241, 0.4);
+    --cal-accent: #a855f7;
+    --cal-purple: #8b5cf6;
+    --cal-pink: #ec4899;
+    --cal-cyan: #06b6d4;
+    --cal-amber: #f59e0b;
+    --cal-green: #10b981;
+    --cal-red: #ef4444;
+    --cal-blue: #3b82f6;
+    --cal-glass-filter: blur(16px);
+    --safe-bottom: env(safe-area-inset-bottom, 16px);
+    --safe-top: env(safe-area-inset-top, 0px);
+}
+
+/* Low-performance mode overrides */
+html[data-perf="low"] {
+    --cal-card-bg: #11101d;
+    --cal-card-border: rgba(255, 255, 255, 0.09);
+    --cal-glass-filter: none;
+}
+
+html[data-perf="low"] * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--cal-bg);
+    color: #ffffff;
+    min-height: 100vh;
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    touch-action: manipulation;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Glass panel */
+.cal-glass {
+    background: var(--cal-card-bg);
+    border: 1px solid var(--cal-card-border);
+    backdrop-filter: var(--cal-glass-filter);
+    -webkit-backdrop-filter: var(--cal-glass-filter);
+}
+
+/* Navigation Buttons */
+.cal-nav-btn {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cal-nav-btn:active {
+    transform: scale(0.92);
+}
+
+/* Badges */
+.badge-dept {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 3px 8px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.badge-ca {
+    background: rgba(139, 92, 246, 0.2);
+    color: #c4b5fd;
+    border: 1px solid rgba(139, 92, 246, 0.4);
+}
+.badge-at {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fcd34d;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+}
+.badge-sem {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+}
+.badge-lab {
+    background: rgba(6, 182, 212, 0.2);
+    color: #67e8f9;
+    border: 1px solid rgba(6, 182, 212, 0.4);
+}
+.badge-holiday {
+    background: rgba(16, 185, 129, 0.2);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.badge-milestone {
+    background: rgba(148, 163, 184, 0.2);
+    color: #cbd5e1;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+/* Weekday Headers */
+.cal-weekday-header {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    padding: 6px 0;
+}
+
+/* Month Grid */
+.month-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 4px;
+}
+
+@media (min-width: 640px) {
+    .month-grid {
+        gap: 6px;
+    }
+}
+
+/* Day Cells — Base / Single Calendar Mode */
+.day-cell {
+    min-height: 56px;
+    border-radius: 14px;
+    padding: 5px 6px;
+    background: rgba(18, 16, 32, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: background-color 0.22s ease, transform 0.15s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+}
+
+@media (min-width: 640px) {
+    .day-cell {
+        min-height: 92px;
+        padding: 8px 9px;
+        border-radius: 18px;
+    }
+}
+
+.day-cell:hover {
+    background: rgba(30, 26, 52, 0.75);
+    border-color: rgba(99, 102, 241, 0.4);
+}
+
+.day-cell:active {
+    transform: scale(0.96);
+}
+
+.day-cell.other-month {
+    opacity: 0.24;
+    background: rgba(10, 9, 18, 0.3);
+}
+
+.day-cell.today {
+    border-color: var(--cal-primary) !important;
+    background: rgba(99, 102, 241, 0.14);
+}
+
+.day-cell.today .day-number {
+    background: var(--cal-primary);
+    color: #ffffff;
+    border-radius: 999px;
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 10px var(--cal-primary-glow);
+}
+
+@media (min-width: 640px) {
+    .day-cell.today .day-number {
+        width: 26px;
+        height: 26px;
+    }
+}
+
+/* Event Chips in Desktop Day Cells */
+.day-event-chip {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+/* Mobile Day Cell Event Indicator Dots */
+.day-dots-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    margin-top: auto;
+    padding-top: 3px;
+    flex-wrap: wrap;
+}
+
+.event-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 4px currentColor;
+}
+
+@media (max-width: 640px) {
+    .day-event-chip {
+        display: none !important;
+    }
+    .day-dots-container {
+        display: flex;
+    }
+}
+
+@media (min-width: 641px) {
+    .day-dots-container {
+        display: none;
+    }
+}
+
+/* ==========================================================================
+   🎯 EVENT MODE COLORS — ONLY ACTIVE WHEN EVENT MODE IS PRESSED
+   ========================================================================== */
+.day-cell.plan-green {
+    background: rgba(16, 185, 129, 0.16) !important;
+    border-color: rgba(16, 185, 129, 0.5) !important;
+    box-shadow: inset 0 0 16px rgba(16, 185, 129, 0.08);
+}
+.day-cell.plan-green:hover {
+    background: rgba(16, 185, 129, 0.28) !important;
+    border-color: rgba(16, 185, 129, 0.7) !important;
+}
+
+.day-cell.plan-yellow {
+    background: rgba(245, 158, 11, 0.16) !important;
+    border-color: rgba(245, 158, 11, 0.5) !important;
+    box-shadow: inset 0 0 16px rgba(245, 158, 11, 0.08);
+}
+.day-cell.plan-yellow:hover {
+    background: rgba(245, 158, 11, 0.28) !important;
+    border-color: rgba(245, 158, 11, 0.7) !important;
+}
+
+.day-cell.plan-red {
+    background: rgba(239, 68, 68, 0.18) !important;
+    border-color: rgba(239, 68, 68, 0.55) !important;
+    box-shadow: inset 0 0 16px rgba(239, 68, 68, 0.1);
+}
+.day-cell.plan-red:hover {
+    background: rgba(239, 68, 68, 0.3) !important;
+    border-color: rgba(239, 68, 68, 0.75) !important;
+}
+
+/* Event Mode Status Pill on Day Cell */
+.event-status-pill {
+    font-size: 8px;
+    font-weight: 900;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+@media (min-width: 640px) {
+    .event-status-pill {
+        font-size: 9px;
+        padding: 2px 6px;
+    }
+}
+
+/* Event Mode Active Header Button */
+.btn-event-mode-active {
+    background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%) !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    box-shadow: 0 4px 16px rgba(236, 72, 153, 0.4) !important;
+}
+
+/* Drawer / Bottom Sheet */
+#day-detail-drawer {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+@media (max-width: 640px) {
+    #drawer-panel {
+        border-bottom-left-radius: 0 !important;
+        border-bottom-right-radius: 0 !important;
+        max-height: 82vh !important;
+    }
+}
+
+/* Mobile Screen Adjustments */
+@media (max-width: 380px) {
+    .cal-weekday-header {
+        font-size: 9px;
+        padding: 4px 0;
+    }
+    .day-cell {
+        min-height: 50px;
+        padding: 3px 4px;
+    }
+    .day-number {
+        font-size: 10px;
+    }
+}

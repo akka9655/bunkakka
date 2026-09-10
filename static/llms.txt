@@ -29,7 +29,7 @@ PSG Tech (PSG College of Technology) students, Coimbatore, Tamil Nadu, India. Wo
 - **Academic Calendar**: Holiday lists, exam schedules, and semester dates
 - **Smart Planner**: Day-wise timetable with quick attendance marking
 - **Works Offline**: Fully offline-capable Progressive Web App (PWA)
-- **Android App**: Native APK available for download at /static/bunker.apk
+- **Android App**: Native APK available for download at https://github.com/akka9655/bunkakka/raw/main/static/bunker.apk
 - **iOS Support**: Add to Home Screen on iPhone via Safari for a native app feel
 
 ## FAQ
