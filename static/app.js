@@ -2290,37 +2290,25 @@ function switchTab(id, index) {
     // If switching to the same tab, do nothing
     if (currentTab === newTab) return;
 
-    // Smooth transition: fade out current, then fade in new
     if (currentTab) {
-        currentTab.style.opacity = '0';
-        currentTab.style.transform = 'translateY(10px)';
-
-        setTimeout(() => {
-            currentTab.classList.remove('active');
-            newTab.classList.add('active');
-
-            // Reset and animate new tab
-            requestAnimationFrame(() => {
-                newTab.style.opacity = '0';
-                newTab.style.transform = 'translateY(10px)';
-
-                requestAnimationFrame(() => {
-                    newTab.style.opacity = '1';
-                    newTab.style.transform = 'translateY(0)';
-                });
-            });
-        }, 200); // Wait for fade out
-    } else {
-        // First load
-        newTab.classList.add('active');
-        newTab.style.opacity = '1';
-        newTab.style.transform = 'translateY(0)';
+        currentTab.classList.remove('active');
+        currentTab.style.opacity = '';
+        currentTab.style.transform = '';
     }
+    if (newTab) {
+        newTab.classList.add('active');
+        newTab.style.opacity = '';
+        newTab.style.transform = '';
+    }
+
+    const mainContent = document.getElementById('main-content');
+    if (mainContent) mainContent.scrollTop = 0;
 
     // New Nav Logic
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(e => e.classList.remove('active'));
-    document.getElementById(`nav-${id}`).classList.add('active');
+    const targetNav = document.getElementById(`nav-${id}`);
+    if (targetNav) targetNav.classList.add('active');
 
     let t = "Dashboard";
     if (id === 'home') { const td = getToday(); const ev = ACADEMIC_DATA.fullCalendar.find(e => new Date(e.date).toDateString() === td.toDateString()); if (ev) t = ev.type === 'Holiday' ? "Holiday! 🌴" : ev.type === 'Exam' ? "Exam Day! 🍀" : "Busy Day! 📚"; else if (td.getDay() === 0 || td.getDay() === 6) t = "Weekend Vibes 🎉"; }

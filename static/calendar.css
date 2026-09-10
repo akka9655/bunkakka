@@ -334,29 +334,70 @@ body {
 
 /* Drawer / Bottom Sheet */
 #day-detail-drawer {
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    transition: opacity 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+#drawer-panel {
+    transform: translateY(100%);
+    transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: transform;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+}
+
+#day-detail-drawer.open #drawer-panel {
+    transform: translateY(0);
 }
 
 @media (max-width: 640px) {
     #drawer-panel {
         border-bottom-left-radius: 0 !important;
         border-bottom-right-radius: 0 !important;
-        max-height: 82vh !important;
+        max-height: 85vh !important;
+        padding-bottom: max(24px, calc(16px + env(safe-area-inset-bottom, 16px))) !important;
     }
 }
 
-/* Mobile Screen Adjustments */
+/* Touch & Scroll Optimizations */
+.overflow-y-auto,
+#drawer-events-list,
+#agenda-list-container {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
+button,
+select,
+.day-cell,
+.cal-nav-btn {
+    touch-action: manipulation;
+}
+
+/* Mobile Screen Adjustments (Ultra-compact screens ≤ 380px) */
 @media (max-width: 380px) {
     .cal-weekday-header {
-        font-size: 9px;
-        padding: 4px 0;
+        font-size: 8.5px;
+        padding: 3px 0;
+    }
+    .month-grid {
+        gap: 2px !important;
     }
     .day-cell {
-        min-height: 50px;
-        padding: 3px 4px;
+        min-height: 48px;
+        padding: 3px 2px;
+        border-radius: 10px;
     }
     .day-number {
         font-size: 10px;
+    }
+    .event-status-pill {
+        font-size: 7.5px;
+        padding: 1px 3px;
+    }
+    .event-dot {
+        width: 5px;
+        height: 5px;
     }
 }

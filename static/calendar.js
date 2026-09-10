@@ -6,7 +6,21 @@
 (function () {
     'use strict';
 
-    document.documentElement.setAttribute('data-perf', 'high');
+    // Adaptive performance mode for 60fps / 120fps on any mobile phone
+    const savedPerf = localStorage.getItem('bunker_perf_mode');
+    if (savedPerf) {
+        document.documentElement.setAttribute('data-perf', savedPerf);
+    } else {
+        const ram = navigator.deviceMemory;
+        const cores = navigator.hardwareConcurrency;
+        const saveData = navigator.connection && navigator.connection.saveData;
+        const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reducedMotion || saveData || (ram && ram <= 4) || (cores && cores <= 4)) {
+            document.documentElement.setAttribute('data-perf', 'low');
+        } else {
+            document.documentElement.setAttribute('data-perf', 'high');
+        }
+    }
 
     // --- Department Definitions ---
     const DEPARTMENTS = [
@@ -704,12 +718,20 @@
         }
 
         drawer.classList.remove('hidden');
-        drawer.style.opacity = '1';
+        requestAnimationFrame(() => {
+            drawer.classList.add('open');
+        });
     }
 
     function closeDayDetail() {
         const drawer = document.getElementById('day-detail-drawer');
-        if (drawer) drawer.classList.add('hidden');
+        if (!drawer) return;
+        drawer.classList.remove('open');
+        setTimeout(() => {
+            if (!drawer.classList.contains('open')) {
+                drawer.classList.add('hidden');
+            }
+        }, 250);
     }
 
     // --- Google Calendar URL Builder ---
@@ -865,7 +887,9 @@
 
             drawerPanel.addEventListener('touchend', (e) => {
                 const diffY = e.changedTouches[0].screenY - drawerStartY;
-                if (diffY > 70 && drawerPanel.scrollTop === 0) {
+                const listEl = document.getElementById('drawer-events-list');
+                const isScrolled = listEl ? listEl.scrollTop > 5 : false;
+                if (diffY > 60 && !isScrolled) {
                     closeDayDetail();
                 }
             }, { passive: true });

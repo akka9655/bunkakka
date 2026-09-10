@@ -27,7 +27,33 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="/static/calendar.css?v=2.1.0">
+    <link rel="stylesheet" href="/static/calendar.css?v=2.1.1">
+
+    <!-- Performance Optimization Script (Instant 60fps on all phones) -->
+    <script>
+        (function () {
+            const savedPerf = localStorage.getItem('bunker_perf_mode');
+            let perf = 'low';
+            if (savedPerf) {
+                perf = savedPerf;
+            } else {
+                const ram = navigator.deviceMemory;
+                const cores = navigator.hardwareConcurrency;
+                const saveData = navigator.connection && navigator.connection.saveData;
+                const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+                if (reducedMotion || saveData || (ram && ram <= 4) || (cores && cores <= 4)) {
+                    perf = 'low';
+                } else if (isIOS || (ram && ram > 4) || (cores && cores > 4)) {
+                    perf = 'high';
+                } else {
+                    perf = 'low';
+                }
+            }
+            document.documentElement.setAttribute('data-perf', perf);
+        })();
+    </script>
 
     <style>
         .glass-header {
@@ -35,6 +61,7 @@
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: max(8px, env(safe-area-inset-top, 8px));
         }
         html[data-perf="low"] .glass-header {
             background: #090812;
@@ -308,7 +335,7 @@
     </div>
 
     <!-- Calendar JavaScript Engine -->
-    <script src="/static/calendar.js?v=2.1.0"></script>
+    <script src="/static/calendar.js?v=2.1.1"></script>
 </body>
 
 </html>
