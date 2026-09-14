@@ -654,8 +654,10 @@ function updateInstallUI() {
     if (prompt) {
         if (isInstalled) {
             prompt.classList.add('hidden');
+            prompt.style.display = 'none';
         } else {
             prompt.classList.remove('hidden');
+            prompt.style.display = 'flex';
         }
     }
 
@@ -1305,17 +1307,32 @@ function enterApp() {
     if (aurora) aurora.style.opacity = "0.25";
     if (typeof anime !== 'undefined') {
         anime({
-            targets: login, opacity: 0, scale: 0.9, duration: 500, easing: 'easeInOutQuad',
+            targets: login, opacity: 0, scale: 0.9, duration: 400, easing: 'easeInOutQuad',
             complete: () => {
-                login.classList.add('hidden'); dash.classList.remove('hidden');
+                if (login) {
+                    login.classList.add('hidden');
+                    login.style.display = 'none';
+                }
+                if (dash) {
+                    dash.classList.remove('hidden');
+                    dash.style.display = 'flex';
+                    dash.style.opacity = '1';
+                }
                 initDashboard();
                 checkAndroidApkPrompt();
-                anime({ targets: dash, opacity: [0, 1], scale: [1.05, 1], duration: 500, easing: 'easeOutQuad' });
+                anime({ targets: dash, opacity: [0, 1], scale: [1.02, 1], duration: 350, easing: 'easeOutQuad' });
             }
         });
     } else { 
-        login.classList.add('hidden'); 
-        dash.classList.remove('hidden'); 
+        if (login) {
+            login.classList.add('hidden');
+            login.style.display = 'none';
+        }
+        if (dash) {
+            dash.classList.remove('hidden');
+            dash.style.display = 'flex';
+            dash.style.opacity = '1';
+        }
         initDashboard(); 
         checkAndroidApkPrompt();
     }

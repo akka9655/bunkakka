@@ -2071,4 +2071,73 @@ html {
     }
 }
 
+/* ==========================================================================
+   CRASH-PROOF RESILIENT LAYOUT & SIZING GUARDS
+   ========================================================================== */
+.hidden,
+#login-view.hidden,
+#dashboard-view.hidden,
+#login-install-prompt.hidden,
+#sim-modal.hidden,
+#settings-modal.hidden,
+#history-modal.hidden,
+[hidden] {
+    display: none !important;
+}
+
+/* Enforce layout structure even if external CDN is slow */
+#app {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 28rem !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    position: relative !important;
+    min-height: 100% !important;
+}
+
+#login-view:not(.hidden) {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+}
+
+#dashboard-view:not(.hidden) {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    min-height: 100% !important;
+}
+
+/* Hard constraint on install prompt icon so it NEVER blows up to 512px */
+#login-install-prompt img,
+img[src*="icon.png"],
+img[src*="icon-192.png"] {
+    width: 40px !important;
+    height: 40px !important;
+    max-width: 40px !important;
+    max-height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    border-radius: 12px !important;
+    object-fit: cover !important;
+    display: block !important;
+}
+
+/* Inputs and buttons integrity */
+.glass-input {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.input-group {
+    position: relative !important;
+    width: 100% !important;
+    margin-bottom: 12px !important;
+}
+
+
 

@@ -177,28 +177,30 @@
     
     <!-- CSS & Scripts -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/static/style.css?v=3.5.1">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/style.css?v=3.5.2">
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    keyframes: {
-                        'splash-draw': {
-                            '0%': { strokeDashoffset: '290' },
-                            '100%': { strokeDashoffset: '0' }
-                        },
-                        'fade-in-up': {
-                            '0%': { opacity: '0', transform: 'translateY(10px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' }
+        window.tailwind = {
+            config: {
+                theme: {
+                    extend: {
+                        keyframes: {
+                            'splash-draw': {
+                                '0%': { strokeDashoffset: '290' },
+                                '100%': { strokeDashoffset: '0' }
+                            },
+                            'fade-in-up': {
+                                '0%': { opacity: '0', transform: 'translateY(10px)' },
+                                '100%': { opacity: '1', transform: 'translateY(0)' }
+                            }
                         }
                     }
                 }
             }
-        }
+        };
     </script>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <script defer src="/static/app.js?v=3.6.0"></script>
+    <script defer src="/static/app.js?v=3.6.1"></script>
     <script defer src="/static/legal.js?v=1.0.1"></script>
 
     <script>
@@ -472,7 +474,7 @@
     </div>
 
     <!-- Main App -->
-    <div id="app" class="relative z-10 w-full h-full max-w-md mx-auto flex flex-col bg-transparent opacity-0 transition-opacity duration-700 ease-out">
+    <div id="app" class="relative z-10 w-full h-full max-w-md mx-auto flex flex-col bg-transparent transition-opacity duration-300 ease-out" style="opacity: 1;">
 
         <!-- LOGIN VIEW (Redesigned) -->
         <div id="login-view" class="absolute inset-0 z-50 flex flex-col justify-center px-6">
@@ -556,11 +558,11 @@
                 </div>
                 <!-- Login Page PWA Install Prompt -->
                 <div id="login-install-prompt"
-                    class="hidden absolute bottom-4 left-0 right-0 flex justify-center z-50 fade-in-up">
+                    class="hidden absolute bottom-4 left-0 right-0 flex justify-center z-50 fade-in-up" style="display: none;">
                     <div
                         class="glass-panel mx-4 px-6 py-4 rounded-2xl flex items-center justify-between gap-4 w-full max-w-sm shadow-2xl border border-white/10 bg-[#1c1c1e]/90 backdrop-blur-xl">
                         <div class="flex items-center gap-3">
-                            <img src="/static/icon.png" class="w-10 h-10 rounded-xl shadow-lg">
+                            <img src="/static/icon.png" width="40" height="40" class="w-10 h-10 rounded-xl shadow-lg" style="width: 40px; height: 40px; max-width: 40px; max-height: 40px; object-fit: cover;">
                             <div class="flex flex-col">
                                 <span id="install-text" class="text-sm font-bold text-white leading-tight">Install
                                     Bunker.</span>

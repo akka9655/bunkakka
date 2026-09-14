@@ -1,11 +1,11 @@
-const CACHE_NAME = 'bunker-cache-v21';
+const CACHE_NAME = 'bunker-cache-v22';
 
 // Precache application shell assets (cached 100% on device for 0ms loads & 0 origin transfer)
 const PRECACHE_ASSETS = [
     '/',
     '/calendar',
-    '/static/style.css?v=3.5.1',
-    '/static/app.js?v=3.6.0',
+    '/static/style.css?v=3.5.2',
+    '/static/app.js?v=3.6.1',
     '/static/calendar.css?v=3.5.0',
     '/static/calendar.js?v=3.5.0',
     '/static/legal.js?v=1.0.1',
@@ -50,7 +50,14 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 2. Navigation requests: Cache-first for Instant App Shell (0ms, 0 Vercel function calls)
+    // 2. Only intercept own origin requests.
+    // Let browser native cache & network handle third-party CDNs (Tailwind, cdnjs, Google Fonts)
+    // without risky service worker opaque caching or invalid response errors.
+    if (url.origin !== self.location.origin) {
+        return;
+    }
+
+    // 3. Navigation requests: Cache-first for Instant App Shell (0ms, 0 Vercel function calls)
     if (event.request.mode === 'navigate' || url.pathname === '/' || url.pathname === '/calendar' || url.pathname === '/index.html' || url.pathname === '/calendar.html') {
         const targetPath = (url.pathname === '/calendar' || url.pathname === '/calendar.html') ? '/calendar' : '/';
         event.respondWith(
@@ -68,34 +75,17 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 3. Own static assets (CSS, JS, images, icons): Pure Cache-First (Zero redundant background fetches)
-    if (url.origin === self.location.origin) {
-        event.respondWith(
-            caches.match(event.request).then(cached => {
-                if (cached) return cached;
-                return fetch(event.request).then(res => {
-                    if (res && res.status === 200) {
-                        const clone = res.clone();
-                        caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
-                    }
-                    return res;
-                });
-            })
-        );
-        return;
-    }
-
-    // 4. Third-party CDN (fonts, icons, animejs): Cache-first fallback
+    // 4. Own static assets (CSS, JS, images, icons): Pure Cache-First
     event.respondWith(
         caches.match(event.request).then(cached => {
             if (cached) return cached;
             return fetch(event.request).then(res => {
-                if (res && (res.status === 200 || res.status === 0)) {
+                if (res && res.status === 200) {
                     const clone = res.clone();
                     caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
                 }
                 return res;
-            }).catch(() => null);
+            });
         })
     );
 });
