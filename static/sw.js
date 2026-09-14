@@ -1,9 +1,13 @@
-const CACHE_NAME = 'bunker-cache-v20';
-// Only cache assets we control (opaque CDN responses break cache.addAll)
+const CACHE_NAME = 'bunker-cache-v21';
+
+// Precache application shell assets (cached 100% on device for 0ms loads & 0 origin transfer)
 const PRECACHE_ASSETS = [
     '/',
-    '/static/style.css?v=3.5.0',
-    '/static/app.js?v=3.5.9',
+    '/calendar',
+    '/static/style.css?v=3.5.1',
+    '/static/app.js?v=3.6.0',
+    '/static/calendar.css?v=3.5.0',
+    '/static/calendar.js?v=3.5.0',
     '/static/legal.js?v=1.0.1',
     '/manifest.json?v=bunker6',
     '/static/icon.png',
@@ -35,7 +39,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    // 1. API calls: always network, never cache
+    // 1. API calls: ALWAYS network, never cache UI shell
     if (url.pathname.startsWith('/api/')) {
         event.respondWith(
             fetch(event.request).catch(() => new Response(
@@ -46,46 +50,52 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 2. CDN third-party: network-first, cache fallback (no precache — opaque safe)
-    if (url.origin !== self.location.origin) {
+    // 2. Navigation requests: Cache-first for Instant App Shell (0ms, 0 Vercel function calls)
+    if (event.request.mode === 'navigate' || url.pathname === '/' || url.pathname === '/calendar' || url.pathname === '/index.html' || url.pathname === '/calendar.html') {
+        const targetPath = (url.pathname === '/calendar' || url.pathname === '/calendar.html') ? '/calendar' : '/';
         event.respondWith(
-            caches.open(CACHE_NAME).then(cache =>
-                fetch(event.request)
-                    .then(res => { 
-                        if (res && (res.status === 200 || res.status === 0)) {
-                            cache.put(event.request, res.clone()); 
-                        }
-                        return res; 
-                    })
-                    .catch(() => cache.match(event.request))
-            )
+            caches.match(targetPath).then(cached => {
+                if (cached) return cached;
+                return fetch(event.request).then(res => {
+                    if (res && res.status === 200) {
+                        const clone = res.clone();
+                        caches.open(CACHE_NAME).then(c => c.put(targetPath, clone));
+                    }
+                    return res;
+                }).catch(() => caches.match('/'));
+            })
         );
         return;
     }
 
-    // 3. Own assets: cache-first, network fallback, then offline page
+    // 3. Own static assets (CSS, JS, images, icons): Pure Cache-First (Zero redundant background fetches)
+    if (url.origin === self.location.origin) {
+        event.respondWith(
+            caches.match(event.request).then(cached => {
+                if (cached) return cached;
+                return fetch(event.request).then(res => {
+                    if (res && res.status === 200) {
+                        const clone = res.clone();
+                        caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+                    }
+                    return res;
+                });
+            })
+        );
+        return;
+    }
+
+    // 4. Third-party CDN (fonts, icons, animejs): Cache-first fallback
     event.respondWith(
         caches.match(event.request).then(cached => {
-            if (cached) {
-                // Background revalidate
-                fetch(event.request).then(res => {
-                    if (res && res.status === 200) {
-                        caches.open(CACHE_NAME).then(c => c.put(event.request, res));
-                    }
-                }).catch(() => {});
-                return cached;
-            }
+            if (cached) return cached;
             return fetch(event.request).then(res => {
-                if (res && res.status === 200) {
+                if (res && (res.status === 200 || res.status === 0)) {
                     const clone = res.clone();
                     caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
                 }
                 return res;
-            }).catch(() => {
-                // Offline: serve root for navigation
-                if (event.request.mode === 'navigate') return caches.match('/');
-            });
+            }).catch(() => null);
         })
     );
 });
-

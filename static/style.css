@@ -2020,3 +2020,55 @@ button:active, .nav-item:active {
     transform: scale(0.94) !important;
 }
 
+/* ==========================================================================
+   LOW-END ANDROID 60FPS COMPOSITING OPTIMIZATION (Strict GPU Offload)
+   ========================================================================== */
+html[data-perf="low"] body,
+html[data-perf="low"] * {
+    will-change: auto !important;
+}
+
+html[data-perf="low"] .glass-panel,
+html[data-perf="low"] .glass-card,
+html[data-perf="low"] #subject-list-container > div,
+html[data-perf="low"] #internals-list > div,
+html[data-perf="low"] .glass-modal,
+html[data-perf="low"] .glass-header {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: #11101d !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    transform: none !important;
+}
+
+html[data-perf="low"] .nav-dock {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: #131122 !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(99, 102, 241, 0.15) !important;
+}
+
+html[data-perf="low"] .aurora-container,
+html[data-perf="low"] .aurora-blob,
+html[data-perf="low"] .aurora-glow,
+html[data-perf="low"] .aurora-container::after {
+    display: none !important;
+}
+
+/* Ensure smooth scrolling across all Android WebViews */
+html {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+

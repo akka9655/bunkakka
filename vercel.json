@@ -40,6 +40,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/index.html",
+      "destination": "/index.html"
+    },
+    {
       "source": "/calendar",
       "destination": "/calendar.html"
     },
@@ -48,8 +52,8 @@
       "destination": "/calendar.html"
     },
     {
-      "source": "/(.*)",
-      "destination": "/api/index.py?__vercel_path=$1"
+      "source": "/api/(.*)",
+      "destination": "/api/index.py?__vercel_path=api/$1"
     }
   ],
   "headers": [
@@ -71,7 +75,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
+          "value": "public, max-age=86400"
         },
         {
           "key": "Content-Type",
@@ -93,7 +97,16 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
+          "value": "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800"
+        }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800"
         }
       ]
     },
