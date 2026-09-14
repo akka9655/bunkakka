@@ -14,6 +14,8 @@ let state = {
     college: localStorage.getItem('bunker_college') || 'PSGTECH',
     hasCalendar: localStorage.getItem('bunker_has_calendar') !== 'false',
     subjects: JSON.parse(localStorage.getItem('bunker_subjects') || '[]'),
+    previousSubjects: null,
+    isViewingPreviousAttendance: false,
     timetable: JSON.parse(localStorage.getItem('bunker_timetable') || '{}'),
     courseMapping: JSON.parse(localStorage.getItem('bunker_course_mapping') || '{}'),
     manual: JSON.parse(localStorage.getItem(`bunker_manual_${localStorage.getItem('bunker_roll')}`) || '[]'),
@@ -26,7 +28,7 @@ let state = {
 };
 
 function getAcademicYear(roll) { if (!roll || roll.length < 2) return null; const y = parseInt('20' + roll.substring(0, 2)), c = new Date().getFullYear(), m = new Date().getMonth() + 1; return Math.max(1, Math.min(5, (m >= 1 && m <= 5 ? c - 1 : c) - y + 1)); }
-function isAbsoluteGradingSystem(roll) { if (!roll || roll.length < 2) return false; try { return parseInt('20' + roll.substring(0, 2)) >= 2024; } catch (e) { return false; } }
+function isAbsoluteGradingSystem(roll) { return true; }
 function getCourseType(roll) { if (!roll || roll.length < 3) return null; const l = roll.substring(2); if (l.length >= 2 && CONFIG.COURSE_CODES[l.substring(0, 2).toUpperCase()]) return CONFIG.COURSE_CODES[l.substring(0, 2).toUpperCase()]; return CONFIG.COURSE_CODES[l.charAt(0).toUpperCase()] || null; }
 function getPlannerId(roll) { return CONFIG.PLANNER_MAP[`${getCourseType(roll)}_${getAcademicYear(roll)}`] || null; }
 
@@ -34,12 +36,37 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- AUTO-LOGIN: Check for stored credentials ---
     const savedCreds = (() => { try { return JSON.parse(localStorage.getItem('bunker_credentials') || 'null'); } catch { return null; } })();
     const savedRoll = savedCreds?.roll;
-    const cachedSubjects = savedRoll ? localStorage.getItem(`bunker_subjects_${savedRoll}`) : null;
+    
+    // Check cached subjects: prefer roll cache, previous attendance cache, or general subjects
+    let cachedSubjects = null;
+    if (savedRoll) {
+        const parseValid = (k) => {
+            const raw = localStorage.getItem(k);
+            if (!raw) return null;
+            try {
+                const a = JSON.parse(raw);
+                return (Array.isArray(a) && a.length > 0) ? raw : null;
+            } catch { return null; }
+        };
+        cachedSubjects = parseValid(`bunker_subjects_${savedRoll}`) 
+            || parseValid(`bunker_previous_attendance_${savedRoll}`) 
+            || parseValid('bunker_subjects')
+            || localStorage.getItem(`bunker_subjects_${savedRoll}`);
+    }
 
     if (savedCreds && savedRoll && cachedSubjects) {
         // Restore full state from cache
         state.rollNumber = savedRoll;
-        state.subjects = JSON.parse(cachedSubjects);
+        try {
+            state.subjects = JSON.parse(cachedSubjects);
+        } catch {
+            state.subjects = [];
+        }
+        if (!Array.isArray(state.subjects)) state.subjects = [];
+        // If subjects were restored from previous attendance key, set viewing flag
+        if (state.subjects.length > 0 && localStorage.getItem(`bunker_subjects_${savedRoll}`) === '[]') {
+            state.isViewingPreviousAttendance = true;
+        }
         state.timetable = JSON.parse(localStorage.getItem('bunker_timetable') || '{}');
         state.courseMapping = JSON.parse(localStorage.getItem('bunker_course_mapping') || '{}');
         state.college = localStorage.getItem('bunker_college') || 'PSGTECH';
@@ -102,7 +129,31 @@ async function backgroundSync(roll, password) {
         }
 
         // Update state with fresh data
-        state.subjects = loginData.subjects || state.subjects;
+        const hasFreshSubjects = Array.isArray(loginData.subjects) && loginData.subjects.length > 0;
+        if (hasFreshSubjects) {
+            state.subjects = loginData.subjects;
+            state.isViewingPreviousAttendance = false;
+            localStorage.setItem('bunker_subjects', JSON.stringify(state.subjects));
+            localStorage.setItem(`bunker_subjects_${roll}`, JSON.stringify(state.subjects));
+            localStorage.setItem(`bunker_previous_attendance_${roll}`, JSON.stringify(state.subjects));
+            if (loginData.last_update && loginData.last_update !== "No data") {
+                localStorage.setItem(`bunker_previous_update_${roll}`, loginData.last_update);
+            }
+        } else {
+            // Live attendance is currently updating or stopped
+            if (Array.isArray(loginData.previous_subjects) && loginData.previous_subjects.length > 0) {
+                state.previousSubjects = loginData.previous_subjects;
+                localStorage.setItem(`bunker_previous_attendance_${roll}`, JSON.stringify(loginData.previous_subjects));
+                if (loginData.previous_last_update) {
+                    localStorage.setItem(`bunker_previous_update_${roll}`, loginData.previous_last_update);
+                }
+            }
+            // If user is currently viewing previous attendance, keep displaying it!
+            if (!state.isViewingPreviousAttendance) {
+                state.subjects = [];
+            }
+        }
+
         state.timetable = loginData.timetable || state.timetable;
         state.courseMapping = loginData.course_mapping || state.courseMapping;
         state.college = loginData.college || state.college;
@@ -115,14 +166,14 @@ async function backgroundSync(roll, password) {
             state.threshold = 80;
         }
 
-        // Persist fresh data
-        localStorage.setItem('bunker_subjects', JSON.stringify(state.subjects));
-        localStorage.setItem(`bunker_subjects_${roll}`, JSON.stringify(state.subjects));
+        // Persist non-subject data
         localStorage.setItem('bunker_timetable', JSON.stringify(state.timetable));
         localStorage.setItem('bunker_course_mapping', JSON.stringify(state.courseMapping));
         localStorage.setItem('bunker_college', state.college);
         localStorage.setItem('bunker_has_calendar', state.hasCalendar);
-        localStorage.setItem('bunker_last_update', loginData.last_update || '');
+        if (loginData.last_update) {
+            localStorage.setItem('bunker_last_update', loginData.last_update);
+        }
 
         // Fetch calendar too
         try {
@@ -299,11 +350,41 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         pushLoadingLog("Scraping attendance logs & mapping courses...", 78, '#3b82f6');
 
         // Store login data in state
-        state.subjects = loginData.subjects || [];
+        const hasFreshSubjects = Array.isArray(loginData.subjects) && loginData.subjects.length > 0;
         state.timetable = loginData.timetable || {};
         state.courseMapping = loginData.course_mapping || {};
         state.college = loginData.college || 'PSGTECH';
         state.hasCalendar = loginData.has_calendar !== false;
+
+        if (hasFreshSubjects) {
+            state.subjects = loginData.subjects;
+            state.isViewingPreviousAttendance = false;
+            localStorage.setItem('bunker_subjects', JSON.stringify(state.subjects));
+            localStorage.setItem(`bunker_subjects_${roll}`, JSON.stringify(state.subjects));
+            localStorage.setItem(`bunker_previous_attendance_${roll}`, JSON.stringify(state.subjects));
+            if (loginData.last_update && loginData.last_update !== "No data") {
+                localStorage.setItem(`bunker_previous_update_${roll}`, loginData.last_update);
+            }
+        } else {
+            state.subjects = [];
+            state.isViewingPreviousAttendance = false;
+            if (Array.isArray(loginData.previous_subjects) && loginData.previous_subjects.length > 0) {
+                state.previousSubjects = loginData.previous_subjects;
+                localStorage.setItem(`bunker_previous_attendance_${roll}`, JSON.stringify(loginData.previous_subjects));
+                if (loginData.previous_last_update) {
+                    localStorage.setItem(`bunker_previous_update_${roll}`, loginData.previous_last_update);
+                }
+            } else {
+                // If previous cache had valid subjects, preserve them into previous attendance
+                const prev = localStorage.getItem(`bunker_subjects_${roll}`);
+                try {
+                    const parsed = JSON.parse(prev);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        localStorage.setItem(`bunker_previous_attendance_${roll}`, prev);
+                    }
+                } catch {}
+            }
+        }
 
         // CEG uses 75% minimum attendance; PSG Tech/IAS use 80% for bunk planning
         if (state.college === 'CEG') {
@@ -312,8 +393,6 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
             state.threshold = 80;
         }
 
-        localStorage.setItem('bunker_subjects', JSON.stringify(state.subjects));
-        localStorage.setItem(`bunker_subjects_${roll}`, JSON.stringify(state.subjects));
         localStorage.setItem('bunker_timetable', JSON.stringify(state.timetable));
         localStorage.setItem('bunker_course_mapping', JSON.stringify(state.courseMapping));
         localStorage.setItem('bunker_college', state.college);
@@ -375,22 +454,99 @@ function processCalendarData(data, roll) {
     if (state.subjects.length === 0) saveState();
 }
 
-function loadCachedAttendance() {
-    const roll = state.rollNumber;
-    if (roll) {
+async function loadCachedAttendance() {
+    const roll = state.rollNumber || localStorage.getItem('bunker_roll') || (() => {
+        try { return JSON.parse(localStorage.getItem('bunker_credentials') || '{}').roll; } catch { return null; }
+    })();
+
+    if (!roll) {
+        showToast('No user session found', 'error');
+        return;
+    }
+    state.rollNumber = roll;
+
+    // Helper to safely parse non-empty array
+    const getValidArray = (key) => {
+        const val = localStorage.getItem(key);
+        if (!val) return null;
         try {
-            state.subjects = JSON.parse(localStorage.getItem(`bunker_subjects_${roll}`) || '[]');
-            state.timetable = JSON.parse(localStorage.getItem('bunker_timetable') || '{}');
-            state.courseMapping = JSON.parse(localStorage.getItem('bunker_course_mapping') || '{}');
-            state.college = localStorage.getItem('bunker_college') || 'PSGTECH';
-            state.hasCalendar = localStorage.getItem('bunker_has_calendar') === 'true';
-            initDashboard();
-            showToast('Loaded previous attendance');
+            const arr = JSON.parse(val);
+            return (Array.isArray(arr) && arr.length > 0) ? arr : null;
+        } catch { return null; }
+    };
+
+    let cached = getValidArray(`bunker_previous_attendance_${roll}`)
+        || getValidArray(`bunker_subjects_${roll}`)
+        || getValidArray('bunker_subjects')
+        || (Array.isArray(state.previousSubjects) && state.previousSubjects.length > 0 ? state.previousSubjects : null);
+
+    // If not found in local cache, attempt to fetch from server
+    if (!cached || cached.length === 0) {
+        try {
+            showToast('Checking server for saved attendance...');
+            const savedCreds = (() => { try { return JSON.parse(localStorage.getItem('bunker_credentials') || '{}'); } catch { return {}; } })();
+            const res = await fetch('/api/previous-attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: roll,
+                    password: savedCreds.password,
+                    college: state.college
+                })
+            });
+            const data = await res.json();
+            if (data.success && Array.isArray(data.subjects) && data.subjects.length > 0) {
+                cached = data.subjects;
+                localStorage.setItem(`bunker_previous_attendance_${roll}`, JSON.stringify(cached));
+                if (data.last_update) {
+                    localStorage.setItem(`bunker_previous_update_${roll}`, data.last_update);
+                }
+                if (data.timetable && (!state.timetable || Object.keys(state.timetable).length === 0)) {
+                    state.timetable = data.timetable;
+                    localStorage.setItem('bunker_timetable', JSON.stringify(data.timetable));
+                }
+                if (data.course_mapping && (!state.courseMapping || Object.keys(state.courseMapping).length === 0)) {
+                    state.courseMapping = data.course_mapping;
+                    localStorage.setItem('bunker_course_mapping', JSON.stringify(data.course_mapping));
+                }
+            }
         } catch (e) {
-            showToast('Failed to load cache', 'error');
+            console.warn('Could not fetch previous attendance from server:', e);
         }
     }
+
+    if (!cached || cached.length === 0) {
+        showToast('No previous attendance found to load', 'error');
+        return;
+    }
+
+    try {
+        state.subjects = cached;
+        state.isViewingPreviousAttendance = true;
+
+        const tt = localStorage.getItem('bunker_timetable');
+        if (tt) state.timetable = JSON.parse(tt);
+        const cm = localStorage.getItem('bunker_course_mapping');
+        if (cm) state.courseMapping = JSON.parse(cm);
+        state.college = localStorage.getItem('bunker_college') || state.college || 'PSGTECH';
+        state.hasCalendar = localStorage.getItem('bunker_has_calendar') !== 'false';
+
+        initDashboard();
+        showToast(`Loaded previous attendance (${cached.length} courses)`);
+    } catch (e) {
+        console.error('Failed to load cache:', e);
+        showToast('Failed to load cache', 'error');
+    }
 }
+window.loadCachedAttendance = loadCachedAttendance;
+
+function returnToLiveStatus() {
+    state.isViewingPreviousAttendance = false;
+    state.subjects = [];
+    initDashboard();
+    showToast('Returned to live attendance status');
+}
+window.returnToLiveStatus = returnToLiveStatus;
 
 function loadDemo() {
     showLoadingScreen("DEMO");
@@ -1373,38 +1529,89 @@ function renderSubjects() {
 
     if (state.subjects.length === 0) {
         // Check if we have cached data for this user
-        const roll = state.rollNumber;
-        const hasCache = roll && localStorage.getItem(`bunker_subjects_${roll}`);
+        const roll = state.rollNumber || localStorage.getItem('bunker_roll');
+        let hasCache = false;
+        if (roll) {
+            const check = (key) => {
+                const val = localStorage.getItem(key);
+                if (!val) return false;
+                try {
+                    const arr = JSON.parse(val);
+                    return Array.isArray(arr) && arr.length > 0;
+                } catch { return false; }
+            };
+            hasCache = check(`bunker_previous_attendance_${roll}`)
+                || check(`bunker_subjects_${roll}`)
+                || check('bunker_subjects')
+                || (Array.isArray(state.previousSubjects) && state.previousSubjects.length > 0);
+        }
+
+        const hasCreds = !!localStorage.getItem('bunker_credentials');
 
         let cacheBtn = '';
-        if (hasCache) {
+        if (hasCache || hasCreds) {
             cacheBtn = `
-                        <button onclick="loadCachedAttendance()" class="mt-6 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white text-xs font-bold transition-all active:scale-95 flex items-center gap-2 mx-auto">
-                            <i class="fas fa-history text-indigo-400"></i> View Previous Attendance
-                        </button>
-                    `;
+                <button onclick="loadCachedAttendance()" class="mt-6 px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all active:scale-95 flex items-center gap-2.5 mx-auto shadow-lg shadow-indigo-500/30 cursor-pointer">
+                    <i class="fas fa-history text-white"></i> Load Previous Attendance
+                </button>
+            `;
+        } else {
+            cacheBtn = `
+                <p class="text-[10px] text-gray-500 mt-4 text-center font-medium">
+                    No previous attendance record available.
+                </p>
+            `;
         }
 
         c.innerHTML = `
-                    <div class="doll-container">
-                        <svg class="ghost w-32 h-32" viewBox="0 0 100 120">
-                            <path class="ghost-shadow" d="M30,115 h40 a1,0.3 0 0,0 0,0" />
-                            <path class="ghost-body" d="M20,100 c0,-40 10,-80 30,-80 s30,40 30,80 c0,10 -10,10 -10,0 s-10,10 -20,0 s-10,10 -20,0 s-10,10 -10,0" />
-                            <circle class="ghost-eyes" cx="40" cy="50" r="3" />
-                            <circle class="ghost-eyes" cx="60" cy="50" r="3" />
-                            <path class="ghost-eyes" d="M47,60 q3,3 6,0" fill="none" stroke="#1e1b4b" stroke-width="1.5" stroke-linecap="round" />
-                        </svg>
-                        <h3 class="text-white font-bold text-lg mt-4">Attendance Updating</h3>
-                        <p class="text-gray-500 text-xs mt-1 text-center max-w-[200px] leading-relaxed">
-                            Attendance data has been stopped or is currently being updated by the college.
-                        </p>
-                        <div class="mt-4 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] text-indigo-300 font-bold uppercase tracking-widest animate-pulse">
-                            Status: Pending
-                        </div>
-                        ${cacheBtn}
-                    </div>
-                `;
+            <div class="doll-container">
+                <svg class="ghost w-32 h-32" viewBox="0 0 100 120">
+                    <path class="ghost-shadow" d="M30,115 h40 a1,0.3 0 0,0 0,0" />
+                    <path class="ghost-body" d="M20,100 c0,-40 10,-80 30,-80 s30,40 30,80 c0,10 -10,10 -10,0 s-10,10 -20,0 s-10,10 -20,0 s-10,10 -10,0" />
+                    <circle class="ghost-eyes" cx="40" cy="50" r="3" />
+                    <circle class="ghost-eyes" cx="60" cy="50" r="3" />
+                    <path class="ghost-eyes" d="M47,60 q3,3 6,0" fill="none" stroke="#1e1b4b" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+                <h3 class="text-white font-bold text-lg mt-4">Attendance Updating</h3>
+                <p class="text-gray-500 text-xs mt-1 text-center max-w-[200px] leading-relaxed">
+                    Attendance data has been stopped or is currently being updated by the college.
+                </p>
+                <div class="mt-4 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] text-indigo-300 font-bold uppercase tracking-widest animate-pulse">
+                    Status: Pending
+                </div>
+                ${cacheBtn}
+            </div>
+        `;
         return;
+    }
+
+    // Display banner if viewing cached/previous attendance
+    if (state.isViewingPreviousAttendance) {
+        const roll = state.rollNumber || localStorage.getItem('bunker_roll');
+        const prevUpdate = (roll && localStorage.getItem(`bunker_previous_update_${roll}`)) || localStorage.getItem('bunker_last_update') || 'Previous Update';
+        const banner = document.createElement('div');
+        banner.className = 'glass-panel rounded-2xl p-3.5 mb-4 border-l-4 border-amber-500 bg-amber-500/10 flex items-center justify-between gap-3 shadow-lg';
+        banner.innerHTML = `
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400 shrink-0 border border-amber-500/30">
+                    <i class="fas fa-history text-xs"></i>
+                </div>
+                <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                        <h4 class="text-xs font-black text-white uppercase tracking-wider">Previous Attendance</h4>
+                        <span class="bg-amber-500/20 text-amber-300 text-[9px] font-bold px-1.5 py-0.5 rounded border border-amber-500/30">Saved</span>
+                    </div>
+                    <p class="text-[10px] text-amber-200/70 font-medium truncate mt-0.5">
+                        Last saved: ${prevUpdate} • College portal updating
+                    </p>
+                </div>
+            </div>
+            <button onclick="returnToLiveStatus()" class="shrink-0 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold transition-all border border-white/10 active:scale-95 flex items-center gap-1.5 cursor-pointer">
+                <i class="fas fa-satellite-dish text-indigo-400"></i>
+                <span>Live Status</span>
+            </button>
+        `;
+        c.appendChild(banner);
     }
 
     // --- Regulation Alerts (PSG Tech only — Redo/Honours are PSG-specific rules) ---
@@ -1422,15 +1629,38 @@ function renderSubjects() {
             });
 
             let eligibleHonours = false;
+            let activeArrears = [];
             if (state.academics && state.academics.cgpa) {
                 const currentCGPA = parseFloat(state.academics.cgpa.cgpa);
-                const hasBacklogs = state.academics.cgpa.all_subjects && state.academics.cgpa.all_subjects.some(sub =>
-                    sub.grade.includes('RA') || sub.grade === 'U' || sub.grade.includes('0 ')
-                );
+                const allSubs = state.academics.cgpa.all_subjects || [];
+                activeArrears = allSubs.filter(sub => {
+                    const g = String(sub.grade || '').trim().toUpperCase();
+                    const isPass = sub.result === 'Pass' || (sub.grade && !g.startsWith('RA') && g !== 'U' && !g.startsWith('0 ') && (!sub.result || sub.result.toLowerCase() !== 'fail'));
+                    return !isPass || g.startsWith('RA') || g === 'U' || (sub.result && sub.result.toLowerCase() === 'fail');
+                });
+                const hasBacklogs = activeArrears.length > 0 || state.academics.cgpa.cgpa === 'RA';
                 if (!isNaN(currentCGPA) && currentCGPA >= 8.00 && !hasBacklogs) eligibleHonours = true;
             }
 
             let alertsHTML = '';
+            if (activeArrears.length > 0) {
+                alertsHTML += `
+                <div class="glass-panel rounded-[24px] p-4 border-l-4 border-rose-500 bg-rose-500/10 flex items-start gap-3 cursor-pointer hover:bg-rose-500/15 transition-all" onclick="switchTab('academics', 1); setTimeout(() => switchAcadTab('results'), 150)">
+                    <div class="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400 shrink-0 mt-0.5">
+                        <i class="fas fa-exclamation-triangle text-xs"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h4 class="text-xs font-black text-white uppercase tracking-wider">Active Arrear Notice (${activeArrears.length})</h4>
+                            <span class="text-[8px] font-black text-rose-400 bg-rose-500/20 px-1.5 py-0.5 rounded border border-rose-500/30 uppercase tracking-widest">Pending</span>
+                        </div>
+                        <p class="text-[10px] text-rose-300/90 mt-1 leading-normal font-medium">
+                            Pending course(s): <b>${activeArrears.map(s => s.course).join(', ')}</b>. Tap to view semester results &amp; marks.
+                        </p>
+                    </div>
+                </div>`;
+            }
+
             if (redoCount > 0) {
                 if (redoCount > 2) {
                     alertsHTML += `
@@ -2366,7 +2596,13 @@ function setAttendanceMode(mode) {
 }
 
 function saveState() {
-    localStorage.setItem('bunker_subjects', JSON.stringify(state.subjects));
+    if (Array.isArray(state.subjects) && state.subjects.length > 0) {
+        localStorage.setItem('bunker_subjects', JSON.stringify(state.subjects));
+        if (state.rollNumber) {
+            localStorage.setItem(`bunker_subjects_${state.rollNumber}`, JSON.stringify(state.subjects));
+            localStorage.setItem(`bunker_previous_attendance_${state.rollNumber}`, JSON.stringify(state.subjects));
+        }
+    }
     localStorage.setItem('bunker_timetable', JSON.stringify(state.timetable));
     if (state.rollNumber) {
         localStorage.setItem(`bunker_manual_${state.rollNumber}`, JSON.stringify(state.manual));
@@ -2380,8 +2616,10 @@ function logout() {
     // Smart Logout: Clear session but keep manual entries and preferences
     const allKeys = Object.keys(localStorage);
     allKeys.forEach(key => {
-        // Keep roll-specific cached subjects
+        // Keep roll-specific cached subjects and previous attendance
         if (key.startsWith('bunker_subjects_')) return;
+        if (key.startsWith('bunker_previous_attendance_')) return;
+        if (key.startsWith('bunker_previous_update_')) return;
         // Keep manual tracking entries
         if (key.startsWith('bunker_manual_')) return;
         // Keep per-user preferences
@@ -2690,19 +2928,24 @@ async function loadAcademics(force = false, silent = false) {
     }
 
     try {
-        const [internalsRes, gpaRes, cgpaRes] = await Promise.all([
-            fetch('/api/internals', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ auth_token: authToken }) }),
-            fetch('/api/gpa', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ auth_token: authToken }) }),
-            fetch('/api/cgpa', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ auth_token: authToken }) })
+        const [internalsRes, gpaRes] = await Promise.all([
+            fetch('/api/internals', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ auth_token: authToken, force: force }) }),
+            fetch('/api/gpa', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ auth_token: authToken, force: force }) })
         ]);
 
         const internals = await internalsRes.json();
         const gpa = await gpaRes.json();
-        const cgpa = await cgpaRes.json();
+        const cgpa = {
+            cgpa: gpa.cgpa || gpa.overall_cgpa,
+            overall_cgpa: gpa.overall_cgpa || gpa.cgpa,
+            total_credits: gpa.total_credits,
+            semwise_data: gpa.semwise_data,
+            all_subjects: gpa.all_subjects || gpa.table || []
+        };
 
-        if (internals.error || gpa.error || cgpa.error) {
+        if (internals.error || gpa.error) {
             state.academics.loading = false;
-            if (!silent) showAcadError(internals.error || gpa.error || cgpa.error || 'Failed to load academic data.');
+            if (!silent) showAcadError(internals.error || gpa.error || 'Failed to load academic data.');
             return;
         }
 
@@ -3126,7 +3369,7 @@ function getGradeInfo(total, roll = null) {
         if (total >= 81) return { grade: 'A+', gp: 9, color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/30' };
         if (total >= 71) return { grade: 'A', gp: 8, color: 'text-indigo-400', bg: 'bg-indigo-400/10', border: 'border-indigo-400/30' };
         if (total >= 66) return { grade: 'B+', gp: 7, color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/30' };
-        if (total >= 61) return { grade: 'B', gp: 6.5, color: 'text-teal-400', bg: 'bg-teal-400/10', border: 'border-teal-400/30' };
+        if (total >= 61) return { grade: 'B', gp: 6, color: 'text-teal-400', bg: 'bg-teal-400/10', border: 'border-teal-400/30' };
         if (total >= 56) return { grade: 'C+', gp: 6, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/30' };
         if (total >= 50) return { grade: 'C', gp: 5, color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/30' };
         return { grade: 'U', gp: 0, color: 'text-rose-400', bg: 'bg-rose-400/10', border: 'border-rose-400/30' };
@@ -3205,11 +3448,21 @@ function resetSim(courseCode) {
 function isZeroCreditCourse(courseCode) {
     if (!courseCode) return false;
     const code = courseCode.toUpperCase();
-    if (code === '23U215') return true;
-    if (state && state.academics && state.academics.internals) {
-        const sub = state.academics.internals.find(s => s.course_code === courseCode);
-        if (sub && sub.course_name && sub.course_name.toUpperCase().includes('ACTIVITY POINT')) {
-            return true;
+    if (code === '23U215' || code === '23Q213' || code === '23IP15') return true;
+    if (state && state.academics) {
+        if (state.academics.cgpa && state.academics.cgpa.all_subjects) {
+            const match = state.academics.cgpa.all_subjects.find(s => s.course === courseCode);
+            if (match) {
+                const mCr = parseInt(match.credits, 10);
+                if (!isNaN(mCr) && mCr === 0) return true;
+                if (mCr > 0) return false;
+            }
+        }
+        if (state.academics.internals) {
+            const sub = state.academics.internals.find(s => s.course_code === courseCode);
+            if (sub && sub.course_name && (sub.course_name.toUpperCase().includes('ACTIVITY POINT') || sub.course_name.toUpperCase().includes('INDUCTION PROGRAMME'))) {
+                return true;
+            }
         }
     }
     return false;
@@ -3377,7 +3630,16 @@ function recalculateCGPAPrediction() {
     let pastCreditPoints = 0;
     if (state.academics.cgpa) {
         pastCredits = state.academics.cgpa.total_credits || 0;
-        pastCreditPoints = state.academics.cgpa.credit_points_total || 0;
+        if (state.academics.cgpa.credit_points_total !== undefined && state.academics.cgpa.credit_points_total !== null && state.academics.cgpa.credit_points_total > 0) {
+            pastCreditPoints = state.academics.cgpa.credit_points_total;
+        } else if (state.academics.cgpa.cgpa && !isNaN(parseFloat(state.academics.cgpa.cgpa))) {
+            pastCreditPoints = parseFloat(state.academics.cgpa.cgpa) * pastCredits;
+        } else if (state.academics.cgpa.all_subjects) {
+            pastCreditPoints = state.academics.cgpa.all_subjects.reduce((acc, c) => {
+                const cr = parseInt(c.credits, 10) || 0;
+                return acc + (cr > 0 && c.grade_points != null ? cr * c.grade_points : 0);
+            }, 0);
+        }
     }
 
     const predictedCGPA = (pastCredits + totalCredits) > 0 
@@ -3533,46 +3795,230 @@ function setGlobalSemScenario(examMark) {
 }
 
 
+let _currentGPAData = null;
+
+function selectSemesterGPA(targetSem) {
+    if (!_currentGPAData) return;
+    const gpaData = _currentGPAData;
+    const sems = {};
+    (gpaData.table || []).forEach(c => {
+        const s = c.sem || 1;
+        if (!sems[s]) sems[s] = [];
+        sems[s].push(c);
+    });
+    const semwiseGPA = gpaData.semwise_gpa || {};
+    const semwiseCredits = gpaData.semwise_credits || {};
+    const valEl = document.getElementById('gpa-value');
+    const titleEl = document.getElementById('gpa-hero-title');
+    const creditsEl = document.getElementById('cgpa-credits');
+
+    if (targetSem === 'all' || targetSem === 'overall') {
+        const cgpa = (state.academics.cgpa && state.academics.cgpa.cgpa) || gpaData.overall_cgpa || gpaData.gpa;
+        if (titleEl) titleEl.textContent = 'Cumulative CGPA';
+        if (valEl) {
+            valEl.textContent = cgpa === 'RA' ? 'RA' : (cgpa || '--');
+            valEl.style.color = cgpa === 'RA' ? '#EF4444' : cgpa >= 8.5 ? '#10B981' : cgpa >= 7 ? '#6366f1' : cgpa >= 5 ? '#F59E0B' : '#EF4444';
+        }
+        if (creditsEl) creditsEl.textContent = `${gpaData.total_credits || 0} total credits earned`;
+        document.getElementById('gpa-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+        const s = parseInt(targetSem);
+        const sGPA = semwiseGPA[s] !== undefined ? semwiseGPA[s] : '--';
+        const sCr = semwiseCredits[s] !== undefined ? semwiseCredits[s] : (sems[s] || []).reduce((sum, c) => sum + (parseInt(c.credits) || 0), 0);
+        const sCount = (sems[s] || []).length;
+        if (titleEl) titleEl.textContent = `Semester ${s} GPA`;
+        if (valEl) {
+            valEl.textContent = sGPA === 'RA' ? 'RA' : (sGPA || '--');
+            const g = parseFloat(sGPA);
+            valEl.style.color = sGPA === 'RA' || isNaN(g) ? '#EF4444' : g >= 8.5 ? '#10B981' : g >= 7 ? '#6366f1' : g >= 5 ? '#F59E0B' : '#EF4444';
+        }
+        if (creditsEl) creditsEl.textContent = `${sCr} Credits • ${sCount} Courses`;
+        document.getElementById(`sem-section-${s}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Update active highlight on chips
+    document.querySelectorAll('.results-sem-chip').forEach(btn => {
+        const btnSem = btn.getAttribute('data-sem');
+        if (btnSem === String(targetSem)) {
+            btn.classList.add('ring-2', 'ring-indigo-400', 'scale-105', 'bg-indigo-500/25', 'border-indigo-400');
+        } else {
+            btn.classList.remove('ring-2', 'ring-indigo-400', 'scale-105', 'bg-indigo-500/25', 'border-indigo-400');
+        }
+    });
+}
+window.selectSemesterGPA = selectSemesterGPA;
+
 function renderGPA(gpaData) {
+    _currentGPAData = gpaData;
     const valEl = document.getElementById('gpa-value');
     const tableEl = document.getElementById('gpa-table');
+    const titleEl = document.getElementById('gpa-hero-title');
+    const creditsEl = document.getElementById('cgpa-credits');
+    const resultsChipsWrapper = document.getElementById('results-sem-chips');
+    const resultsChipsList = document.getElementById('results-sem-chips-list');
     if (!valEl || !tableEl) return;
 
     const gpa = gpaData.gpa;
     valEl.textContent = gpa === 'RA' ? 'RA' : (gpa || '--');
     valEl.style.color = gpa === 'RA' ? '#EF4444' : gpa >= 8.5 ? '#10B981' : gpa >= 7 ? '#6366f1' : gpa >= 5 ? '#F59E0B' : '#EF4444';
 
+    if (titleEl) {
+        titleEl.textContent = gpaData.latest_sem ? `Semester ${gpaData.latest_sem} GPA` : 'Semester GPA';
+    }
+
     const courses = gpaData.table || [];
     if (courses.length === 0) {
         tableEl.innerHTML = '<div class="text-center py-10 text-gray-600 text-xs">No semester data found</div>';
+        if (resultsChipsWrapper) resultsChipsWrapper.classList.add('hidden');
         return;
     }
 
     // Group by sem
     const sems = {};
     courses.forEach(c => {
-        if (!sems[c.sem]) sems[c.sem] = [];
-        sems[c.sem].push(c);
+        const s = c.sem || 1;
+        if (!sems[s]) sems[s] = [];
+        sems[s].push(c);
     });
+
+    const semwiseGPA = gpaData.semwise_gpa || {};
+    const semwiseCredits = gpaData.semwise_credits || {};
+
+    // Calculate fallback semwise GPA and credits if not provided by backend
+    Object.keys(sems).forEach(s => {
+        if (semwiseGPA[s] === undefined) {
+            let cr = 0, cp = 0, hasRA = false;
+            sems[s].forEach(c => {
+                const cCr = parseInt(c.credits, 10) || 0;
+                if (cCr > 0) {
+                    let gp = c.grade_points;
+                    if (gp == null && c.grade) {
+                        const gClean = String(c.grade).trim().toUpperCase();
+                        const gMap = { 'S': 10, 'O': 10, 'A+': 9, 'A': 8, 'B+': 7, 'B': 6, 'C+': 6, 'C': 5, 'D': 6, 'E': 5, 'P': 5 };
+                        if (gMap[gClean] !== undefined) gp = gMap[gClean];
+                    }
+                    if (gp != null) {
+                        cr += cCr;
+                        cp += cCr * gp;
+                    }
+                    const gStr = String(c.grade || '');
+                    if (gStr.startsWith('RA') || gStr.startsWith('0 ') || gStr.toUpperCase() === 'U' || (c.result && c.result.toLowerCase() === 'fail')) {
+                        hasRA = true;
+                    }
+                }
+            });
+            semwiseGPA[s] = hasRA ? 'RA' : (cr > 0 ? +(cp / cr).toFixed(2) : 0);
+            semwiseCredits[s] = cr;
+        }
+    });
+
+    const sortedSems = Object.keys(sems).sort((a, b) => a - b);
+    const activeSem = gpaData.latest_sem || (sortedSems.length ? sortedSems[sortedSems.length - 1] : 1);
+
+    if (creditsEl && semwiseCredits[activeSem]) {
+        const sCount = (sems[activeSem] || []).length;
+        creditsEl.textContent = `${semwiseCredits[activeSem]} Credits • ${sCount} Courses`;
+    }
+
+    // Render sem-wise GPA chips in Results panel
+    if (resultsChipsWrapper && resultsChipsList) {
+        if (sortedSems.length > 0) {
+            let chipsHtml = '';
+            const overallCGPA = (state.academics.cgpa && state.academics.cgpa.cgpa) || gpaData.overall_cgpa;
+            if (overallCGPA) {
+                chipsHtml += `<button type="button" data-sem="all" onclick="selectSemesterGPA('all')" class="results-sem-chip flex flex-col items-center px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:scale-105 active:scale-95 transition-all cursor-pointer">
+                    <span class="text-[8px] font-black uppercase tracking-widest opacity-60">Overall</span>
+                    <span class="text-xs font-black leading-tight">${overallCGPA}</span>
+                </button>`;
+            }
+            sortedSems.forEach(s => {
+                const sGPA = semwiseGPA[s] !== undefined ? semwiseGPA[s] : '--';
+                const g = parseFloat(sGPA);
+                const isRA = sGPA === 'RA' || isNaN(g);
+                const color = isRA ? 'text-rose-400 bg-rose-500/10 border-rose-500/20'
+                            : g >= 8.5 ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                            : g >= 7   ? 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20'
+                            : g >= 5   ? 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+                            :            'text-rose-400 bg-rose-500/10 border-rose-500/20';
+                chipsHtml += `<button type="button" data-sem="${s}" onclick="selectSemesterGPA(${s})" class="results-sem-chip flex flex-col items-center px-3 py-1.5 rounded-xl border ${color} hover:scale-105 active:scale-95 transition-all cursor-pointer">
+                    <span class="text-[8px] font-black uppercase tracking-widest opacity-60">Sem ${s}</span>
+                    <span class="text-xs font-black leading-tight">${sGPA}</span>
+                </button>`;
+            });
+            resultsChipsList.innerHTML = chipsHtml;
+            resultsChipsWrapper.classList.remove('hidden');
+
+            // Set initial active ring
+            const activeBtn = resultsChipsList.querySelector(`[data-sem="${activeSem}"]`);
+            if (activeBtn) {
+                activeBtn.classList.add('ring-2', 'ring-indigo-400', 'scale-105', 'bg-indigo-500/25', 'border-indigo-400');
+            }
+        } else {
+            resultsChipsWrapper.classList.add('hidden');
+        }
+    }
 
     let html = '';
     Object.keys(sems).sort((a, b) => b - a).forEach(sem => {
-        html += `<div class="mb-4"><p class="text-[9px] font-black text-indigo-400 uppercase tracking-widest px-1 mb-2">Semester ${sem}</p><div class="bg-black/20 rounded-3xl p-2 border border-white/5 space-y-1">`;
+        const sGPA = semwiseGPA[sem] !== undefined ? semwiseGPA[sem] : '--';
+        const sCr = semwiseCredits[sem] !== undefined ? semwiseCredits[sem] : sems[sem].reduce((sum, c) => sum + (parseInt(c.credits) || 0), 0);
+        const g = parseFloat(sGPA);
+        const isRA = sGPA === 'RA' || isNaN(g);
+        const badgeColor = isRA ? 'text-rose-400 bg-rose-500/10 border-rose-500/20'
+                         : g >= 8.5 ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                         : g >= 7   ? 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20'
+                         : g >= 5   ? 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+                         :            'text-rose-400 bg-rose-500/10 border-rose-500/20';
+
+        html += `
+        <div class="mb-5" id="sem-section-${sem}">
+            <div class="flex items-center justify-between px-1 mb-2">
+                <div class="flex items-center gap-2">
+                    <p class="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Semester ${sem}</p>
+                    <span class="text-[9px] font-bold text-gray-500 bg-white/5 px-2 py-0.5 rounded-md border border-white/5">${sCr} Credits</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-[8px] font-bold text-gray-500 uppercase tracking-wider">SGPA</span>
+                    <span class="text-xs font-black ${badgeColor} px-2.5 py-0.5 rounded-xl border">${sGPA}</span>
+                </div>
+            </div>
+            <div class="bg-black/20 rounded-3xl p-2 border border-white/5 space-y-1">`;
+
         sems[sem].forEach(c => {
             const gradeStr = c.grade || '--';
-            const isPass = c.result === 'Pass';
+            const gClean = String(c.grade || '').trim().toUpperCase();
+            const isPass = c.result === 'Pass' || (c.grade && !gClean.startsWith('RA') && gClean !== 'U' && !gClean.startsWith('0 ') && (!c.result || c.result.toLowerCase() !== 'fail'));
+            const isArrear = !isPass || gClean.startsWith('RA') || gClean === 'U' || (c.result && c.result.toLowerCase() === 'fail');
+            const isNonCgpa = (parseInt(c.credits, 10) === 0 || c.credits === '0' || c.credits === 0);
+            const catBadge = c.category ? `<span class="text-[8px] font-black ${isNonCgpa ? 'text-amber-400/90 bg-amber-500/10 border-amber-500/20' : 'text-indigo-400/80 bg-indigo-500/10 border-indigo-500/20'} px-1.5 py-0.5 rounded border">${c.category}</span>` : '';
+            const nonCgpaBadge = isNonCgpa ? `<span class="text-[8px] font-black text-gray-400 bg-white/5 px-1.5 py-0.5 rounded border border-white/10">NON-CGPA</span>` : '';
+            const arrearBadge = isArrear ? `<span class="text-[8px] font-black text-rose-400 bg-rose-500/20 border border-rose-500/30 px-1.5 py-0.5 rounded uppercase tracking-wider">ARREAR</span>` : '';
+            
+            let effectiveGP = c.grade_points;
+            if (effectiveGP == null && !isNonCgpa && c.grade) {
+                const gMap = { 'S': 10, 'O': 10, 'A+': 9, 'A': 8, 'B+': 7, 'B': 6, 'C+': 6, 'C': 5, 'D': 6, 'E': 5, 'P': 5 };
+                if (gMap[gClean] !== undefined) effectiveGP = gMap[gClean];
+            }
+            const gpBadge = (effectiveGP !== null && effectiveGP !== undefined && !isNonCgpa) ? `<span class="text-[9px] text-gray-400 font-bold ml-1">(${effectiveGP} GP)</span>` : '';
+
             html += `
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-2xl hover:bg-white/5 transition-colors gap-2">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-2xl ${isArrear ? 'bg-rose-950/20 border border-rose-500/30' : 'hover:bg-white/5'} transition-colors gap-2">
                 <div class="flex-1 pr-2">
                     <p class="text-[11px] sm:text-xs font-bold text-white mb-0.5 leading-snug">${c.title}</p>
-                    <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wider">${c.course} • ${c.credits || 0} CR</p>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="text-[9px] text-gray-500 font-bold uppercase tracking-wider">${c.course} • ${c.credits || 0} CR</span>
+                        ${catBadge}
+                        ${nonCgpaBadge}
+                        ${arrearBadge}
+                    </div>
                 </div>
                 <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end mt-1 sm:mt-0 pt-2 sm:pt-0 border-t border-white/5 sm:border-t-0">
-                    <div class="bg-white/5 px-3 py-1.5 rounded-lg border border-white/10 min-w-[70px] text-center">
-                        <span class="text-xs font-black text-indigo-300">${gradeStr}</span>
+                    <div class="${isArrear ? 'bg-rose-500/20 border border-rose-500/30' : 'bg-white/5 border border-white/10'} px-3 py-1.5 rounded-lg min-w-[70px] text-center">
+                        <span class="text-xs font-black ${isArrear ? 'text-rose-400' : gradeStr === 'Completed' ? 'text-emerald-400' : 'text-indigo-300'}">${gradeStr}</span>
+                        ${gpBadge}
                     </div>
                     ${c.result ? `
-                    <div class="${isPass ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-rose-500/10 border-rose-500/20'} px-3 py-1.5 rounded-lg border">
+                    <div class="${isPass ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-rose-500/20 border-rose-500/30'} px-3 py-1.5 rounded-lg border">
                         <span class="text-[10px] font-bold ${isPass ? 'text-emerald-400' : 'text-rose-400'} uppercase tracking-wider">${c.result}</span>
                     </div>` : ''}
                 </div>
@@ -3607,14 +4053,16 @@ function renderCGPA(cgpaData) {
         if (semData.length > 0) {
             semChipsList.innerHTML = semData.map(d => {
                 const g = parseFloat(d.sgpa);
-                const color = g >= 8.5 ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                const isRA = d.sgpa === 'RA' || isNaN(g) || d.has_ra;
+                const color = isRA ? 'text-rose-400 bg-rose-500/10 border-rose-500/20'
+                            : g >= 8.5 ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
                             : g >= 7   ? 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20'
                             : g >= 5   ? 'text-amber-400 bg-amber-500/10 border-amber-500/20'
                             :            'text-rose-400 bg-rose-500/10 border-rose-500/20';
-                return `<div class="flex flex-col items-center px-3 py-1.5 rounded-xl border ${color}">
+                return `<button type="button" onclick="switchAcadTab('results'); setTimeout(() => selectSemesterGPA(${d.sem}), 120)" class="flex flex-col items-center px-3 py-1.5 rounded-xl border ${color} hover:scale-105 active:scale-95 transition-all cursor-pointer">
                     <span class="text-[8px] font-black uppercase tracking-widest opacity-60">S${d.sem}</span>
                     <span class="text-xs font-black leading-tight">${d.sgpa}</span>
-                </div>`;
+                </button>`;
             }).join('');
             semChipsWrapper.classList.remove('hidden');
         } else {
@@ -3630,11 +4078,15 @@ function renderCGPA(cgpaData) {
         const minGPA = 5, maxGPA = 10;
 
         const toX = (i) => padX + (i / Math.max(semData.length - 1, 1)) * innerW;
-        const toY = (g) => padY + (1 - (Math.max(g, minGPA) - minGPA) / (maxGPA - minGPA)) * innerH;
+        const toY = (g) => {
+            const num = parseFloat(g);
+            const val = isNaN(num) ? minGPA : Math.min(Math.max(num, minGPA), maxGPA);
+            return padY + (1 - (val - minGPA) / (maxGPA - minGPA)) * innerH;
+        };
 
         // Build paths
-        const sgpaPoints = semData.map((d, i) => `${toX(i)},${toY(d.sgpa)}`).join(' ');
-        const cgpaPoints = semData.map((d, i) => `${toX(i)},${toY(d.cgpa)}`).join(' ');
+        const sgpaPoints = semData.map((d, i) => `${toX(i)},${toY(d.sgpa_numeric !== undefined ? d.sgpa_numeric : d.sgpa)}`).join(' ');
+        const cgpaPoints = semData.map((d, i) => `${toX(i)},${toY(d.cgpa_numeric !== undefined ? d.cgpa_numeric : d.cgpa)}`).join(' ');
 
         // Grid lines at 6, 7, 8, 9, 10
         const gridLines = [6, 7, 8, 9, 10].map(g => {
@@ -3644,8 +4096,8 @@ function renderCGPA(cgpaData) {
         }).join('');
 
         // Dots
-        const sgpaDots = semData.map((d, i) => `<circle cx="${toX(i)}" cy="${toY(d.sgpa)}" r="3.5" fill="#6366f1"/>`).join('');
-        const cgpaDots = semData.map((d, i) => `<circle cx="${toX(i)}" cy="${toY(d.cgpa)}" r="3.5" fill="#10B981"/>`).join('');
+        const sgpaDots = semData.map((d, i) => `<circle cx="${toX(i)}" cy="${toY(d.sgpa_numeric !== undefined ? d.sgpa_numeric : d.sgpa)}" r="3.5" fill="#6366f1"/>`).join('');
+        const cgpaDots = semData.map((d, i) => `<circle cx="${toX(i)}" cy="${toY(d.cgpa_numeric !== undefined ? d.cgpa_numeric : d.cgpa)}" r="3.5" fill="#10B981"/>`).join('');
 
         // Sem labels
         const semLabels = semData.map((d, i) => `<text x="${toX(i)}" y="${H - 2}" font-size="7" fill="rgba(255,255,255,0.25)" text-anchor="middle">S${d.sem}</text>`).join('');
@@ -3671,24 +4123,32 @@ function renderCGPA(cgpaData) {
     if (semList && semData.length > 0) {
         semList.innerHTML = '';
         semData.forEach(d => {
-            const gpaColor = d.cgpa >= 8.5 ? 'text-emerald-400' : d.cgpa >= 7 ? 'text-indigo-400' : d.cgpa >= 5 ? 'text-amber-400' : 'text-rose-400';
+            const isCgpaRA = d.cgpa === 'RA';
+            const isSgpaRA = d.sgpa === 'RA';
+            const cgpaVal = parseFloat(d.cgpa);
+            const gpaColor = isCgpaRA ? 'text-rose-400' : cgpaVal >= 8.5 ? 'text-emerald-400' : cgpaVal >= 7 ? 'text-indigo-400' : cgpaVal >= 5 ? 'text-amber-400' : 'text-rose-400';
+            const sgpaColor = isSgpaRA ? 'text-rose-400' : 'text-indigo-300';
+
             semList.innerHTML += `
             <div class="glass-panel rounded-[24px] p-5 flex items-center justify-between">
                 <div>
-                    <p class="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-1">Semester ${d.sem}</p>
-                    <div class="flex gap-4">
+                    <div class="flex items-center gap-2 mb-1">
+                        <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Semester ${d.sem}</p>
+                        ${d.credits ? `<span class="text-[8px] font-bold text-gray-500 bg-white/5 px-2 py-0.5 rounded-md border border-white/5">${d.credits} CR</span>` : ''}
+                    </div>
+                    <div class="flex gap-4 items-center mt-2">
                         <div>
-                            <span class="text-[8px] font-bold text-indigo-400/60 block uppercase">SGPA</span>
-                            <span class="text-lg font-black text-indigo-300">${d.sgpa}</span>
+                            <span class="text-[8px] font-black text-indigo-400/80 block uppercase tracking-wider">SGPA</span>
+                            <span class="text-lg font-black ${sgpaColor}">${d.sgpa}</span>
                         </div>
-                        <div class="w-px bg-white/5"></div>
+                        <div class="w-px h-7 bg-white/10"></div>
                         <div>
-                            <span class="text-[8px] font-bold text-emerald-400/60 block uppercase">CGPA</span>
+                            <span class="text-[8px] font-black text-emerald-400/80 block uppercase tracking-wider">CGPA</span>
                             <span class="text-lg font-black ${gpaColor}">${d.cgpa}</span>
                         </div>
                     </div>
                 </div>
-                <div class="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-gray-500 text-sm font-black">S${d.sem}</div>
+                <button type="button" onclick="switchAcadTab('results'); setTimeout(() => selectSemesterGPA(${d.sem}), 120)" class="w-11 h-11 rounded-2xl bg-white/5 border border-white/5 hover:bg-indigo-500/20 hover:border-indigo-500/30 flex items-center justify-center text-gray-400 hover:text-indigo-300 text-xs font-black transition-all cursor-pointer" title="View Semester ${d.sem} Courses">S${d.sem}</button>
             </div>`;
         });
     } else if (semList) {
@@ -3701,56 +4161,56 @@ function renderCGPA(cgpaData) {
     const iconEl = document.getElementById('degree-class-icon');
     const progressEl = document.getElementById('degree-class-progress');
 
-    if (labelEl && cgpa && cgpa !== 'RA') {
-        const cgpaNum = parseFloat(cgpa);
+    if (labelEl && cgpaData) {
         const allSubs = cgpaData.all_subjects || [];
-        const hasAnyRA = allSubs.some(s => s.grade === 'RA' || s.grade === 'U');
+        const activeArrears = allSubs.filter(s => {
+            const gClean = String(s.grade || '').trim().toUpperCase();
+            const isPass = s.result === 'Pass' || (s.grade && !gClean.startsWith('RA') && gClean !== 'U' && !gClean.startsWith('0 ') && (!s.result || s.result.toLowerCase() !== 'fail'));
+            return !isPass || gClean.startsWith('RA') || gClean === 'U' || (s.result && s.result.toLowerCase() === 'fail');
+        });
+        const hasAnyRA = activeArrears.length > 0 || cgpa === 'RA';
+        const rawCgpaNum = parseFloat(cgpaData.overall_cgpa_numeric || (cgpa !== 'RA' ? cgpa : null));
+        const cgpaNum = isNaN(rawCgpaNum) ? 0 : rawCgpaNum;
 
         let label, sub, icon, progressMsg, borderColor;
 
-        if (cgpaNum >= 8.5 && !hasAnyRA) {
+        if (hasAnyRA) {
+            label = 'Pending Arrear(s)';
+            sub = `${activeArrears.length} course(s) pending examination clearance`;
+            icon = '⚠️';
+            borderColor = '#EF4444';
+            progressMsg = `<span class="text-rose-400 font-bold">Active Arrear Notice:</span> You have <b>${activeArrears.length} pending arrear(s)</b> (${activeArrears.map(a => `<b class="text-white">${a.course}</b>`).join(', ') || 'RA in past semester'}). Clear these courses in upcoming examination cycles to qualify for First Class degree classification.`;
+        } else if (cgpaNum >= 8.5) {
             label = 'First Class with Distinction';
-            sub = 'On track — CGPA ≥ 8.50, no backlogs';
+            sub = 'On track — Absolute CGPA ≥ 8.50, no arrears';
             icon = '🏆';
             borderColor = '#10B981';
             if (cgpaNum < 9) {
                 const gap = (9.0 - cgpaNum).toFixed(2);
-                progressMsg = `You are <b>${gap} CGPA points</b> below a perfect 9.0 on track. Maintain consistent performance to stay in Distinction.`;
+                progressMsg = `You are <b>${gap} CGPA points</b> below a 9.0 target. Maintain consistent absolute performance to graduate with Distinction.`;
             } else {
-                progressMsg = `Outstanding! Keep this up to finish strong.`;
+                progressMsg = `Outstanding performance! Distinction status maintained with no backlogs.`;
             }
-        } else if (cgpaNum >= 6.5 && !hasAnyRA) {
+        } else if (cgpaNum >= 6.5) {
             label = 'First Class';
-            sub = 'On track — CGPA ≥ 6.50, no backlogs';
+            sub = 'On track — Absolute CGPA ≥ 6.50, no arrears';
             icon = '⭐';
             borderColor = '#6366f1';
             const gap = (8.5 - cgpaNum).toFixed(2);
             progressMsg = `You need <b>${gap} more CGPA points</b> to reach First Class with Distinction (≥ 8.50).`;
         } else if (cgpaNum >= 5.0) {
             label = 'Second Class';
-            sub = cgpaNum < 6.5 ? 'CGPA below 6.5 for First Class' : 'Has backlog courses — affects classification';
+            sub = 'CGPA ≥ 5.00 — Minimum graduation standard met';
             icon = '📘';
             borderColor = '#F59E0B';
             const gap = (6.5 - cgpaNum).toFixed(2);
-            if (cgpaNum < 6.5) {
-                progressMsg = `You need <b>${gap} more CGPA points</b> to cross into First Class (≥ 6.50).`;
-            } else {
-                progressMsg = `Clear all backlog (RA/U) courses to be eligible for First Class classification.`;
-            }
+            progressMsg = `You need <b>${gap} more CGPA points</b> to cross into First Class (≥ 6.50).`;
         } else {
             label = 'At Risk';
             sub = 'CGPA below minimum qualification threshold';
             icon = '⚠️';
             borderColor = '#EF4444';
-            progressMsg = `CGPA is below 5.0. Focus on clearing all pending courses to qualify for degree award.`;
-        }
-
-        if (hasAnyRA && cgpaNum >= 6.5) {
-            label = 'Second Class (Backlog)';
-            sub = 'Has RA/U courses — First Class not yet eligible';
-            icon = '📘';
-            borderColor = '#F59E0B';
-            progressMsg = `Clear all RA/U courses to be reclassified as First Class or First Class with Distinction.`;
+            progressMsg = `CGPA is below 5.0. Focus on clearing courses in upcoming semester exams to raise your standing.`;
         }
 
         labelEl.textContent = label;
@@ -3769,7 +4229,7 @@ function renderCGPA(cgpaData) {
 // Call this to refresh academics data manually
 function refreshAcademics() {
     state.academics = { internals: null, gpa: null, cgpa: null, loaded: false };
-    loadAcademics();
+    loadAcademics(true);
 }
 
 // UI Beautification Helpers

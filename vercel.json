@@ -1,4 +1,6 @@
 {
+  "version": 2,
+  "cleanUrls": true,
   "functions": {
     "api/index.py": {
       "maxDuration": 10
@@ -16,6 +18,10 @@
     {
       "source": "/manifest.json",
       "destination": "/static/manifest.json"
+    },
+    {
+      "source": "/sw.js",
+      "destination": "/static/sw.js"
     },
     {
       "source": "/robots.txt",
@@ -48,6 +54,32 @@
   ],
   "headers": [
     {
+      "source": "/(sw\\.js|static/sw\\.js)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
+      ]
+    },
+    {
+      "source": "/(manifest\\.json|static/manifest\\.json)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json"
+        }
+      ]
+    },
+    {
       "source": "/static/(.*)",
       "headers": [
         {
@@ -57,24 +89,11 @@
       ]
     },
     {
-      "source": "/manifest.json",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/json"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=86400"
-        }
-      ]
-    },
-    {
       "source": "/(index\\.html|calendar\\.html|calendar)?",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, s-maxage=300, stale-while-revalidate=600"
+          "value": "public, max-age=0, must-revalidate"
         }
       ]
     },
@@ -83,7 +102,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, s-maxage=3600, stale-while-revalidate=7200"
+          "value": "public, s-maxage=7200, stale-while-revalidate=14400"
         }
       ]
     },
@@ -92,7 +111,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, s-maxage=60"
+          "value": "public, s-maxage=300"
         }
       ]
     },

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-perf="high">
+<html lang="en" data-perf="low">
 
 <head>
     <meta charset="UTF-8">
@@ -42,10 +42,11 @@
                 const saveData = navigator.connection && navigator.connection.saveData;
                 const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
                 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                const isAndroid = /Android/i.test(navigator.userAgent);
 
-                if (reducedMotion || saveData || (ram && ram <= 4) || (cores && cores <= 4)) {
+                if (reducedMotion || saveData || (ram && ram <= 4) || (cores && cores <= 4) || (isAndroid && (!ram || ram <= 6))) {
                     perf = 'low';
-                } else if (isIOS || (ram && ram > 4) || (cores && cores > 4)) {
+                } else if (isIOS || (ram && ram > 4)) {
                     perf = 'high';
                 } else {
                     perf = 'low';

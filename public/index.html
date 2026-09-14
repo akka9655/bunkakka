@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-perf="high">
+<html lang="en" data-perf="low">
 
 <head>
     <meta charset="UTF-8">
@@ -196,7 +196,7 @@
         }
     </script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <script defer src="/static/app.js?v=3.5.2"></script>
+    <script defer src="/static/app.js?v=3.5.8"></script>
     <script defer src="/static/legal.js?v=1.0.1"></script>
 
     <script>
@@ -327,13 +327,17 @@
                 const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
                 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
+                const isAndroid = /Android/i.test(navigator.userAgent);
                 if (reducedMotion || saveData) {
                     perf = 'low';
                 } else if (ram && ram <= 4) {
                     perf = 'low';
                 } else if (cores && cores <= 4) {
                     perf = 'low';
-                } else if (isIOS || (ram && ram > 4) || (cores && cores > 4)) {
+                } else if (isAndroid && (!ram || ram <= 6)) {
+                    // Budget and mid-range Android devices: default to solid, silky-smooth 60fps mode without heavy blurs
+                    perf = 'low';
+                } else if (isIOS || (ram && ram > 4)) {
                     perf = 'high';
                 } else {
                     perf = 'low'; // Safe 60fps default for unknown/low devices
@@ -931,7 +935,7 @@
                         <div class="glass-panel rounded-[32px] p-6 border-l-4 border-emerald-500">
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <p class="text-[9px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-1">Semester GPA</p>
+                                    <p class="text-[9px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-1" id="gpa-hero-title">Semester GPA</p>
                                     <div class="flex items-end gap-2">
                                         <span class="text-4xl font-black text-white leading-none" id="gpa-value">--</span>
                                         <span class="text-gray-500 text-xs font-bold mb-1">/10</span>
@@ -941,6 +945,14 @@
                                 <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
                                     <i class="fas fa-star text-xl text-emerald-400"></i>
                                 </div>
+                            </div>
+                            <!-- Sem-wise GPA chips in Results -->
+                            <div id="results-sem-chips" class="hidden pt-3 mt-4 border-t border-white/5">
+                                <div class="flex items-center justify-between mb-2">
+                                    <p class="text-[8px] font-black text-gray-500 uppercase tracking-widest">Select Semester</p>
+                                    <span class="text-[8px] font-bold text-gray-600">Tap to inspect</span>
+                                </div>
+                                <div id="results-sem-chips-list" class="flex flex-wrap gap-2"></div>
                             </div>
                         </div>
 
@@ -968,10 +980,9 @@
                         <!-- Sem-by-Sem Breakdown -->
                         <div id="cgpa-semlist" class="space-y-3"></div>
 
-
                         <!-- Full Subject List -->
                         <div class="pt-2">
-                            <h3 class="font-bold text-lg text-white tracking-tight mb-3 px-1">Recent Semester</h3>
+                            <h3 class="font-bold text-lg text-white tracking-tight mb-3 px-1">Semester Courses & Grades</h3>
                             <div id="gpa-table" class="space-y-2"></div>
                         </div>
                     </div>
