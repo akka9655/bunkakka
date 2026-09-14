@@ -99,17 +99,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (window.pwaManager) updateInstallUI();
 
-    // Dismiss splash screen and reveal app
+    // Dismiss splash screen and reveal app (instant 200ms for returning users)
+    const isReturning = !!(savedCreds && savedRoll && cachedSubjects);
     setTimeout(() => {
         const splash = document.getElementById('premium-splash');
         const app = document.getElementById('app');
         if (splash) {
+            splash.style.transition = 'opacity 0.25s ease';
             splash.style.opacity = '0';
             splash.style.pointerEvents = 'none';
-            setTimeout(() => splash.remove(), 700);
+            setTimeout(() => splash.remove(), 250);
         }
         if (app) app.style.opacity = '1';
-    }, 1200); // 1.2s delay for the animation to play out
+    }, isReturning ? 200 : 700);
 });
 
 async function backgroundSync(roll, password) {
@@ -1717,6 +1719,7 @@ function renderSubjects() {
         }
     }
 
+    const fragment = document.createDocumentFragment();
     state.subjects.forEach((raw, i) => {
         const sub = getSubjectStats(raw.code);
         if (!sub) return; // Skip subjects that can't be resolved
@@ -1780,8 +1783,9 @@ function renderSubjects() {
                     </button>
                 </div>
             </div>`;
-        c.appendChild(d);
+        fragment.appendChild(d);
     });
+    c.appendChild(fragment);
 }
 function renderWidgets() {
     const today = getToday(); today.setHours(0, 0, 0, 0);
