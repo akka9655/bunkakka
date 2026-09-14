@@ -2535,32 +2535,47 @@ function deleteManual(id) {
 }
 
 function switchTab(id, index) {
-    // Get current active tab
+    // Subtle tactile feedback on supported devices (Android Chrome/WebView)
+    try {
+        if (window.navigator && typeof window.navigator.vibrate === 'function') {
+            window.navigator.vibrate(8);
+        }
+    } catch (_) {}
+
+    // Get current active tab and target tab
     const currentTab = document.querySelector('.tab-content.active');
     const newTab = document.getElementById(`tab-${id}`);
 
-    // If switching to the same tab, do nothing
-    if (currentTab === newTab) return;
-
-    if (currentTab) {
-        currentTab.classList.remove('active');
-        currentTab.style.opacity = '';
-        currentTab.style.transform = '';
-    }
-    if (newTab) {
-        newTab.classList.add('active');
-        newTab.style.opacity = '';
-        newTab.style.transform = '';
-    }
-
-    const mainContent = document.getElementById('main-content');
-    if (mainContent) mainContent.scrollTop = 0;
-
-    // New Nav Logic
+    // Update navigation items active class
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(e => e.classList.remove('active'));
     const targetNav = document.getElementById(`nav-${id}`);
     if (targetNav) targetNav.classList.add('active');
+
+    // Smoothly position dock glow via GPU transform
+    updateNavGlow(id);
+
+    // If already on this tab, smoothly scroll to top (like native mobile apps)
+    if (currentTab === newTab) {
+        const mainContent = document.getElementById('main-content');
+        if (mainContent) {
+            mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        return;
+    }
+
+    // Switch active tab view
+    if (currentTab) {
+        currentTab.classList.remove('active');
+    }
+    if (newTab) {
+        newTab.classList.add('active');
+    }
+
+    const mainContent = document.getElementById('main-content');
+    if (mainContent) {
+        mainContent.scrollTop = 0;
+    }
 
     let t = "Dashboard";
     if (id === 'home') { const td = getToday(); const ev = ACADEMIC_DATA.fullCalendar.find(e => new Date(e.date).toDateString() === td.toDateString()); if (ev) t = ev.type === 'Holiday' ? "Holiday! 🌴" : ev.type === 'Exam' ? "Exam Day! 🍀" : "Busy Day! 📚"; else if (td.getDay() === 0 || td.getDay() === 6) t = "Weekend Vibes 🎉"; }
@@ -2575,8 +2590,8 @@ function switchTab(id, index) {
             switchAcadTab(acadActiveTab);
         }
     }
-    document.getElementById('greeting-text').innerText = t;
-    updateNavGlow(id);
+    const greetingEl = document.getElementById('greeting-text');
+    if (greetingEl) greetingEl.innerText = t;
 }
 function togglePassword() { const i = document.getElementById('password'); i.type = i.type === 'password' ? 'text' : 'password'; }
 
@@ -4260,23 +4275,36 @@ function updateNavGlow(tabId) {
     requestAnimationFrame(() => {
         const activeItem = document.getElementById(`nav-${tabId}`);
         const glow = document.getElementById('nav-dock-glow');
-        if (activeItem && glow) {
-            glow.style.transform = 'scale(1)';
-            const left = activeItem.offsetLeft;
-            const width = activeItem.offsetWidth;
-            const height = activeItem.offsetHeight;
-            glow.style.left = `${left + width/2 - glow.offsetWidth/2}px`;
-            glow.style.top = `${activeItem.offsetTop + height/2 - glow.offsetHeight/2}px`;
-            
-            // Dynamically change color based on tab
-            let glowColor = 'rgba(99, 102, 241, 0.4)'; // Default Indigo (Home)
-            if (tabId === 'academics') glowColor = 'rgba(168, 85, 247, 0.4)'; // Purple
-            else if (tabId === 'calendar') glowColor = 'rgba(249, 115, 22, 0.4)'; // Orange
-            else if (tabId === 'planner') glowColor = 'rgba(16, 185, 129, 0.4)'; // Emerald
-            glow.style.backgroundColor = glowColor;
-        }
+        if (!activeItem || !glow) return;
+
+        const dock = activeItem.parentElement;
+        if (!dock) return;
+
+        const itemRect = activeItem.getBoundingClientRect();
+        const dockRect = dock.getBoundingClientRect();
+
+        const x = (itemRect.left - dockRect.left) + (itemRect.width / 2) - (glow.offsetWidth / 2);
+        const y = (itemRect.top - dockRect.top) + (itemRect.height / 2) - (glow.offsetHeight / 2);
+
+        glow.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0) scale(1)`;
+        glow.style.opacity = '1';
+
+        // Dynamically change color based on tab with smooth transitions
+        let glowColor = 'rgba(99, 102, 241, 0.45)'; // Default Indigo (Home)
+        if (tabId === 'academics') glowColor = 'rgba(168, 85, 247, 0.45)'; // Purple (Marks)
+        else if (tabId === 'calendar') glowColor = 'rgba(249, 115, 22, 0.45)'; // Orange (Calendar)
+        else if (tabId === 'planner') glowColor = 'rgba(16, 185, 129, 0.45)'; // Emerald (Tracker)
+        glow.style.backgroundColor = glowColor;
     });
 }
+
+// Keep dock glow perfectly aligned on screen resize or orientation change
+window.addEventListener('resize', () => {
+    const activeNav = document.querySelector('.nav-item.active');
+    if (activeNav && activeNav.id) {
+        updateNavGlow(activeNav.id.replace('nav-', ''));
+    }
+}, { passive: true });
 
 function showLoadingScreen(roll) {
     const screen = document.getElementById('login-loading-screen');

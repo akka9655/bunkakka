@@ -717,6 +717,7 @@
             listEl.innerHTML = html;
         }
 
+        drawer.style.display = 'flex';
         drawer.classList.remove('hidden');
         requestAnimationFrame(() => {
             drawer.classList.add('open');
@@ -730,6 +731,7 @@
         setTimeout(() => {
             if (!drawer.classList.contains('open')) {
                 drawer.classList.add('hidden');
+                drawer.style.display = 'none';
             }
         }, 250);
     }

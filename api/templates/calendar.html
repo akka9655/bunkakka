@@ -24,10 +24,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
 
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="/static/calendar.css?v=2.1.1">
+    <link rel="stylesheet" href="/static/calendar.css?v=3.5.1">
 
     <!-- Performance Optimization Script (Instant 60fps on all phones) -->
     <script>
@@ -299,7 +299,7 @@
     <!-- ================================================================= -->
     <!-- MODAL: DAY DETAIL BOTTOM SHEET / DRAWER (MOBILE OPTIMIZED)        -->
     <!-- ================================================================= -->
-    <div id="day-detail-drawer" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity duration-200">
+    <div id="day-detail-drawer" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity duration-200" style="display: none;">
         <!-- Backdrop Tap -->
         <div class="absolute inset-0" onclick="window.calendarApp.closeDayDetail()"></div>
 
@@ -324,7 +324,7 @@
             </div>
 
             <!-- Event Mode Conflict Summary (if Event Mode is active) -->
-            <div id="drawer-conflict-banner" class="hidden mb-3 p-3 rounded-xl border text-xs">
+            <div id="drawer-conflict-banner" class="hidden mb-3 p-3 rounded-xl border text-xs" style="display: none;">
                 <!-- Injected dynamically -->
             </div>
 
@@ -336,7 +336,7 @@
     </div>
 
     <!-- Calendar JavaScript Engine -->
-    <script src="/static/calendar.js?v=2.1.1"></script>
+    <script src="/static/calendar.js?v=3.5.1"></script>
 </body>
 
 </html>

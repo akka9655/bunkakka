@@ -177,7 +177,7 @@
     
     <!-- CSS & Scripts -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/static/style.css?v=3.5.2">
+    <link rel="stylesheet" href="/static/style.css?v=3.5.3">
     <script>
         window.tailwind = {
             config: {
@@ -200,7 +200,7 @@
     </script>
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <script defer src="/static/app.js?v=3.6.1"></script>
+    <script defer src="/static/app.js?v=3.6.2"></script>
     <script defer src="/static/legal.js?v=1.0.1"></script>
 
     <script>
@@ -999,7 +999,7 @@
             <div class="nav-dock-container">
                 <nav class="nav-dock relative">
                     <!-- Dynamic Sliding Glow Indicator -->
-                    <div id="nav-dock-glow" class="absolute -z-10 w-14 h-14 rounded-full blur-2xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] pointer-events-none" style="background:radial-gradient(circle,rgba(139,92,246,0.5),rgba(99,102,241,0.3));left:8px;top:10px;transform:scale(0);"></div>
+                    <div id="nav-dock-glow" class="absolute -z-10 w-14 h-14 rounded-full blur-2xl pointer-events-none" style="background: radial-gradient(circle, rgba(139,92,246,0.5), rgba(99,102,241,0.3)); left: 0; top: 0; transform: translate3d(0,0,0) scale(0); will-change: transform, opacity; transition: transform 0.32s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.3s ease, opacity 0.3s ease;"></div>
                     <div class="nav-item active" onclick="switchTab('home', 0)" id="nav-home">
                         <i class="fas fa-th-large"></i>
                         <span class="nav-label">Home</span>

@@ -1,13 +1,13 @@
-const CACHE_NAME = 'bunker-cache-v22';
+const CACHE_NAME = 'bunker-cache-v23';
 
 // Precache application shell assets (cached 100% on device for 0ms loads & 0 origin transfer)
 const PRECACHE_ASSETS = [
     '/',
     '/calendar',
-    '/static/style.css?v=3.5.2',
-    '/static/app.js?v=3.6.1',
-    '/static/calendar.css?v=3.5.0',
-    '/static/calendar.js?v=3.5.0',
+    '/static/style.css?v=3.5.3',
+    '/static/app.js?v=3.6.2',
+    '/static/calendar.css?v=3.5.1',
+    '/static/calendar.js?v=3.5.1',
     '/static/legal.js?v=1.0.1',
     '/manifest.json?v=bunker6',
     '/static/icon.png',

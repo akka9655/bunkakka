@@ -401,3 +401,13 @@ select,
         height: 5px;
     }
 }
+
+/* ==========================================================================
+   CRASH-PROOF RESILIENT LAYOUT & SIZING GUARDS
+   ========================================================================== */
+.hidden,
+#day-detail-drawer.hidden,
+#drawer-conflict-banner.hidden,
+[hidden] {
+    display: none !important;
+}
