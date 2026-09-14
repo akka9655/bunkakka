@@ -1529,7 +1529,8 @@ function renderSubjects() {
 
     if (state.subjects.length === 0) {
         // Check if we have cached data for this user
-        const roll = state.rollNumber || localStorage.getItem('bunker_roll');
+        const savedCreds = (() => { try { return JSON.parse(localStorage.getItem('bunker_credentials') || '{}'); } catch { return {}; } })();
+        const roll = state.rollNumber || localStorage.getItem('bunker_roll') || savedCreds.roll;
         let hasCache = false;
         if (roll) {
             const check = (key) => {
@@ -1546,13 +1547,13 @@ function renderSubjects() {
                 || (Array.isArray(state.previousSubjects) && state.previousSubjects.length > 0);
         }
 
-        const hasCreds = !!localStorage.getItem('bunker_credentials');
+        const hasCreds = !!savedCreds.password || !!localStorage.getItem('bunker_credentials');
 
         let cacheBtn = '';
         if (hasCache || hasCreds) {
             cacheBtn = `
                 <button onclick="loadCachedAttendance()" class="mt-6 px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all active:scale-95 flex items-center gap-2.5 mx-auto shadow-lg shadow-indigo-500/30 cursor-pointer">
-                    <i class="fas fa-history text-white"></i> Load Previous Attendance
+                    <i class="fas fa-history text-white"></i> Show Previous Attendance
                 </button>
             `;
         } else {
