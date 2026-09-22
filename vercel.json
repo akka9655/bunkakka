@@ -3,7 +3,8 @@
   "cleanUrls": true,
   "functions": {
     "api/index.py": {
-      "maxDuration": 10
+      "maxDuration": 10,
+      "memory": 512
     }
   },
   "rewrites": [
@@ -52,6 +53,14 @@
       "destination": "/calendar.html"
     },
     {
+      "source": "/feedback",
+      "destination": "/feedback.html"
+    },
+    {
+      "source": "/feedback.html",
+      "destination": "/feedback.html"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/index.py?__vercel_path=api/$1"
     }
@@ -93,7 +102,7 @@
       ]
     },
     {
-      "source": "/(index\\.html|calendar\\.html|calendar)?",
+      "source": "/(index\\.html|calendar\\.html|calendar|feedback\\.html|feedback)?",
       "headers": [
         {
           "key": "Cache-Control",
@@ -115,7 +124,16 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, s-maxage=7200, stale-while-revalidate=14400"
+          "value": "public, s-maxage=86400, stale-while-revalidate=604800"
+        }
+      ]
+    },
+    {
+      "source": "/api/calendar/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800"
         }
       ]
     },

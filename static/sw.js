@@ -1,11 +1,13 @@
-const CACHE_NAME = 'bunker-cache-v23';
+const CACHE_NAME = 'bunker-cache-v28';
+const RUNTIME_CACHE = 'bunker-runtime-v28';
 
-// Precache application shell assets (cached 100% on device for 0ms loads & 0 origin transfer)
+// Precache core UI application shell assets (stored 100% on device for 0ms offline loads)
 const PRECACHE_ASSETS = [
     '/',
     '/calendar',
-    '/static/style.css?v=3.5.3',
-    '/static/app.js?v=3.6.2',
+    '/feedback',
+    '/static/style.css?v=3.5.6',
+    '/static/app.js?v=3.6.6',
     '/static/calendar.css?v=3.5.1',
     '/static/calendar.js?v=3.5.1',
     '/static/legal.js?v=1.0.1',
@@ -17,7 +19,7 @@ const PRECACHE_ASSETS = [
     '/static/favicon.ico'
 ];
 
-// Install: precache only our own assets
+// Install: precache our own application shell immediately
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -27,11 +29,11 @@ self.addEventListener('install', (event) => {
     );
 });
 
-// Activate: clean old caches immediately
+// Activate: clean up older cache generations immediately
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then(keys =>
-            Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+            Promise.all(keys.filter(k => k !== CACHE_NAME && k !== RUNTIME_CACHE).map(k => caches.delete(k)))
         ).then(() => self.clients.claim())
     );
 });
@@ -39,7 +41,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    // 1. API calls: ALWAYS network, never cache UI shell
+    // 1. API calls: ALWAYS network, never serve stale shell for data
     if (url.pathname.startsWith('/api/')) {
         event.respondWith(
             fetch(event.request).catch(() => new Response(
@@ -50,16 +52,41 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 2. Only intercept own origin requests.
-    // Let browser native cache & network handle third-party CDNs (Tailwind, cdnjs, Google Fonts)
-    // without risky service worker opaque caching or invalid response errors.
+    // 2. Third-party UI CDN assets (Tailwind, FontAwesome, Google Fonts, AnimeJS)
+    // Cache on mobile device storage so all fonts, icons & styles work 100% offline & instant
+    const isUiCdn = url.hostname.includes('cdn.tailwindcss.com') ||
+                    url.hostname.includes('cdnjs.cloudflare.com') ||
+                    url.hostname.includes('fonts.googleapis.com') ||
+                    url.hostname.includes('fonts.gstatic.com') ||
+                    url.hostname.includes('cdn.jsdelivr.net');
+
+    if (isUiCdn) {
+        event.respondWith(
+            caches.open(RUNTIME_CACHE).then(cache => {
+                return cache.match(event.request).then(cached => {
+                    if (cached) return cached;
+                    return fetch(event.request).then(networkRes => {
+                        if (networkRes && (networkRes.status === 200 || networkRes.type === 'opaque')) {
+                            cache.put(event.request, networkRes.clone());
+                        }
+                        return networkRes;
+                    }).catch(() => cached || new Response('', { status: 408 }));
+                });
+            })
+        );
+        return;
+    }
+
+    // Only intercept own origin requests for remaining rules
     if (url.origin !== self.location.origin) {
         return;
     }
 
-    // 3. Navigation requests: Cache-first for Instant App Shell (0ms, 0 Vercel function calls)
-    if (event.request.mode === 'navigate' || url.pathname === '/' || url.pathname === '/calendar' || url.pathname === '/index.html' || url.pathname === '/calendar.html') {
-        const targetPath = (url.pathname === '/calendar' || url.pathname === '/calendar.html') ? '/calendar' : '/';
+    // 3. Navigation requests: Cache-First for Instant Mobile UI Shell (0ms, 0 Vercel function calls)
+    if (event.request.mode === 'navigate' || url.pathname === '/' || url.pathname === '/calendar' || url.pathname === '/feedback' || url.pathname === '/index.html' || url.pathname === '/calendar.html' || url.pathname === '/feedback.html') {
+        const targetPath = (url.pathname === '/calendar' || url.pathname === '/calendar.html') ? '/calendar'
+                         : (url.pathname === '/feedback' || url.pathname === '/feedback.html') ? '/feedback'
+                         : '/';
         event.respondWith(
             caches.match(targetPath).then(cached => {
                 if (cached) return cached;

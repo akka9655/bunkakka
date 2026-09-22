@@ -94,7 +94,16 @@ document.addEventListener('DOMContentLoaded', () => {
         // Start background sync
         backgroundSync(savedCreds.roll, savedCreds.password);
     } else {
-        document.getElementById('login-view').classList.remove('hidden');
+        const loginEl = document.getElementById('login-view');
+        const dashEl = document.getElementById('dashboard-view');
+        if (loginEl) {
+            loginEl.classList.remove('hidden');
+            loginEl.style.display = 'flex';
+        }
+        if (dashEl) {
+            dashEl.classList.add('hidden');
+            dashEl.style.display = 'none';
+        }
     }
 
     if (window.pwaManager) updateInstallUI();
@@ -114,7 +123,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }, isReturning ? 200 : 700);
 });
 
-async function backgroundSync(roll, password) {
+async function backgroundSync(roll, password, force = false) {
+    const SYNC_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes cooldown
+    const lastSyncTime = parseInt(localStorage.getItem(`bunker_last_sync_time_${roll}`) || '0');
+    const isFresh = (Date.now() - lastSyncTime) < SYNC_COOLDOWN_MS;
+
+    // If data is already fresh and we have subjects loaded, skip redundant API call
+    if (!force && isFresh && Array.isArray(state.subjects) && state.subjects.length > 0) {
+        showSyncIndicator('done');
+        setTimeout(() => hideSyncIndicator(), 1500);
+        return;
+    }
+
     showSyncIndicator('syncing');
     try {
         const loginResponse = await fetch('/api/login', {
@@ -130,6 +150,9 @@ async function backgroundSync(roll, password) {
             return;
         }
 
+        // Record successful sync time to prevent redundant invocations
+        localStorage.setItem(`bunker_last_sync_time_${roll}`, Date.now().toString());
+
         // Update state with fresh data
         const hasFreshSubjects = Array.isArray(loginData.subjects) && loginData.subjects.length > 0;
         if (hasFreshSubjects) {
@@ -137,10 +160,7 @@ async function backgroundSync(roll, password) {
             state.isViewingPreviousAttendance = false;
             localStorage.setItem('bunker_subjects', JSON.stringify(state.subjects));
             localStorage.setItem(`bunker_subjects_${roll}`, JSON.stringify(state.subjects));
-            localStorage.setItem(`bunker_previous_attendance_${roll}`, JSON.stringify(state.subjects));
-            if (loginData.last_update && loginData.last_update !== "No data") {
-                localStorage.setItem(`bunker_previous_update_${roll}`, loginData.last_update);
-            }
+            saveAttendanceSnapshot(roll, state.subjects, loginData.last_update, loginData.previous_subjects, loginData.previous_last_update);
         } else {
             // Live attendance is currently updating or stopped
             if (Array.isArray(loginData.previous_subjects) && loginData.previous_subjects.length > 0) {
@@ -161,38 +181,42 @@ async function backgroundSync(roll, password) {
         state.college = loginData.college || state.college;
         state.hasCalendar = loginData.has_calendar !== false;
 
-        // Re-apply threshold based on college
-        if (state.college === 'CEG') {
-            state.threshold = loginData.min_attendance || 75;
-        } else {
-            state.threshold = 80;
-        }
+        state.threshold = 80;
 
         // Persist non-subject data
         localStorage.setItem('bunker_timetable', JSON.stringify(state.timetable));
         localStorage.setItem('bunker_course_mapping', JSON.stringify(state.courseMapping));
-        localStorage.setItem('bunker_college', state.college);
-        localStorage.setItem('bunker_has_calendar', state.hasCalendar);
+        localStorage.setItem('bunker_college', 'PSGTECH');
+        localStorage.setItem('bunker_has_calendar', 'true');
         if (loginData.last_update) {
             localStorage.setItem('bunker_last_update', loginData.last_update);
         }
 
-        // Fetch calendar too
-        try {
-            const calRes = await fetch(`/api/calendar/${roll}`);
-            const calData = await calRes.json();
-            if (!calData.error) processCalendarData(calData, roll);
-        } catch { }
+        // Fetch calendar only if not cached or cache is older than 24 hours (saves ~95% calendar function calls)
+        const calCacheKey = `bunker_cal_time_${roll}`;
+        const lastCalTime = parseInt(localStorage.getItem(calCacheKey) || '0');
+        const isCalStale = (Date.now() - lastCalTime) > (24 * 60 * 60 * 1000);
+        const hasCalCache = !!localStorage.getItem('bunker_calendar_cache');
+
+        if (isCalStale || !hasCalCache) {
+            try {
+                const detectedSem = detectCurrentSemesterFromSubjects(state.subjects);
+                const calUrl = detectedSem ? `/api/calendar/${roll}?sem=${detectedSem}` : `/api/calendar/${roll}`;
+                const calRes = await fetch(calUrl);
+                const calData = await calRes.json();
+                if (!calData.error) {
+                    processCalendarData(calData, roll);
+                    localStorage.setItem(calCacheKey, Date.now().toString());
+                }
+            } catch { }
+        }
 
         // Run cleanup with fresh last_update, then refresh UI
         cleanupManualEntries();
         renderSemesterHero(); renderWidgets(); renderSubjects(); initPlanner(); initManual();
 
         // Background revalidate academics after attendance sync
-        // CEG and PSGIAS don't have internals/GPA on their portals
-        if (state.college !== 'PSGIAS' && state.college !== 'CEG') {
-            revalidateAcademicsInBackground();
-        }
+        revalidateAcademicsInBackground();
 
         showSyncIndicator('done');
         setTimeout(() => hideSyncIndicator(), 2500);
@@ -265,7 +289,7 @@ function getLoginErrorMessage(rawError, roll) {
     if (err.includes('invalid roll') || err.includes('roll number format')) {
         return {
             title: 'Unrecognised Roll Number',
-            body: `"${roll}" doesn't match any known PSG Tech, PSG IAS, or CEG format. Check for typos (e.g. 22CSA01 for PSG, 2023103001 for CEG).`
+            body: `"${roll}" is not a recognized PSG Tech roll number (e.g. 22L201, 23MX101).`
         };
     }
     // eCampus returned no timetable / attendance
@@ -279,7 +303,7 @@ function getLoginErrorMessage(rawError, roll) {
     if (err.includes('unsupported')) {
         return {
             title: 'College Not Supported',
-            body: `Only PSG Tech, PSG IAS, and CEG (Anna University) accounts are supported right now.`
+            body: 'Bunker is exclusively for PSG College of Technology students.'
         };
     }
     // Credentials missing (shouldn't normally happen)
@@ -307,12 +331,9 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         showInlineError('Password is required.');
         return;
     }
-    // PSG Tech: 6-7 chars (e.g. 22CSA01)
-    // PSG IAS : 7 chars   (e.g. 25IR007)
-    // CEG     : exactly 10 digits (e.g. 2023103001)
-    const isCEGFormat = /^\d{10}$/.test(roll);
-    if (!isCEGFormat && roll.length !== 6 && roll.length !== 7) {
-        showInlineError(`"${roll}" isn't a valid roll number. Use 6–7 chars for PSG Tech/IAS (e.g. 22CSA01) or 10 digits for CEG (e.g. 2023103001).`);
+    // PSG Tech roll numbers: 6-7 alphanumeric chars (e.g. 22L201, 23MX101)
+    if (roll.length !== 6 && roll.length !== 7) {
+        showInlineError(`"${roll}" isn't a valid roll number. Use a 6–7 character PSG Tech roll number (e.g. 22L201).`);
         return;
     }
 
@@ -344,7 +365,9 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         pushLoadingLog("Syncing academic activities calendar...", 62, '#a855f7');
 
         // Fetch calendar data
-        const calendarResponse = await fetch(`/api/calendar/${roll}`);
+        const detectedSem = detectCurrentSemesterFromSubjects(loginData.subjects || state.subjects);
+        const calUrl = detectedSem ? `/api/calendar/${roll}?sem=${detectedSem}` : `/api/calendar/${roll}`;
+        const calendarResponse = await fetch(calUrl);
         const calendarData = await calendarResponse.json();
         if (calendarData.error) console.warn('Calendar fetch failed:', calendarData.error);
         processCalendarData(calendarData, roll);
@@ -363,10 +386,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
             state.isViewingPreviousAttendance = false;
             localStorage.setItem('bunker_subjects', JSON.stringify(state.subjects));
             localStorage.setItem(`bunker_subjects_${roll}`, JSON.stringify(state.subjects));
-            localStorage.setItem(`bunker_previous_attendance_${roll}`, JSON.stringify(state.subjects));
-            if (loginData.last_update && loginData.last_update !== "No data") {
-                localStorage.setItem(`bunker_previous_update_${roll}`, loginData.last_update);
-            }
+            saveAttendanceSnapshot(roll, state.subjects, loginData.last_update, loginData.previous_subjects, loginData.previous_last_update);
         } else {
             state.subjects = [];
             state.isViewingPreviousAttendance = false;
@@ -388,17 +408,12 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
             }
         }
 
-        // CEG uses 75% minimum attendance; PSG Tech/IAS use 80% for bunk planning
-        if (state.college === 'CEG') {
-            state.threshold = loginData.min_attendance || 75;
-        } else {
-            state.threshold = 80;
-        }
+        state.threshold = 80;
 
         localStorage.setItem('bunker_timetable', JSON.stringify(state.timetable));
         localStorage.setItem('bunker_course_mapping', JSON.stringify(state.courseMapping));
-        localStorage.setItem('bunker_college', state.college);
-        localStorage.setItem('bunker_has_calendar', state.hasCalendar);
+        localStorage.setItem('bunker_college', 'PSGTECH');
+        localStorage.setItem('bunker_has_calendar', 'true');
         localStorage.setItem('bunker_last_update', loginData.last_update || 'No data');
 
         pushLoadingLog("Synchronizing manual overrides & cache mappings...", 88, '#f59e0b');
@@ -435,6 +450,27 @@ function showInlineError(msg) {
     if (el) { el.innerText = msg; el.classList.remove('hidden'); }
 }
 
+
+function detectCurrentSemesterFromSubjects(subjects) {
+    if (!Array.isArray(subjects) || !subjects.length) return null;
+    const semCounts = {};
+    subjects.forEach(s => {
+        const code = (s && s.code) ? String(s.code).trim().toUpperCase() : '';
+        const m = code.match(/^[0-9]{2}[A-Z]+([1-9])\d{1,2}/);
+        if (m) {
+            const digit = parseInt(m[1], 10);
+            semCounts[digit] = (semCounts[digit] || 0) + 1;
+        }
+    });
+    let best = null, maxC = 0;
+    for (const [digit, c] of Object.entries(semCounts)) {
+        if (c > maxC) {
+            maxC = c;
+            best = parseInt(digit, 10);
+        }
+    }
+    return best;
+}
 
 function processCalendarData(data, roll) {
     const fullCalendar = [];
@@ -826,68 +862,160 @@ function downloadAndroidApk() {
     showToast('Downloading Bunker APK...', 'success');
 }
 
-function checkAndroidApkPrompt() {
-    const isAndroid = /Android/i.test(navigator.userAgent);
-    if (!isAndroid) return;
+// --- FIRST-TIME LOGIN FEATURES TOUR & ANDROID PROMPT ---
 
-    const seenKey = 'bunker_android_apk_popup_seen';
+function checkFirstLoginFeaturesModal() {
+    const seenKey = 'bunker_features_tour_seen_v2';
     if (localStorage.getItem(seenKey)) return;
 
-    // Delay popup slightly (1.2s) after entering dashboard for smooth transition
+    // Delay slightly (900ms) after entering dashboard for a smooth entrance
     setTimeout(() => {
-        showAndroidApkModal();
-    }, 1200);
+        showFeaturesTourModal();
+    }, 900);
 }
 
-function showAndroidApkModal() {
-    const seenKey = 'bunker_android_apk_popup_seen';
-    localStorage.setItem(seenKey, 'true');
+// Backwards compatibility alias
+function checkAndroidApkPrompt() {
+    checkFirstLoginFeaturesModal();
+}
 
+function showFeaturesTourModal() {
     // Avoid duplicate modals
-    const existing = document.getElementById('android-apk-popup-modal');
+    const existing = document.getElementById('bunker-features-tour-modal');
     if (existing) existing.remove();
 
+    const isAndroid = /Android/i.test(navigator.userAgent);
+
     const modal = document.createElement('div');
-    modal.id = 'android-apk-popup-modal';
-    modal.className = "fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md transition-all duration-300";
+    modal.id = 'bunker-features-tour-modal';
+    modal.className = "fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md transition-all duration-300";
     modal.style.opacity = '0';
 
     modal.innerHTML = `
-        <div class="w-full max-w-sm rounded-[32px] overflow-hidden border border-white/10 shadow-2xl glass-panel relative transform translate-y-8 sm:translate-y-0 sm:scale-95 transition-all duration-300" style="background: linear-gradient(160deg, rgba(16, 14, 30, 0.96) 0%, rgba(8, 7, 16, 0.98) 100%) !important;">
-            <!-- Ambient glowing decoration -->
-            <div class="absolute -right-10 -top-10 w-32 h-32 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none"></div>
-            <div class="absolute -left-10 -bottom-10 w-32 h-32 rounded-full bg-indigo-500/15 blur-3xl pointer-events-none"></div>
+        <div class="w-full max-w-[420px] max-h-[90dvh] rounded-[28px] sm:rounded-[32px] overflow-hidden border border-white/15 shadow-2xl glass-panel relative flex flex-col transform translate-y-8 sm:translate-y-0 sm:scale-95 transition-all duration-300" style="background: linear-gradient(165deg, rgba(20, 18, 38, 0.98) 0%, rgba(10, 9, 22, 0.99) 100%) !important;">
+            <!-- Ambient glowing orbs -->
+            <div class="absolute -right-12 -top-12 w-36 h-36 rounded-full bg-indigo-500/20 blur-3xl pointer-events-none"></div>
+            <div class="absolute -left-12 -bottom-12 w-36 h-36 rounded-full bg-purple-500/20 blur-3xl pointer-events-none"></div>
+            ${isAndroid ? '<div class="absolute right-4 bottom-24 w-28 h-28 rounded-full bg-emerald-500/15 blur-2xl pointer-events-none"></div>' : ''}
 
-            <div class="p-6 relative z-10 text-center">
-                <!-- Close Button -->
-                <button onclick="closeAndroidApkModal()" class="absolute right-5 top-5 w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors">
+            <!-- Header -->
+            <div class="p-5 pb-3 relative z-10 border-b border-white/5 flex items-start justify-between">
+                <div>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[9px] font-black uppercase tracking-widest mb-1.5">
+                        <i class="fas fa-sparkles text-amber-400"></i>
+                        Explore Bunker
+                    </span>
+                    <h3 class="text-lg font-black text-white tracking-tight flex items-center gap-2">
+                        <span>All Features in One Place</span>
+                    </h3>
+                    <p class="text-[11px] text-gray-400 mt-0.5">Quick overview of your powerful Bunker toolkit</p>
+                </div>
+                <button onclick="closeFeaturesTourModal(true)" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors shrink-0">
                     <i class="fas fa-times text-xs"></i>
                 </button>
+            </div>
 
-                <!-- Icon Badge -->
-                <div class="w-16 h-16 rounded-3xl bg-gradient-to-br from-emerald-500/20 to-indigo-500/20 border border-emerald-500/30 flex items-center justify-center mx-auto mb-4 shadow-[0_0_25px_rgba(16,185,129,0.25)]">
-                    <i class="fab fa-android text-3xl text-emerald-400"></i>
+            <!-- Scrollable Features Content -->
+            <div class="p-5 pt-3 overflow-y-auto no-scrollbar space-y-2.5 relative z-10">
+                <!-- Feature 1: Auto Feedback Entry -->
+                <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-amber-500/30 transition-colors flex items-start gap-3 group">
+                    <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                        <i class="fas fa-bolt text-sm"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-1 mb-0.5">
+                            <h4 class="text-xs font-bold text-white">Auto Feedback Entry</h4>
+                            <span class="text-[8px] font-black text-amber-400 bg-amber-500/15 px-1.5 py-0.2 rounded border border-amber-500/30 uppercase tracking-wider">Top Pick</span>
+                        </div>
+                        <p class="text-[11px] text-gray-400 leading-snug">1-Click 5-Star automated survey filling for Mid & End-Semester faculty forms. Zero manual effort.</p>
+                    </div>
                 </div>
 
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[9px] font-black uppercase tracking-widest mb-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    Official Android App
-                </span>
+                <!-- Feature 2: Academic Calendar Hub -->
+                <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-indigo-500/30 transition-colors flex items-start gap-3 group">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                        <i class="fas fa-calendar-alt text-sm"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-1 mb-0.5">
+                            <h4 class="text-xs font-bold text-white">Academic Calendar</h4>
+                            <span class="text-[8px] font-black text-indigo-300 bg-indigo-500/15 px-1.5 py-0.2 rounded border border-indigo-500/30 uppercase tracking-wider">Live</span>
+                        </div>
+                        <p class="text-[11px] text-gray-400 leading-snug">Continuous assessment (CA) exam timetables, official holidays & remaining working days counter.</p>
+                    </div>
+                </div>
 
-                <h3 class="text-xl font-black text-white tracking-tight mb-1.5">Android App Available!</h3>
-                <p class="text-xs text-gray-300/80 leading-relaxed max-w-[260px] mx-auto mb-6">
-                    Install the official Bunker Android APK for instant offline access, push updates, and faster speeds.
-                </p>
+                <!-- Feature 3: Smart Bunk Tracker -->
+                <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-emerald-500/30 transition-colors flex items-start gap-3 group">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                        <i class="fas fa-bullseye text-sm"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-1 mb-0.5">
+                            <h4 class="text-xs font-bold text-white">Smart Bunk Tracker</h4>
+                            <span class="text-[8px] font-black text-emerald-300 bg-emerald-500/15 px-1.5 py-0.2 rounded border border-emerald-500/30 uppercase tracking-wider">Safe</span>
+                        </div>
+                        <p class="text-[11px] text-gray-400 leading-snug">Instant safe bunk calculator, live attendance percentages, and custom 75% or 85% goal simulator.</p>
+                    </div>
+                </div>
 
-                <div class="space-y-2.5">
-                    <button onclick="handleDownloadAndCloseModal()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-[0_4px_20px_rgba(16,185,129,0.35)] active:scale-95 transition-all">
-                        <i class="fas fa-download text-sm"></i>
-                        <span>Install Android APK</span>
-                    </button>
-                    <button onclick="closeAndroidApkModal()" class="w-full py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white font-bold text-xs transition-colors">
-                        Maybe Later
+                <!-- Feature 4: Academics & Internals -->
+                <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-purple-500/30 transition-colors flex items-start gap-3 group">
+                    <div class="w-9 h-9 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                        <i class="fas fa-graduation-cap text-sm"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-1 mb-0.5">
+                            <h4 class="text-xs font-bold text-white">Academics & Internals</h4>
+                            <span class="text-[8px] font-black text-purple-300 bg-purple-500/15 px-1.5 py-0.2 rounded border border-purple-500/30 uppercase tracking-wider">Marks</span>
+                        </div>
+                        <p class="text-[11px] text-gray-400 leading-snug">Detailed CA internal marks breakdowns, SGPA/CGPA estimator & complete subject performance.</p>
+                    </div>
+                </div>
+
+                <!-- Feature 5: Compare Attendance -->
+                <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-cyan-500/30 transition-colors flex items-start gap-3 group">
+                    <div class="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
+                        <i class="fas fa-history text-sm"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-1 mb-0.5">
+                            <h4 class="text-xs font-bold text-white">Attendance Comparison</h4>
+                            <span class="text-[8px] font-black text-cyan-300 bg-cyan-500/15 px-1.5 py-0.2 rounded border border-cyan-500/30 uppercase tracking-wider">History</span>
+                        </div>
+                        <p class="text-[11px] text-gray-400 leading-snug">Track previous vs current attendance to immediately see which recent classes were updated.</p>
+                    </div>
+                </div>
+
+                <!-- Android App Card (Visible only if user is on Android) -->
+                ${isAndroid ? `
+                <div class="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-indigo-500/10 border border-emerald-500/30 flex items-center justify-between gap-3 shadow-[0_0_20px_rgba(16,185,129,0.15)] mt-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-lg shrink-0">
+                            <i class="fab fa-android"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="text-xs font-black text-white flex items-center gap-1.5">
+                                <span>Official Android App</span>
+                                <span class="px-1.5 py-0.2 rounded text-[8px] font-black bg-emerald-500/25 text-emerald-300 uppercase tracking-widest border border-emerald-500/30">Fast</span>
+                            </div>
+                            <p class="text-[10.5px] text-gray-300/80 leading-tight mt-0.5 truncate">Install APK for offline speed & smoother UI</p>
+                        </div>
+                    </div>
+                    <button onclick="handleTourApkDownload()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-[0_2px_12px_rgba(16,185,129,0.35)] shrink-0 active:scale-95 transition-all">
+                        <i class="fas fa-download text-xs"></i>
+                        <span>Install</span>
                     </button>
                 </div>
+                ` : ''}
+            </div>
+
+            <!-- Footer Action Button -->
+            <div class="p-4 pt-3 border-t border-white/5 bg-black/30 relative z-10">
+                <button onclick="closeFeaturesTourModal(true)" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 hover:from-indigo-400 hover:via-purple-500 hover:to-pink-400 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(99,102,241,0.35)] active:scale-95 transition-all">
+                    <span>Get Started &bull; Explore Bunker</span>
+                    <i class="fas fa-arrow-right text-xs"></i>
+                </button>
             </div>
         </div>
     `;
@@ -904,16 +1032,35 @@ function showAndroidApkModal() {
     });
 }
 
-function closeAndroidApkModal() {
-    const modal = document.getElementById('android-apk-popup-modal');
+function closeFeaturesTourModal(markSeen = true) {
+    if (markSeen) {
+        localStorage.setItem('bunker_features_tour_seen_v2', 'true');
+    }
+    const modal = document.getElementById('bunker-features-tour-modal');
     if (!modal) return;
     modal.style.opacity = '0';
-    setTimeout(() => modal.remove(), 300);
+    const card = modal.querySelector('.glass-panel');
+    if (card) {
+        card.classList.remove('translate-y-0', 'sm:scale-100');
+        card.classList.add('translate-y-6', 'sm:scale-95');
+    }
+    setTimeout(() => modal.remove(), 250);
 }
 
-function handleDownloadAndCloseModal() {
+function handleTourApkDownload() {
+    closeFeaturesTourModal(true);
     downloadAndroidApk();
-    closeAndroidApkModal();
+}
+
+// Backwards compatibility alias
+function showAndroidApkModal() {
+    showFeaturesTourModal();
+}
+function closeAndroidApkModal() {
+    closeFeaturesTourModal(true);
+}
+function handleDownloadAndCloseModal() {
+    handleTourApkDownload();
 }
 
 function triggerPwaInstall() {
@@ -1319,7 +1466,7 @@ function enterApp() {
                     dash.style.opacity = '1';
                 }
                 initDashboard();
-                checkAndroidApkPrompt();
+                checkFirstLoginFeaturesModal();
                 anime({ targets: dash, opacity: [0, 1], scale: [1.02, 1], duration: 350, easing: 'easeOutQuad' });
             }
         });
@@ -1334,7 +1481,7 @@ function enterApp() {
             dash.style.opacity = '1';
         }
         initDashboard(); 
-        checkAndroidApkPrompt();
+        checkFirstLoginFeaturesModal();
     }
 }
 
@@ -1364,28 +1511,6 @@ function renderSemesterHero() {
     if (isNaN(pct)) pct = 0;
 
     const heroContainer = document.getElementById('hero-widget-container');
-
-    // Check if calendar is available (PSG IAS workaround)
-    if (!state.hasCalendar) {
-        heroContainer.innerHTML = `
-            <div class="glass-panel rounded-[32px] p-5 relative overflow-hidden border border-white/5 border-l-4" style="border-left-color: var(--primary);">
-                 <div class="flex justify-between items-center h-full">
-                    <div>
-                        <h3 class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Academic Year</h3>
-                        <div class="text-xs text-indigo-300 font-bold truncate max-w-[150px]">PSG IAS</div>
-                    </div>
-                    <div class="text-right">
-                         <span class="text-2xl font-black text-white/50">---</span>
-                    </div>
-                 </div>
-                 <div class="mt-4 flex justify-between text-[9px] font-bold text-gray-500 uppercase tracking-widest">
-                    <span>---</span>
-                    <span>---</span>
-                 </div>
-            </div>
-        `;
-        return;
-    }
 
     heroContainer.innerHTML = `
                 <div class="glass-panel rounded-[32px] p-5 relative overflow-hidden group">
@@ -1419,22 +1544,16 @@ function initDashboard() {
     const today = getToday();
     document.getElementById('current-date').innerText = today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
-    // College Tag Logic
+    // Roll display
     const rollEl = document.getElementById('settings-roll');
     if (rollEl) {
-        if (state.college === 'PSGIAS') {
-            rollEl.innerHTML = `
-                <span class="bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded text-[10px] font-bold mr-2 border border-indigo-500/30">IAS BUNKER</span>
-                ${state.rollNumber || "GUEST"}
-            `;
-        } else if (state.college === 'CEG') {
-            rollEl.innerHTML = `
-                <span class="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded text-[10px] font-bold mr-2 border border-emerald-500/30">CEG BUNKER</span>
-                ${state.rollNumber || "GUEST"}
-            `;
-        } else {
-            rollEl.innerText = state.rollNumber || "GUEST";
-        }
+        rollEl.innerText = state.rollNumber || "GUEST";
+    }
+
+    // Sync manual include checkbox in Settings / Others
+    const manualIncludeToggle = document.getElementById('settings-include-manual');
+    if (manualIncludeToggle) {
+        manualIncludeToggle.checked = !!state.includeManual;
     }
 
     // Show Date Picker in Settings for Demo Mode
@@ -1450,25 +1569,24 @@ function initDashboard() {
     }
 
     // Sync Dashboard Attendance Mode Switcher visibility and styling
-    // Only PSG Tech supports normal/exemption/medical mode switching
     const dashAttModeContainer = document.getElementById('dashboard-att-mode-container');
     if (dashAttModeContainer) {
-        dashAttModeContainer.style.display = (state.college === 'PSGIAS' || state.college === 'CEG') ? 'none' : 'flex';
+        dashAttModeContainer.style.display = 'flex';
     }
-    // Sync navigation tabs visibility (Hide Marks/Academics for CEG & IAS; hide Calendar for CEG only)
-    const navAcademics = document.getElementById('nav-academics');
+    // Sync navigation tabs visibility
+    const navOthers = document.getElementById('nav-others');
     const navCalendar = document.getElementById('nav-calendar');
-    if (navAcademics && navCalendar) {
-        if (state.college === 'CEG') {
-            navAcademics.style.display = 'none';
-            navCalendar.style.display = 'none';
-        } else if (state.college === 'PSGIAS') {
-            navAcademics.style.display = 'none';
-            navCalendar.style.display = '';
-        } else {
-            navAcademics.style.display = '';
-            navCalendar.style.display = '';
-        }
+    if (navCalendar) {
+        navCalendar.style.display = '';
+    }
+    if (navOthers) {
+        navOthers.style.display = '';
+    }
+
+    // Sync Feedback Automation card
+    const feedbackCard = document.getElementById('others-feedback-card');
+    if (feedbackCard) {
+        feedbackCard.style.display = '';
     }
 
     ['normal', 'exemp', 'medical'].forEach(m => {
@@ -1484,6 +1602,7 @@ function initDashboard() {
     renderSemesterHero();
     renderWidgets();
     renderSubjects();
+    renderOthersOverview();
 
     // PHASE 2: Deferred (Heavy Components) - Schedules after paint
     // Use setTimeout with 0ms to push to next event loop cycle
@@ -1498,11 +1617,10 @@ function initDashboard() {
         if (window.pwaManager) updateInstallUI();
 
         // Background prefetch for fresh logins (no cache yet): load academics silently
-        // For returning users, revalidateAcademicsInBackground() in backgroundSync handles this
-        // CEG and PSGIAS don't have an internals/GPA endpoint
-        if (state.college !== 'PSGIAS' && state.college !== 'CEG' && state.rollNumber !== 'DEMO' && !state.academics.loaded) {
+        if (state.rollNumber !== 'DEMO' && !state.academics.loaded) {
             setTimeout(() => loadAcademics(false, true), 1500);
         }
+
     }, 0);
 }
 
@@ -1637,12 +1755,7 @@ function renderSubjects() {
     // --- Regulation Alerts (PSG Tech only — Redo/Honours are PSG-specific rules) ---
     const alertsContainer = document.getElementById('dashboard-alerts-container');
     if (alertsContainer) {
-        if (state.college !== 'PSGTECH') {
-            // CEG and PSG IAS do not have Redo/Honours regulation widgets
-            alertsContainer.classList.add('hidden');
-            alertsContainer.innerHTML = '';
-        } else {
-            let redoCount = 0;
+        let redoCount = 0;
             state.subjects.forEach(raw => {
                 const sub = getSubjectStats(raw.code);
                 if (sub && sub.pct < 75) redoCount++;
@@ -1665,7 +1778,7 @@ function renderSubjects() {
             let alertsHTML = '';
             if (activeArrears.length > 0) {
                 alertsHTML += `
-                <div class="glass-panel rounded-[24px] p-4 border-l-4 border-rose-500 bg-rose-500/10 flex items-start gap-3 cursor-pointer hover:bg-rose-500/15 transition-all" onclick="switchTab('academics', 1); setTimeout(() => switchAcadTab('results'), 150)">
+                <div class="glass-panel rounded-[24px] p-4 border-l-4 border-rose-500 bg-rose-500/10 flex items-start gap-3 cursor-pointer hover:bg-rose-500/15 transition-all" onclick="switchAcadTab('results')">
                     <div class="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400 shrink-0 mt-0.5">
                         <i class="fas fa-exclamation-triangle text-xs"></i>
                     </div>
@@ -1733,7 +1846,6 @@ function renderSubjects() {
                 alertsContainer.classList.add('hidden');
                 alertsContainer.innerHTML = '';
             }
-        }
     }
 
     const fragment = document.createDocumentFragment();
@@ -2063,7 +2175,7 @@ function initAcademicCalendar() {
                     <i class="fas fa-calendar-times text-2xl text-gray-500"></i>
                 </div>
                 <h3 class="text-white font-bold mb-2">Calendar Unavailable</h3>
-                <p class="text-gray-500 text-xs px-10">Academic calendar data is not available for PSG IAS.</p>
+                <p class="text-gray-500 text-xs px-10">Academic calendar data is not available.</p>
             </div>
         `;
         if (document.getElementById('cal-remaining-days')) document.getElementById('cal-remaining-days').innerText = "-- Days";
@@ -2093,6 +2205,10 @@ function openFullAcademicCalendar() {
     let url = '/calendar';
     if (roll && roll !== 'DEMO') {
         url += '?roll=' + encodeURIComponent(roll);
+        const sem = detectCurrentSemesterFromSubjects(typeof state !== 'undefined' && state.subjects);
+        if (sem) {
+            url += '&sem=' + encodeURIComponent(sem);
+        }
     }
     window.open(url, '_blank');
 }
@@ -2535,6 +2651,12 @@ function deleteManual(id) {
 }
 
 function switchTab(id, index) {
+    // Aliasing academics -> others
+    if (id === 'academics') {
+        id = 'others';
+        index = 3;
+    }
+
     // Subtle tactile feedback on supported devices (Android Chrome/WebView)
     try {
         if (window.navigator && typeof window.navigator.vibrate === 'function') {
@@ -2557,6 +2679,9 @@ function switchTab(id, index) {
 
     // If already on this tab, smoothly scroll to top (like native mobile apps)
     if (currentTab === newTab) {
+        if (id === 'others') {
+            closeOthersSubView();
+        }
         const mainContent = document.getElementById('main-content');
         if (mainContent) {
             mainContent.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2580,38 +2705,352 @@ function switchTab(id, index) {
     let t = "Dashboard";
     if (id === 'home') { const td = getToday(); const ev = ACADEMIC_DATA.fullCalendar.find(e => new Date(e.date).toDateString() === td.toDateString()); if (ev) t = ev.type === 'Holiday' ? "Holiday! 🌴" : ev.type === 'Exam' ? "Exam Day! 🍀" : "Busy Day! 📚"; else if (td.getDay() === 0 || td.getDay() === 6) t = "Weekend Vibes 🎉"; }
     else if (id === 'calendar') t = "Timeline"; else if (id === 'planner') t = "Smart Tracker";
-    else if (id === 'academics') {
-        t = "Academics";
+    else if (id === 'others') {
+        t = "Others";
+        closeOthersSubView();
+        renderOthersOverview();
         if (state.academics && !state.academics.loaded && !state.academics.loading) {
             setTimeout(() => loadAcademics(), 150);
         } else if (state.academics && state.academics.loaded) {
-            // Data already ready from background fetch — just show the right tab
             document.getElementById('acad-loading')?.classList.add('hidden');
-            switchAcadTab(acadActiveTab);
         }
     }
     const greetingEl = document.getElementById('greeting-text');
     if (greetingEl) greetingEl.innerText = t;
 }
+
+function openOthersSubView(subview) {
+    const hub = document.getElementById('others-hub');
+    const internalsView = document.getElementById('others-subview-internals');
+    const resultsView = document.getElementById('others-subview-results');
+    if (!hub) return;
+
+    hub.classList.add('hidden');
+    if (subview === 'internals') {
+        if (resultsView) resultsView.classList.add('hidden');
+        if (internalsView) internalsView.classList.remove('hidden');
+        document.getElementById('acad-panel-internals')?.classList.remove('hidden');
+    } else if (subview === 'results') {
+        if (internalsView) internalsView.classList.add('hidden');
+        if (resultsView) resultsView.classList.remove('hidden');
+        document.getElementById('acad-panel-results')?.classList.remove('hidden');
+    }
+
+    const mainContent = document.getElementById('main-content');
+    if (mainContent) mainContent.scrollTop = 0;
+}
+
+function closeOthersSubView() {
+    const hub = document.getElementById('others-hub');
+    const internalsView = document.getElementById('others-subview-internals');
+    const resultsView = document.getElementById('others-subview-results');
+    if (internalsView) internalsView.classList.add('hidden');
+    if (resultsView) resultsView.classList.add('hidden');
+    if (hub) hub.classList.remove('hidden');
+
+    const mainContent = document.getElementById('main-content');
+    if (mainContent) mainContent.scrollTop = 0;
+}
+
+// --- PSG Tech Branch & Student Info Resolver ---
+const PSGTECH_BRANCH_MAP = {
+    'A': { degree: 'B.E.', name: 'Automobile Engineering', years: 4 },
+    'D': { degree: 'B.E.', name: 'Civil Engineering', years: 4 },
+    'C': { degree: 'B.E.', name: 'Computer Science & Engineering', years: 4 },
+    'CS': { degree: 'B.E.', name: 'Computer Science & Engineering', years: 4 },
+    'Z': { degree: 'B.E.', name: 'Electronics & Communication Engineering', years: 4 },
+    'N': { degree: 'B.E.', name: 'Electrical & Electronics Engineering', years: 4 },
+    'E': { degree: 'B.E.', name: 'Electronics & Instrumentation Engineering', years: 4 },
+    'L': { degree: 'B.E.', name: 'Mechanical Engineering', years: 4 },
+    'M': { degree: 'B.E.', name: 'Metallurgical Engineering', years: 4 },
+    'Y': { degree: 'B.E.', name: 'Production Engineering', years: 4 },
+    'P': { degree: 'B.E. (Sandwich)', name: 'Production Engineering (Sandwich)', years: 5, sandwich: true },
+    'K': { degree: 'B.E. (Sandwich)', name: 'Mechanical Engineering (Sandwich)', years: 5, sandwich: true },
+    'ES': { degree: 'B.E. (Sandwich)', name: 'Electrical & Electronics (Sandwich)', years: 5, sandwich: true },
+    'SW': { degree: 'B.E. (Sandwich)', name: 'Sandwich Engineering Program', years: 5, sandwich: true },
+    'R': { degree: 'B.E.', name: 'Robotics & Automation', years: 4 },
+    'U': { degree: 'B.E.', name: 'Biomedical Engineering', years: 4 },
+    'B': { degree: 'B.Tech', name: 'Biotechnology', years: 4 },
+    'H': { degree: 'B.Tech', name: 'Fashion Technology', years: 4 },
+    'I': { degree: 'B.Tech', name: 'Information Technology', years: 4 },
+    'T': { degree: 'B.Tech', name: 'Textile Technology', years: 4 },
+    'S': { degree: 'B.Sc', name: 'Applied Science / Computer Systems', years: 3 },
+    'X': { degree: 'B.Sc', name: 'Mathematics & Computing', years: 3 },
+    'SA': { degree: 'M.Sc (Integrated)', name: 'Software Systems', years: 5 },
+    'FD': { degree: 'M.Sc (Integrated)', name: 'Data Science', years: 5 },
+    'XW': { degree: 'M.Sc (Integrated)', name: 'Cyber Security', years: 5 },
+    'XT': { degree: 'M.Sc (Integrated)', name: 'Theoretical Computer Science', years: 5 },
+    'XD': { degree: 'M.Sc (Integrated)', name: 'Decision & Computing Sciences', years: 5 },
+    'XC': { degree: 'M.Sc (Integrated)', name: 'Theoretical Computer Science', years: 5 },
+    'MX': { degree: 'M.C.A.', name: 'Master of Computer Applications', years: 2 },
+    'AE': { degree: 'M.E.', name: 'Automotive Engineering', years: 2 },
+    'NB': { degree: 'M.E.', name: 'Energy Engineering', years: 2 },
+    'ZC': { degree: 'M.E.', name: 'Communication Systems', years: 2 },
+    'UC': { degree: 'M.E.', name: 'Embedded & Real-Time Systems', years: 2 },
+    'EE': { degree: 'M.E.', name: 'Power Electronics & Drives', years: 2 },
+    'MD': { degree: 'M.E.', name: 'Manufacturing Engineering', years: 2 },
+    'MN': { degree: 'M.E.', name: 'Engineering Design', years: 2 },
+    'PP': { degree: 'M.E.', name: 'Computer Science & Engineering', years: 2 },
+    'ED': { degree: 'M.E.', name: 'Industrial Engineering', years: 2 },
+    'LV': { degree: 'M.E.', name: 'VLSI Design', years: 2 },
+    'BT': { degree: 'M.Tech', name: 'Biotechnology', years: 2 },
+    'LN': { degree: 'M.Tech', name: 'Nano Science & Technology', years: 2 },
+    'TT': { degree: 'M.Tech', name: 'Textile Technology', years: 2 },
+    'SE': { degree: 'M.E.', name: 'Structural Engineering', years: 2 },
+    'CE': { degree: 'M.Tech', name: 'Chemical Engineering', years: 2 },
+    'EC': { degree: 'M.Tech', name: 'Electronics & Communication', years: 2 },
+    'IT': { degree: 'M.Tech', name: 'Information Technology', years: 2 },
+    'GM': { degree: 'M.B.A.', name: 'Master of Business Administration', years: 2 },
+    'GW': { degree: 'M.B.A.', name: 'Master of Business Administration', years: 2 }
+};
+
+function parseStudentInfoFromRoll(rawRoll) {
+    if (!rawRoll) return null;
+    let roll = String(rawRoll).trim().toUpperCase();
+    if (roll === 'DEMO') {
+        return {
+            roll: 'DEMO',
+            branchName: 'Computer Science & Engineering',
+            degree: 'B.E.',
+            displayBranch: 'B.E. Computer Science & Engineering',
+            yearOfStudy: 'Final Year',
+            batch: '2022 - 2026',
+            meta: 'Final Year • Batch 2022-2026 • eCampus Synced'
+        };
+    }
+    // Clean potential prefix
+    roll = roll.replace(/^D(\d{2}[A-Z])/i, '$1');
+    const mYear = roll.match(/^(\d{2})/);
+    if (!mYear) {
+        return {
+            roll: roll,
+            branchName: 'PSG College of Technology',
+            degree: 'Student',
+            displayBranch: 'PSG College of Technology',
+            yearOfStudy: '',
+            batch: '',
+            meta: 'eCampus Synced'
+        };
+    }
+
+    const admYear = 2000 + parseInt(mYear[1], 10);
+    const mLetters = roll.substring(2).match(/[A-Z]+/);
+    const branchLetters = mLetters ? mLetters[0] : '';
+    let branchInfo = null;
+
+    if (branchLetters.length >= 2) {
+        const code2 = branchLetters.substring(0, 2);
+        if (PSGTECH_BRANCH_MAP[code2]) {
+            branchInfo = PSGTECH_BRANCH_MAP[code2];
+        } else if (code2 === 'PT') {
+            branchInfo = PSGTECH_BRANCH_MAP['P'];
+        }
+    }
+    if (!branchInfo && branchLetters.length >= 1 && PSGTECH_BRANCH_MAP[branchLetters.charAt(0)]) {
+        branchInfo = PSGTECH_BRANCH_MAP[branchLetters.charAt(0)];
+    }
+
+    const degree = branchInfo ? branchInfo.degree : 'B.E.';
+    const branchName = branchInfo ? branchInfo.name : 'Engineering & Technology';
+    const totalYears = branchInfo ? (branchInfo.years || 4) : 4;
+    const endYear = admYear + totalYears;
+
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+    const acadYear = currentMonth >= 7 ? currentYear : currentYear - 1;
+    const yearNum = Math.max(1, Math.min(totalYears, acadYear - admYear + 1));
+    const yearLabels = { 1: '1st Year', 2: '2nd Year', 3: '3rd Year', 4: '4th Year', 5: '5th Year' };
+    const yearLabel = (yearNum === totalYears && totalYears > 1) ? 'Final Year' : (yearLabels[yearNum] || `Year ${yearNum}`);
+
+    return {
+        roll: roll,
+        branchName: branchName,
+        degree: degree,
+        displayBranch: `${degree} ${branchName}`,
+        yearOfStudy: yearLabel,
+        batch: `${admYear} - ${endYear}`,
+        meta: `${yearLabel} • Batch ${admYear}-${endYear} • eCampus Synced`
+    };
+}
+
+function clearBunkerCache() {
+    if (!confirm("Clear Bunker's offline cached records and re-sync fresh from eCampus?\n\nYour login credentials and roll number will be safely preserved.")) {
+        return;
+    }
+    try {
+        const roll = (typeof state !== 'undefined' && state.rollNumber) || localStorage.getItem('bunker_roll');
+        const creds = localStorage.getItem('bunker_credentials');
+        const attMode = roll ? localStorage.getItem(`bunker_att_mode_${roll}`) : null;
+
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.startsWith('bunker_') || key.startsWith('psg_') || key.startsWith('acad_'))) {
+                if (key !== 'bunker_credentials' && key !== 'bunker_roll') {
+                    keysToRemove.push(key);
+                }
+            }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+        sessionStorage.clear();
+
+        if ('caches' in window) {
+            caches.keys().then(names => {
+                names.forEach(name => caches.delete(name));
+            });
+        }
+
+        if (roll) localStorage.setItem('bunker_roll', roll);
+        if (creds) localStorage.setItem('bunker_credentials', creds);
+        if (attMode && roll) localStorage.setItem(`bunker_att_mode_${roll}`, attMode);
+
+        showToast('🧹 Cache cleared! Refreshing clean records...', 'success');
+        setTimeout(() => {
+            window.location.reload();
+        }, 500);
+    } catch (e) {
+        console.error('Clear cache error:', e);
+        window.location.reload();
+    }
+}
+
+function renderOthersOverview() {
+    // 1. Always update Student Profile & Academic Identity
+    const roll = (typeof state !== 'undefined' && state.rollNumber) || localStorage.getItem('bunker_roll') || '';
+    if (roll) {
+        const studentInfo = parseStudentInfoFromRoll(roll);
+        const profileRollEl = document.getElementById('others-profile-roll');
+        const profileBranchEl = document.getElementById('others-profile-branch');
+        const profileMetaEl = document.getElementById('others-profile-meta');
+        const settingsRollEl = document.getElementById('settings-roll');
+
+        if (profileRollEl) profileRollEl.textContent = studentInfo ? studentInfo.roll : roll;
+        if (profileBranchEl) profileBranchEl.textContent = studentInfo ? studentInfo.displayBranch : 'PSG College of Technology';
+        if (profileMetaEl) profileMetaEl.textContent = studentInfo ? studentInfo.meta : 'eCampus Synced';
+        if (settingsRollEl) settingsRollEl.textContent = roll;
+    }
+
+    // 2. Render Attendance Comparison card preview
+    renderAttendanceComparisonCard();
+
+    // 3. Render Academic Standing & GPA/CGPA summary
+    if (!state.academics) return;
+    const cgpaData = state.academics.cgpa;
+    const gpaData = state.academics.gpa;
+    const valEl = document.getElementById('others-cgpa-value');
+    const subEl = document.getElementById('others-cgpa-sub');
+    const badgeEl = document.getElementById('others-cgpa-badge');
+    const chipsList = document.getElementById('others-sem-chips-list');
+
+    if (!cgpaData && !gpaData) {
+        if (valEl) valEl.textContent = '--';
+        if (subEl) subEl.textContent = 'Marks not yet loaded';
+        if (badgeEl) {
+            badgeEl.textContent = 'Overall';
+            badgeEl.className = 'text-[8px] font-black px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-wider';
+        }
+        return;
+    }
+
+    const cgpa = (cgpaData && cgpaData.cgpa) || (gpaData && (gpaData.overall_cgpa || gpaData.gpa));
+    const numCGPA = parseFloat(cgpa);
+    const hasRA = cgpa === 'RA' || (cgpaData && cgpaData.has_ra);
+
+    if (valEl) {
+        valEl.textContent = cgpa === 'RA' ? 'RA' : (cgpa || '--');
+        valEl.style.color = hasRA ? '#EF4444' : numCGPA >= 8.5 ? '#10B981' : numCGPA >= 7.0 ? '#6366f1' : numCGPA >= 5.0 ? '#F59E0B' : '#EF4444';
+    }
+
+    // Update Academic Standing Badge
+    if (badgeEl) {
+        if (hasRA) {
+            badgeEl.textContent = 'Arrears Recorded';
+            badgeEl.className = 'text-[8px] font-black px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 uppercase tracking-wider';
+        } else if (!isNaN(numCGPA) && numCGPA >= 8.5) {
+            badgeEl.textContent = '★ Distinction';
+            badgeEl.className = 'text-[8px] font-black px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider';
+        } else if (!isNaN(numCGPA) && numCGPA >= 7.0) {
+            badgeEl.textContent = 'First Class';
+            badgeEl.className = 'text-[8px] font-black px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-wider';
+        } else if (!isNaN(numCGPA) && numCGPA >= 6.0) {
+            badgeEl.textContent = 'Second Class';
+            badgeEl.className = 'text-[8px] font-black px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wider';
+        } else if (!isNaN(numCGPA) && numCGPA > 0) {
+            badgeEl.textContent = 'Pass Class';
+            badgeEl.className = 'text-[8px] font-black px-2.5 py-0.5 rounded-full bg-slate-500/20 text-slate-300 border border-slate-500/30 uppercase tracking-wider';
+        } else {
+            badgeEl.textContent = 'Overall';
+            badgeEl.className = 'text-[8px] font-black px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-wider';
+        }
+    }
+
+    const totalCredits = (cgpaData && cgpaData.total_credits) || (gpaData && gpaData.total_credits);
+    if (subEl) {
+        if (totalCredits) {
+            subEl.textContent = `${totalCredits} Total Credits Earned • Degree On Track`;
+        } else {
+            subEl.textContent = `Cumulative Academic Performance`;
+        }
+    }
+
+    // Populate all semester GPA chips
+    if (chipsList) {
+        const semData = (cgpaData && cgpaData.semwise_data) || [];
+        const semwiseGPA = (gpaData && gpaData.semwise_gpa) || {};
+
+        if (semData.length > 0) {
+            chipsList.innerHTML = semData.map(d => {
+                const g = parseFloat(d.sgpa);
+                const isRA = d.sgpa === 'RA' || isNaN(g) || d.has_ra;
+                const color = isRA ? 'text-rose-400 bg-rose-500/10 border-rose-500/20'
+                            : g >= 8.5 ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                            : g >= 7   ? 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20'
+                            : g >= 5   ? 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+                            :            'text-rose-400 bg-rose-500/10 border-rose-500/20';
+                return `<button type="button" onclick="openOthersSubView('results'); setTimeout(() => selectSemesterGPA(${d.sem}), 120)" class="flex flex-col items-center px-3.5 py-1.5 rounded-xl border ${color} hover:scale-105 active:scale-95 transition-all cursor-pointer">
+                    <span class="text-[8px] font-black uppercase tracking-widest opacity-60">Sem ${d.sem}</span>
+                    <span class="text-xs font-black leading-tight">${d.sgpa}</span>
+                </button>`;
+            }).join('');
+        } else if (Object.keys(semwiseGPA).length > 0) {
+            chipsList.innerHTML = Object.keys(semwiseGPA).sort((a, b) => a - b).map(s => {
+                const sGPA = semwiseGPA[s];
+                const g = parseFloat(sGPA);
+                const isRA = sGPA === 'RA' || isNaN(g);
+                const color = isRA ? 'text-rose-400 bg-rose-500/10 border-rose-500/20'
+                            : g >= 8.5 ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                            : g >= 7   ? 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20'
+                            : g >= 5   ? 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+                            :            'text-rose-400 bg-rose-500/10 border-rose-500/20';
+                return `<button type="button" onclick="openOthersSubView('results'); setTimeout(() => selectSemesterGPA(${s}), 120)" class="flex flex-col items-center px-3.5 py-1.5 rounded-xl border ${color} hover:scale-105 active:scale-95 transition-all cursor-pointer">
+                    <span class="text-[8px] font-black uppercase tracking-widest opacity-60">Sem ${s}</span>
+                    <span class="text-xs font-black leading-tight">${sGPA}</span>
+                </button>`;
+            }).join('');
+        } else {
+            chipsList.innerHTML = '<div class="text-[10px] text-gray-500 italic py-1">Semester GPAs will appear once synced</div>';
+        }
+    }
+
+    // Update internal card status if available
+    const internalsDesc = document.getElementById('others-internals-desc');
+    if (internalsDesc && state.academics.internals && Array.isArray(state.academics.internals)) {
+        const count = state.academics.internals.filter(s => s.total !== '' || (s.row_data && s.row_data.some(v => v && v !== '*' && v !== ''))).length;
+        if (count > 0) {
+            internalsDesc.textContent = `${count} subjects tracked • View CA components & Predictor`;
+        }
+    }
+}
+window.openOthersSubView = openOthersSubView;
+window.closeOthersSubView = closeOthersSubView;
+window.renderOthersOverview = renderOthersOverview;
+window.parseStudentInfoFromRoll = parseStudentInfoFromRoll;
+window.clearBunkerCache = clearBunkerCache;
+
 function togglePassword() { const i = document.getElementById('password'); i.type = i.type === 'password' ? 'text' : 'password'; }
 
 function toggleSettings() {
-    const m = document.getElementById('settings-modal'), p = document.getElementById('settings-panel'), b = document.getElementById('settings-backdrop');
-    if (m.classList.contains('hidden')) {
-        m.classList.remove('hidden');
-        requestAnimationFrame(() => {
-            b.classList.remove('opacity-0');
-            p.classList.remove('translate-y-full');
-        });
-
-        // Sync include manual toggle
-        const incToggle = document.getElementById('settings-include-manual');
-        if (incToggle) incToggle.checked = state.includeManual;
-    } else {
-        p.classList.add('translate-y-full');
-        b.classList.add('opacity-0');
-        setTimeout(() => m.classList.add('hidden'), 300);
-    }
+    switchTab('others', 3);
 }
 function setAttendanceMode(mode) {
     state.attendanceMode = mode;
@@ -2895,6 +3334,742 @@ function closeHistory() {
 }
 
 // ================================================================
+// FEEDBACK AUTOMATION MODAL
+// ================================================================
+
+let feedbackModalAutoOpened = false;
+
+function openFeedbackModal(options = {}) {
+    const isAuto = typeof options === 'object' && options && options.auto === true;
+    feedbackModalAutoOpened = isAuto;
+
+    const m = document.getElementById('feedback-modal');
+    const p = document.getElementById('feedback-panel');
+    const b = document.getElementById('feedback-backdrop');
+    if (!m || !p || !b) return;
+
+    const roll = (typeof state !== 'undefined' && state.rollNumber && state.rollNumber !== 'DEMO')
+        ? state.rollNumber
+        : localStorage.getItem('bunker_roll') || (state && state.rollNumber ? state.rollNumber : '');
+
+    const statusBox = document.getElementById('feedback-status-box');
+    if (statusBox) statusBox.classList.add('hidden');
+
+    const rollDisplay = document.getElementById('feedback-confirm-roll');
+    if (rollDisplay) rollDisplay.textContent = roll || 'Current Account';
+
+    // Auto-banner update
+    const autoBanner = document.getElementById('feedback-auto-banner');
+    const autoBannerText = document.getElementById('feedback-auto-banner-text');
+    if (autoBanner) {
+        if (isAuto) {
+            autoBanner.classList.remove('hidden');
+            if (options.details && options.details.total_pending && autoBannerText) {
+                const count = options.details.total_pending;
+                autoBannerText.innerHTML = `<b>${count} pending feedback survey(s)</b> detected on your eCampus portal. Click Confirm below to complete all with 5-star ratings instantly.`;
+            }
+        } else {
+            autoBanner.classList.add('hidden');
+        }
+    }
+
+    // Default to the confirmation view
+    switchFeedbackMode('self');
+
+    // Show modal & animate scale + opacity (clean & centered)
+    m.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(() => {
+        b.classList.remove('opacity-0');
+        p.classList.remove('opacity-0', 'scale-95');
+        p.classList.add('scale-100');
+    });
+
+    // Close on Escape key
+    if (!m._escBound) {
+        m._escBound = true;
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !m.classList.contains('hidden')) {
+                closeFeedbackModal();
+            }
+        });
+    }
+}
+
+function closeFeedbackModal() {
+    const m = document.getElementById('feedback-modal');
+    const p = document.getElementById('feedback-panel');
+    const b = document.getElementById('feedback-backdrop');
+    if (!p || !m) return;
+
+    if (feedbackModalAutoOpened) {
+        const roll = (typeof state !== 'undefined' && state.rollNumber && state.rollNumber !== 'DEMO')
+            ? state.rollNumber
+            : localStorage.getItem('bunker_roll') || '';
+        if (roll) {
+            try { sessionStorage.setItem(`bunker_fb_dismissed_${roll}`, '1'); } catch {}
+        }
+        feedbackModalAutoOpened = false;
+    }
+
+    if (b) b.classList.add('opacity-0');
+    p.classList.add('opacity-0', 'scale-95');
+    p.classList.remove('scale-100');
+    document.body.style.overflow = '';
+    setTimeout(() => {
+        m.classList.add('hidden');
+    }, 300);
+}
+
+function switchFeedbackMode(mode) {
+    const confirmView = document.getElementById('feedback-confirm-view');
+    const otherView = document.getElementById('feedback-other-view');
+    const statusBox = document.getElementById('feedback-status-box');
+    if (statusBox) statusBox.classList.add('hidden');
+
+    if (mode === 'self') {
+        if (otherView) otherView.classList.add('hidden');
+        if (confirmView) confirmView.classList.remove('hidden');
+    } else {
+        if (confirmView) confirmView.classList.add('hidden');
+        if (otherView) otherView.classList.remove('hidden');
+        const otherRollInput = document.getElementById('feedback-other-roll');
+        if (otherRollInput) otherRollInput.focus();
+    }
+}
+
+function toggleOtherFeedbackPw() {
+    const input = document.getElementById('feedback-other-password');
+    const icon = document.getElementById('feedback-other-pw-icon');
+    if (!input) return;
+    const isPw = input.type === 'password';
+    input.type = isPw ? 'text' : 'password';
+    if (icon) icon.className = isPw ? 'fas fa-eye-slash' : 'fas fa-eye';
+}
+
+async function submitFeedbackCore(rollno, password, mode, btn) {
+    const originalBtnHTML = btn ? btn.innerHTML : '';
+    const statusBox = document.getElementById('feedback-status-box');
+    const statusText = document.getElementById('feedback-status-text');
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i><span>Submitting 5-Star Ratings...</span>';
+    }
+
+    if (statusBox && statusText) {
+        statusBox.className = 'mt-4 p-4 rounded-2xl border text-xs leading-relaxed border-purple-500/30 bg-purple-500/10 text-purple-200';
+        statusBox.classList.remove('hidden');
+        statusText.innerHTML = `<div class="flex items-center gap-2"><i class="fas fa-circle-notch fa-spin text-purple-400"></i><span>Authenticating ${rollno} &amp; auto-evaluating courses...</span></div>`;
+    }
+
+    const startTime = Date.now();
+
+    try {
+        const res = await fetch('/api/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rollno, password, mode, rating_style: 'max' })
+        });
+
+        const data = await res.json();
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+        if (res.ok && data.success) {
+            try {
+                sessionStorage.setItem(`bunker_fb_checked_${rollno}`, JSON.stringify({ ts: Date.now(), has_pending: false, completed: true }));
+                sessionStorage.setItem(`bunker_fb_dismissed_${rollno}`, '1');
+            } catch {}
+            if (statusBox && statusText) {
+                statusBox.className = 'mt-4 p-4 rounded-2xl border text-xs leading-relaxed border-emerald-500/30 bg-emerald-500/10 text-emerald-200';
+                statusText.innerHTML = `<div class="flex items-start gap-2.5"><i class="fas fa-check-circle text-emerald-400 text-sm mt-0.5 shrink-0"></i><div><b class="text-emerald-300">Success for ${rollno} (${elapsed}s)!</b><div class="mt-1 text-[11px] leading-normal opacity-90">${data.message || 'Feedback submitted successfully!'}</div></div></div>`;
+            }
+            showToast(`🎉 Feedback submitted for ${rollno}!`, 'success');
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 110,
+                    spread: 80,
+                    origin: { y: 0.6 }
+                });
+            }
+        } else {
+            if (statusBox && statusText) {
+                statusBox.className = 'mt-4 p-4 rounded-2xl border text-xs leading-relaxed border-rose-500/30 bg-rose-500/10 text-rose-200';
+                statusText.innerHTML = `<div class="flex items-start gap-2.5"><i class="fas fa-exclamation-triangle text-rose-400 text-sm mt-0.5 shrink-0"></i><div><b class="text-rose-300">Submission Failed:</b><div class="mt-1 text-[11px] leading-normal opacity-90">${data.error || 'Server rejected submission'}</div></div></div>`;
+            }
+            showToast(data.error || 'Feedback submission failed', 'error');
+        }
+    } catch (err) {
+        if (statusBox && statusText) {
+            statusBox.className = 'mt-4 p-4 rounded-2xl border text-xs leading-relaxed border-rose-500/30 bg-rose-500/10 text-rose-200';
+            statusText.innerHTML = `<div class="flex items-center gap-2"><i class="fas fa-wifi text-rose-400"></i><span>Connection error: ${err.message}</span></div>`;
+        }
+        showToast('Network error while submitting feedback', 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalBtnHTML;
+        }
+    }
+}
+
+async function executeCurrentFeedback() {
+    const roll = (typeof state !== 'undefined' && state.rollNumber && state.rollNumber !== 'DEMO')
+        ? state.rollNumber
+        : localStorage.getItem('bunker_roll') || (state && state.rollNumber ? state.rollNumber : '');
+
+    let password = '';
+    const credsStr = localStorage.getItem('bunker_credentials');
+    if (credsStr) {
+        try {
+            const creds = JSON.parse(credsStr);
+            password = creds.password || '';
+        } catch {}
+    }
+
+    if (!roll || roll === 'DEMO' || !password) {
+        showToast('Please enter your Studzone credentials to proceed', 'info');
+        switchFeedbackMode('other');
+        const rollInput = document.getElementById('feedback-other-roll');
+        if (rollInput && roll && roll !== 'DEMO') {
+            rollInput.value = roll;
+        }
+        const pwInput = document.getElementById('feedback-other-password');
+        if (pwInput) pwInput.focus();
+        return;
+    }
+
+    const btn = document.getElementById('feedback-confirm-btn');
+    await submitFeedbackCore(roll, password, 'auto', btn);
+}
+
+async function executeOtherFeedback(e) {
+    if (e) e.preventDefault();
+    const rollEl = document.getElementById('feedback-other-roll');
+    const pwEl = document.getElementById('feedback-other-password');
+    const modeEl = document.getElementById('feedback-other-mode');
+    const btn = document.getElementById('feedback-other-submit-btn');
+
+    const rollno = rollEl ? rollEl.value.trim().toUpperCase() : '';
+    const password = pwEl ? pwEl.value.trim() : '';
+    const mode = modeEl ? modeEl.value : 'auto';
+
+    if (!rollno || !password) {
+        showToast('Roll number & password are required', 'error');
+        return;
+    }
+
+    await submitFeedbackCore(rollno, password, mode, btn);
+}
+
+// Background check removed per user request to eliminate recurring background network checks & preserve Vercel quota
+function checkPendingFeedbackInBackground() {
+    // Disabled
+}
+
+window.openFeedbackModal = openFeedbackModal;
+window.closeFeedbackModal = closeFeedbackModal;
+window.switchFeedbackMode = switchFeedbackMode;
+window.toggleOtherFeedbackPw = toggleOtherFeedbackPw;
+window.executeCurrentFeedback = executeCurrentFeedback;
+window.executeOtherFeedback = executeOtherFeedback;
+window.checkPendingFeedbackInBackground = checkPendingFeedbackInBackground;
+
+// ================================================================
+// ATTENDANCE COMPARISON SYSTEM (Before vs Now)
+// ================================================================
+
+function checkAttendanceDifference(oldSubs, curSubs) {
+    if (!Array.isArray(oldSubs) || !Array.isArray(curSubs)) return false;
+    if (oldSubs.length !== curSubs.length) return true;
+
+    const oldMap = {};
+    oldSubs.forEach(s => { if (s && s.code) oldMap[s.code] = s; });
+
+    for (const cur of curSubs) {
+        if (!cur || !cur.code) continue;
+        const old = oldMap[cur.code];
+        if (!old) return true;
+        const oAtt = parseInt(old.attended || 0, 10);
+        const oTot = parseInt(old.total || 0, 10);
+        const cAtt = parseInt(cur.attended || 0, 10);
+        const cTot = parseInt(cur.total || 0, 10);
+        if (oAtt !== cAtt || oTot !== cTot) return true;
+    }
+    return false;
+}
+
+function saveAttendanceSnapshot(roll, subjects, lastUpdate, prevSubjects = null, prevLastUpdate = null) {
+    if (!roll || roll === 'DEMO' || !Array.isArray(subjects) || subjects.length === 0) return;
+
+    const curKey = `bunker_current_attendance_${roll}`;
+    const curDateKey = `bunker_current_update_${roll}`;
+    const oldKey = `bunker_old_attendance_${roll}`;
+    const oldDateKey = `bunker_old_update_${roll}`;
+
+    const nowFormatted = (lastUpdate && lastUpdate !== 'No data') 
+        ? lastUpdate 
+        : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+    // If server provided previous attendance, save it if old snapshot not already set
+    if (Array.isArray(prevSubjects) && prevSubjects.length > 0 && !localStorage.getItem(oldKey)) {
+        localStorage.setItem(oldKey, JSON.stringify(prevSubjects));
+        localStorage.setItem(oldDateKey, prevLastUpdate || 'Previous Update');
+    }
+
+    const existingCurRaw = localStorage.getItem(curKey);
+    const existingDate = localStorage.getItem(curDateKey);
+
+    if (!existingCurRaw) {
+        // Initial baseline snapshot
+        localStorage.setItem(curKey, JSON.stringify(subjects));
+        localStorage.setItem(curDateKey, nowFormatted);
+        return;
+    }
+
+    try {
+        const existingSubjects = JSON.parse(existingCurRaw);
+        if (!Array.isArray(existingSubjects) || existingSubjects.length === 0) {
+            localStorage.setItem(curKey, JSON.stringify(subjects));
+            localStorage.setItem(curDateKey, nowFormatted);
+            return;
+        }
+
+        // Compare if attendance changed between existing stored snapshot and fresh subjects
+        const hasDiff = checkAttendanceDifference(existingSubjects, subjects);
+        const hasDateDiff = existingDate && nowFormatted && existingDate !== nowFormatted;
+
+        if (hasDiff || (hasDateDiff && existingDate !== nowFormatted)) {
+            // Existing current snapshot becomes the OLD snapshot
+            localStorage.setItem(oldKey, JSON.stringify(existingSubjects));
+            localStorage.setItem(oldDateKey, existingDate || nowFormatted);
+
+            // Fresh subjects become the new CURRENT snapshot
+            localStorage.setItem(curKey, JSON.stringify(subjects));
+            localStorage.setItem(curDateKey, nowFormatted);
+        } else {
+            // Keep existing current and old snapshots, ensure date is recorded
+            localStorage.setItem(curKey, JSON.stringify(subjects));
+            if (!localStorage.getItem(curDateKey)) {
+                localStorage.setItem(curDateKey, nowFormatted);
+            }
+        }
+    } catch (e) {
+        console.warn('Error in saveAttendanceSnapshot:', e);
+    }
+}
+
+function computeSubjectDifferences(oldSubs, curSubs) {
+    const oldMap = {};
+    oldSubs.forEach(s => { if (s && s.code) oldMap[s.code] = s; });
+
+    const results = [];
+    curSubs.forEach(cur => {
+        if (!cur || !cur.code) return;
+        const old = oldMap[cur.code];
+
+        const cAtt = parseInt(cur.attended || 0, 10);
+        const cTot = parseInt(cur.total || 0, 10);
+        const cPct = parseFloat(cur.percentage !== undefined ? cur.percentage : (cTot > 0 ? (cAtt / cTot * 100).toFixed(1) : 0));
+
+        let oAtt = cAtt;
+        let oTot = cTot;
+        let oPct = cPct;
+
+        if (old) {
+            oAtt = parseInt(old.attended || 0, 10);
+            oTot = parseInt(old.total || 0, 10);
+            oPct = parseFloat(old.percentage !== undefined ? old.percentage : (oTot > 0 ? (oAtt / oTot * 100).toFixed(1) : 0));
+        }
+
+        const attDelta = cAtt - oAtt;
+        const totDelta = cTot - oTot;
+        const pctDelta = parseFloat((cPct - oPct).toFixed(1));
+
+        let badgeText = 'No Change';
+        let badgeClass = 'bg-white/10 text-gray-400 border border-white/10';
+
+        if (totDelta > 0) {
+            if (attDelta === totDelta) {
+                badgeText = `+${attDelta} Attended`;
+                badgeClass = 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+            } else if (attDelta === 0) {
+                badgeText = `+${totDelta} Missed`;
+                badgeClass = 'bg-rose-500/20 text-rose-300 border border-rose-500/30';
+            } else {
+                badgeText = `+${attDelta} / +${totDelta} Classes`;
+                badgeClass = 'bg-amber-500/20 text-amber-300 border border-amber-500/30';
+            }
+        } else if (attDelta !== 0) {
+            badgeText = attDelta > 0 ? `+${attDelta} Attended` : `${attDelta} Classes`;
+            badgeClass = attDelta > 0 
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
+                : 'bg-rose-500/20 text-rose-300 border border-rose-500/30';
+        }
+
+        results.push({
+            code: cur.code,
+            name: cur.name || cur.code,
+            oldAttended: oAtt,
+            oldTotal: oTot,
+            oldPct: oPct.toFixed(1),
+            curAttended: cAtt,
+            curTotal: cTot,
+            curPct: cPct.toFixed(1),
+            attDelta,
+            totDelta,
+            pctDelta,
+            badgeText,
+            badgeClass,
+            hasChanged: (attDelta !== 0 || totDelta !== 0 || pctDelta !== 0)
+        });
+    });
+
+    return results;
+}
+
+function extractAttendanceDayKey(dStr) {
+    if (!dStr) return '';
+    const str = String(dStr).trim().toLowerCase();
+    if (!str || str === 'previous update' || str === 'not recorded' || str === 'no data' || str === '--' || str === 'initial snapshot') {
+        return '';
+    }
+    const t = Date.parse(str);
+    if (!isNaN(t)) {
+        const d = new Date(t);
+        return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+    }
+    const dmyMatch = str.match(/(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
+    if (dmyMatch) {
+        return dmyMatch[3] + '-' + dmyMatch[2] + '-' + dmyMatch[1];
+    }
+    const words = str.replace(/[,.-]/g, ' ').split(/\s+/).filter(Boolean);
+    const nonTimeWords = words.filter(w => !w.includes(':') && w !== 'am' && w !== 'pm' && w !== 'at');
+    if (nonTimeWords.length >= 2) {
+        return nonTimeWords.slice(0, 3).sort().join('-');
+    }
+    return str;
+}
+
+function isSameAttendanceDate(date1, date2) {
+    if (!date1 || !date2) return true;
+    const key1 = extractAttendanceDayKey(date1);
+    const key2 = extractAttendanceDayKey(date2);
+    if (!key1 || !key2) return true;
+    return key1 === key2;
+}
+
+function getAttendanceComparisonData(roll) {
+    if (!roll) {
+        roll = (typeof state !== 'undefined' && state.rollNumber) ? state.rollNumber : localStorage.getItem('bunker_roll') || '';
+    }
+
+    if (roll === 'DEMO') {
+        const curSubs = (state && Array.isArray(state.subjects) && state.subjects.length > 0) ? state.subjects : [];
+        const oldSubs = curSubs.map((s, idx) => {
+            const copy = { ...s };
+            if (idx === 0) {
+                copy.attended = Math.max(0, (s.attended || 1) - 2);
+                copy.total = Math.max(1, (s.total || 1) - 2);
+            } else if (idx === 1) {
+                copy.attended = Math.max(0, (s.attended || 1));
+                copy.total = Math.max(1, (s.total || 1) - 1);
+            } else if (idx === 2) {
+                copy.attended = Math.max(0, (s.attended || 1) - 1);
+                copy.total = Math.max(1, (s.total || 1) - 1);
+            }
+            copy.percentage = copy.total > 0 ? ((copy.attended / copy.total) * 100).toFixed(1) : s.percentage;
+            return copy;
+        });
+
+        return {
+            hasComparison: true,
+            isSameDate: false,
+            isDemo: true,
+            oldDate: '16 Sep 2026, 04:30 PM',
+            currentDate: '18 Sep 2026, 05:45 PM',
+            oldSubjects: oldSubs,
+            currentSubjects: curSubs,
+            differences: computeSubjectDifferences(oldSubs, curSubs)
+        };
+    }
+
+    const curKey = `bunker_current_attendance_${roll}`;
+    const curDateKey = `bunker_current_update_${roll}`;
+    const oldKey = `bunker_old_attendance_${roll}`;
+    const oldDateKey = `bunker_old_update_${roll}`;
+
+    let curSubs = [];
+    let oldSubs = [];
+    let curDate = localStorage.getItem(curDateKey) || localStorage.getItem('bunker_last_update') || 'Not recorded';
+    let oldDate = localStorage.getItem(oldDateKey) || localStorage.getItem(`bunker_previous_update_${roll}`) || null;
+
+    try {
+        curSubs = JSON.parse(localStorage.getItem(curKey) || 'null') || (state && state.subjects) || [];
+    } catch {
+        curSubs = (state && state.subjects) || [];
+    }
+
+    try {
+        oldSubs = JSON.parse(localStorage.getItem(oldKey) || 'null') ||
+                  JSON.parse(localStorage.getItem(`bunker_previous_attendance_${roll}`) || 'null') || [];
+    } catch {
+        oldSubs = [];
+    }
+
+    curSubs = Array.isArray(curSubs) ? curSubs : [];
+    oldSubs = Array.isArray(oldSubs) ? oldSubs : [];
+
+    const isSameDate = (!oldDate || oldSubs.length === 0 || isSameAttendanceDate(oldDate, curDate));
+    const hasComparison = !isSameDate && oldSubs.length > 0 && curSubs.length > 0;
+
+    return {
+        hasComparison,
+        isSameDate,
+        isDemo: false,
+        oldDate: isSameDate ? 'No old attendance stored' : (oldDate || 'Previous Update'),
+        currentDate: curDate,
+        oldSubjects: oldSubs,
+        currentSubjects: curSubs,
+        differences: hasComparison ? computeSubjectDifferences(oldSubs, curSubs) : []
+    };
+}
+
+function renderAttendanceComparisonCard() {
+    const card = document.getElementById('others-attendance-compare-card') || document.getElementById('settings-attendance-compare-card');
+    const badge = document.getElementById('compare-change-badge');
+    const preview = document.getElementById('compare-dates-preview');
+    if (!card) return;
+
+    const roll = (typeof state !== 'undefined' && state.rollNumber) ? state.rollNumber : localStorage.getItem('bunker_roll') || '';
+    if (!roll) return;
+
+    const data = getAttendanceComparisonData(roll);
+
+    if (data.hasComparison && !data.isSameDate) {
+        const changesCount = data.differences.filter(d => d.hasChanged).length;
+        if (badge) {
+            badge.classList.remove('hidden');
+            if (changesCount > 0) {
+                badge.className = 'text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+                badge.textContent = `${changesCount} Updated`;
+            } else {
+                badge.className = 'text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider bg-white/10 text-gray-300 border border-white/10';
+                badge.textContent = 'Synced';
+            }
+        }
+        if (preview) {
+            preview.innerHTML = `Old: <span class="text-amber-300 font-bold">${data.oldDate}</span> &bull; Now: <span class="text-emerald-300 font-bold">${data.currentDate}</span>`;
+        }
+    } else {
+        if (badge) {
+            badge.classList.remove('hidden');
+            badge.className = 'text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30';
+            badge.textContent = 'Current Only';
+        }
+        if (preview) {
+            preview.innerHTML = `<span class="text-amber-300/90 font-medium">No old attendance of yours stored</span>`;
+        }
+    }
+}
+
+function openAttendanceComparisonModal() {
+    const m = document.getElementById('attendance-comparison-modal');
+    const p = document.getElementById('att-compare-panel');
+    const b = document.getElementById('att-compare-backdrop');
+    if (!m || !p || !b) return;
+
+    const roll = (typeof state !== 'undefined' && state.rollNumber) ? state.rollNumber : localStorage.getItem('bunker_roll') || '';
+    const data = getAttendanceComparisonData(roll);
+
+    // Populate dates
+    const oldDateEl = document.getElementById('compare-old-date');
+    const curDateEl = document.getElementById('compare-current-date');
+    if (oldDateEl) {
+        if (data.isSameDate) {
+            oldDateEl.innerHTML = `<span class="text-amber-300/90 font-medium text-[11px]">No old attendance stored</span>`;
+        } else {
+            oldDateEl.textContent = data.oldDate || 'Previous Update';
+        }
+    }
+    if (curDateEl) curDateEl.textContent = data.currentDate || 'Latest Log';
+
+    // Overall stats & elements
+    const currentOnlyBanner = document.getElementById('compare-current-only-banner');
+    const overallBanner = document.getElementById('compare-overall-banner');
+    const overallText = document.getElementById('compare-overall-text');
+    const overallChip = document.getElementById('compare-overall-chip');
+    const listEl = document.getElementById('compare-subjects-list');
+    const emptyEl = document.getElementById('compare-empty-note');
+
+    if (data.hasComparison && !data.isSameDate && data.differences.length > 0) {
+        if (currentOnlyBanner) currentOnlyBanner.classList.add('hidden');
+        if (emptyEl) emptyEl.classList.add('hidden');
+        if (listEl) listEl.classList.remove('hidden');
+        if (overallBanner) overallBanner.classList.remove('hidden');
+
+        let oldTotAtt = 0, oldTotHrs = 0;
+        let curTotAtt = 0, curTotHrs = 0;
+
+        data.differences.forEach(d => {
+            oldTotAtt += d.oldAttended;
+            oldTotHrs += d.oldTotal;
+            curTotAtt += d.curAttended;
+            curTotHrs += d.curTotal;
+        });
+
+        const oldOverallPct = oldTotHrs > 0 ? ((oldTotAtt / oldTotHrs) * 100).toFixed(1) : '0.0';
+        const curOverallPct = curTotHrs > 0 ? ((curTotAtt / curTotHrs) * 100).toFixed(1) : '0.0';
+        const overallPctDelta = (parseFloat(curOverallPct) - parseFloat(oldOverallPct)).toFixed(1);
+
+        if (overallText) {
+            overallText.innerHTML = `<span class="text-gray-400 font-bold">${oldTotAtt}/${oldTotHrs} (${oldOverallPct}%)</span> <span class="text-gray-500 font-bold mx-1">&rarr;</span> <span class="text-white font-black">${curTotAtt}/${curTotHrs} (${curOverallPct}%)</span>`;
+        }
+        if (overallChip) {
+            const num = parseFloat(overallPctDelta);
+            if (num > 0) {
+                overallChip.className = 'px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+                overallChip.innerHTML = `<i class="fas fa-arrow-up mr-1 text-[10px]"></i>+${overallPctDelta}%`;
+            } else if (num < 0) {
+                overallChip.className = 'px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30';
+                overallChip.innerHTML = `<i class="fas fa-arrow-down mr-1 text-[10px]"></i>${overallPctDelta}%`;
+            } else {
+                overallChip.className = 'px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-white/10 text-gray-300 border border-white/10';
+                overallChip.innerHTML = `No Change`;
+            }
+        }
+
+        // Render subject comparison cards
+        if (listEl) {
+            listEl.innerHTML = data.differences.map(s => {
+                const isHigher = parseFloat(s.curPct) >= 75;
+                const pctColor = isHigher ? 'text-emerald-400' : 'text-rose-400';
+                return `
+                <div class="p-4 rounded-2xl bg-white/5 border ${s.hasChanged ? 'border-indigo-500/30 bg-indigo-500/5' : 'border-white/10'} transition-all space-y-2.5">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                            <div class="text-xs font-black text-white tracking-tight truncate">${s.name}</div>
+                            <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">${s.code}</div>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider shrink-0 ${s.badgeClass}">
+                            ${s.badgeText}
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 pt-2 border-t border-white/5 text-xs">
+                        <div class="bg-black/30 p-2.5 rounded-xl border border-white/5">
+                            <div class="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Before</div>
+                            <div class="font-black text-gray-300 text-sm">
+                                ${s.oldAttended} <span class="text-gray-500 font-bold text-xs">/ ${s.oldTotal}</span>
+                            </div>
+                            <div class="text-[10px] text-gray-400 font-bold mt-0.5">${s.oldPct}%</div>
+                        </div>
+                        <div class="bg-black/30 p-2.5 rounded-xl border border-white/5">
+                            <div class="text-[9px] font-bold text-indigo-300 uppercase tracking-wider mb-1">Now</div>
+                            <div class="font-black text-white text-sm">
+                                ${s.curAttended} <span class="text-gray-400 font-bold text-xs">/ ${s.curTotal}</span>
+                            </div>
+                            <div class="text-[10px] font-bold mt-0.5 ${pctColor}">${s.curPct}% <span class="text-gray-500 font-normal">(${s.pctDelta >= 0 ? '+' : ''}${s.pctDelta}%)</span></div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+    } else {
+        // Same date or no old attendance stored: Show ONLY current attendance available
+        if (currentOnlyBanner) currentOnlyBanner.classList.remove('hidden');
+        if (overallBanner) overallBanner.classList.add('hidden');
+        if (emptyEl) emptyEl.classList.add('hidden');
+
+        const curSubs = (data.currentSubjects && data.currentSubjects.length > 0) 
+            ? data.currentSubjects 
+            : ((state && state.subjects) || []);
+
+        if (listEl) {
+            if (curSubs.length > 0) {
+                listEl.classList.remove('hidden');
+                listEl.innerHTML = `
+                <div class="text-[10px] font-black uppercase tracking-widest text-gray-400 px-1 mb-1">Current Attendance Only (${curSubs.length} Subjects)</div>
+                ` + curSubs.map(s => {
+                    const att = Number(s.attended || 0);
+                    const tot = Number(s.total || 0);
+                    const pct = (s.percentage !== undefined && s.percentage !== null) 
+                        ? parseFloat(s.percentage).toFixed(1) 
+                        : (tot > 0 ? ((att / tot) * 100).toFixed(1) : '0.0');
+                    const isEligible = parseFloat(pct) >= 75.0;
+                    const badgeClass = isEligible 
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
+                        : 'bg-rose-500/20 text-rose-300 border border-rose-500/30';
+                    const pctColor = isEligible ? 'text-emerald-400' : 'text-rose-400';
+
+                    return `
+                    <div class="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2.5">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0">
+                                <div class="text-xs font-black text-white tracking-tight truncate">${s.name || s.code || 'Subject'}</div>
+                                <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">${s.code || ''}</div>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider shrink-0 ${badgeClass}">
+                                ${pct}%
+                            </span>
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between text-xs">
+                            <div class="text-[11px] font-bold text-gray-400">
+                                Current Attended Hours
+                            </div>
+                            <div class="font-black text-white text-sm">
+                                ${att} <span class="text-gray-400 font-bold text-xs">/ ${tot} hrs</span>
+                                <span class="ml-2 font-black ${pctColor}">(${pct}%)</span>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+            } else {
+                listEl.classList.add('hidden');
+                if (emptyEl) emptyEl.classList.remove('hidden');
+            }
+        }
+    }
+
+    m.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(() => {
+        b.classList.remove('opacity-0');
+        p.classList.remove('opacity-0', 'scale-95');
+        p.classList.add('scale-100');
+    });
+
+    if (!m._escBound) {
+        m._escBound = true;
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !m.classList.contains('hidden')) {
+                closeAttendanceComparisonModal();
+            }
+        });
+    }
+}
+
+function closeAttendanceComparisonModal() {
+    const m = document.getElementById('attendance-comparison-modal');
+    const p = document.getElementById('att-compare-panel');
+    const b = document.getElementById('att-compare-backdrop');
+    if (!p || !m) return;
+    if (b) b.classList.add('opacity-0');
+    p.classList.add('opacity-0', 'scale-95');
+    p.classList.remove('scale-100');
+    document.body.style.overflow = '';
+    setTimeout(() => {
+        m.classList.add('hidden');
+    }, 300);
+}
+
+window.openAttendanceComparisonModal = openAttendanceComparisonModal;
+window.closeAttendanceComparisonModal = closeAttendanceComparisonModal;
+window.renderAttendanceComparisonCard = renderAttendanceComparisonCard;
+window.saveAttendanceSnapshot = saveAttendanceSnapshot;
+window.getAttendanceComparisonData = getAttendanceComparisonData;
+
+// ================================================================
 // ACADEMICS PAGE
 // ================================================================
 
@@ -2909,33 +4084,16 @@ function getAuthToken() {
 
 function switchAcadTab(tab) {
     acadActiveTab = tab;
-    const tabs = ['internals', 'results'];
-    tabs.forEach(t => {
-        const btn = document.getElementById(`acad-tab-${t}`);
-        const panel = document.getElementById(`acad-panel-${t}`);
-        if (!btn || !panel) return;
-        if (t === tab) {
-            btn.className = 'flex-1 py-2.5 rounded-[18px] text-[10px] font-black uppercase tracking-widest transition-all bg-indigo-600 text-white shadow-lg';
-            panel.classList.remove('hidden');
-        } else {
-            btn.className = 'flex-1 py-2.5 rounded-[18px] text-[10px] font-black uppercase tracking-widest transition-all bg-white/5 text-gray-400 border border-white/5';
-            panel.classList.add('hidden');
-        }
-    });
+    const activeTab = document.querySelector('.tab-content.active');
+    if (!activeTab || activeTab.id !== 'tab-others') {
+        switchTab('others', 3);
+    }
+    openOthersSubView(tab);
 }
 
 async function loadAcademics(force = false, silent = false) {
     if (state.academics.loaded && !state.academics.fromCache && !force) return;
     if (state.academics.loading) return; // prevent duplicate requests
-
-    // PSG IAS and CEG don't have CA Marks / GPA on their portals
-    if (state.college === 'PSGIAS' || state.college === 'CEG') {
-        if (!silent) {
-            document.getElementById('acad-loading')?.classList.add('hidden');
-            showAcadError('Academic data (Internals / GPA / CGPA) is only available for PSG Tech students.');
-        }
-        return;
-    }
 
     // If we have cached data, render it immediately for instant display
     if (state.academics.loaded && state.academics.fromCache) {
@@ -2943,7 +4101,7 @@ async function loadAcademics(force = false, silent = false) {
         renderInternals(state.academics.internals);
         renderGPA(state.academics.gpa);
         renderCGPA(state.academics.cgpa);
-        if (!silent) switchAcadTab(acadActiveTab);
+        renderOthersOverview();
         // Don't return — still revalidate from server below
     }
 
@@ -3000,6 +4158,7 @@ async function loadAcademics(force = false, silent = false) {
         if (state.rollNumber) {
             try {
                 localStorage.setItem(`bunker_academics_${state.rollNumber}`, JSON.stringify({ internals, gpa, cgpa }));
+                localStorage.setItem(`bunker_acad_fetch_time_${state.rollNumber}`, Date.now().toString());
             } catch { }
         }
 
@@ -3008,18 +4167,20 @@ async function loadAcademics(force = false, silent = false) {
         renderInternals(internals);
         renderGPA(gpa);
         renderCGPA(cgpa);
+        renderOthersOverview();
 
         // Notify user if new marks were found
         if (marksChanged) {
             showToast('📊 Marks updated!', 'success');
         }
 
-        // If user is already on the academics tab, show the correct sub-tab
-        const acadPanel = document.getElementById('acad-panel-internals');
-        if (acadPanel && !acadPanel.classList.contains('hidden')) {
-            switchAcadTab(acadActiveTab);
-        } else if (!silent) {
-            switchAcadTab(acadActiveTab);
+        // If user is already on a subview (internals or results), refresh that subview
+        const internalsView = document.getElementById('others-subview-internals');
+        const resultsView = document.getElementById('others-subview-results');
+        if (internalsView && !internalsView.classList.contains('hidden')) {
+            openOthersSubView('internals');
+        } else if (resultsView && !resultsView.classList.contains('hidden')) {
+            openOthersSubView('results');
         }
 
     } catch (err) {
@@ -3034,6 +4195,12 @@ async function revalidateAcademicsInBackground() {
     if (!state.rollNumber || state.rollNumber === 'DEMO') return;
     const authToken = getAuthToken();
     if (!authToken) return;
+
+    // Only revalidate if last academics fetch was more than 12 hours ago (saves ~50,000 function calls/mo)
+    const lastAcadFetch = parseInt(localStorage.getItem(`bunker_acad_fetch_time_${state.rollNumber}`) || '0');
+    const isAcadStale = (Date.now() - lastAcadFetch) > (12 * 60 * 60 * 1000);
+    if (!isAcadStale && state.academics.loaded) return;
+
     // Reset fromCache flag so loadAcademics does a fresh fetch
     if (state.academics.loaded) state.academics.fromCache = true;
     await loadAcademics(false, true);
@@ -4291,7 +5458,7 @@ function updateNavGlow(tabId) {
 
         // Dynamically change color based on tab with smooth transitions
         let glowColor = 'rgba(99, 102, 241, 0.45)'; // Default Indigo (Home)
-        if (tabId === 'academics') glowColor = 'rgba(168, 85, 247, 0.45)'; // Purple (Marks)
+        if (tabId === 'academics' || tabId === 'others') glowColor = 'rgba(168, 85, 247, 0.45)'; // Purple (Others)
         else if (tabId === 'calendar') glowColor = 'rgba(249, 115, 22, 0.45)'; // Orange (Calendar)
         else if (tabId === 'planner') glowColor = 'rgba(16, 185, 129, 0.45)'; // Emerald (Tracker)
         glow.style.backgroundColor = glowColor;
@@ -4387,5 +5554,9 @@ function dismissLoadingScreen() {
         screen.style.pointerEvents = 'none';
     }
 }
+window.dismissLoadingScreen = dismissLoadingScreen;
+window.showFeaturesTourModal = showFeaturesTourModal;
+window.closeFeaturesTourModal = closeFeaturesTourModal;
+window.handleTourApkDownload = handleTourApkDownload;
 
 

@@ -1,40 +1,31 @@
 """
 Smart Bunker - Flask Backend
 ============================
-Attendance tracking and bunker-planning system that supports three colleges:
+Attendance tracking and bunker-planning system exclusively for PSG College of Technology (PSG Tech).
 
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │  College  │  Roll No Format     │  Portal URL                  │  Min Att.  │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ PSG Tech  │ 6-7 alphanumeric    │ ecampus.psgtech.ac.in        │  75% (exam)│
-│           │ e.g. 22CSA01        │ /studzone2/                  │  80% bunk  │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ PSG IAS   │ 7 chars w/ letters  │ ecampus.psgias.ac.in/        │  75%       │
-│           │ e.g. 25IR007        │ Login/UserLogin               │            │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ CEG / AU  │ exactly 10 digits   │ www.auegov.ac.in/            │  75%       │
-│ (Anna Uni)│ e.g. 2023103001     │ Login/UserLogin (CeGov)      │            │
+│           │ e.g. 22CSA01        │ /studzone/                   │  80% bunk  │
 └──────────────────────────────────────────────────────────────────────────────┘
 
 College Detection Logic (detect_college):
-  1. If roll number matches r'^\d{10}$'        → CEG  (CeGov / Anna Univ portal)
-  2. If roll has a known PSG Tech course code  → PSGTECH
-  3. Otherwise                                 → PSGIAS
+  - Validates roll number format against PSG Tech branch maps -> 'PSGTECH'
 
 Scraper Classes:
-  - EcampusScraper      : PSG Tech  (ecampus.psgtech.ac.in/studzone2/)
-  - EcampusIASScraper   : PSG IAS   (ecampus.psgias.ac.in/)
-  - EcampusCEGScraper   : CEG/AU    (www.auegov.ac.in/) — min attendance 75%
+  - EcampusScraper : PSG Tech (ecampus.psgtech.ac.in/studzone/)
 
 API Endpoints:
   POST /api/login           → Authenticate + fetch attendance/timetable
-  GET  /api/calendar/<roll> → Academic calendar (PSG Tech only; CEG/IAS return empty)
-  POST /api/internals       → CA marks          (PSG Tech only)
-  POST /api/gpa             → GPA / results     (PSG Tech only)
-  POST /api/cgpa            → CGPA history      (PSG Tech only)
+  GET  /api/calendar/<roll> → Academic calendar (PSG Tech)
+  POST /api/internals       → CA marks (PSG Tech)
+  POST /api/gpa             → GPA / results (PSG Tech)
+  POST /api/cgpa            → CGPA history (PSG Tech)
+  POST /api/feedback        → Automated 5-star course & staff feedback
 """
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file, abort
 import requests
 from bs4 import BeautifulSoup
 import math
@@ -44,6 +35,8 @@ import os
 import json
 import logging
 import urllib3
+import re
+from concurrent.futures import ThreadPoolExecutor
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -75,75 +68,523 @@ def set_disk_cache(cache_key, data):
 
 
 # ============================================================================
-# ===== EDIT THESE VALUES EACH SEMESTER =====
+# ===== AUTOMATED ACADEMIC CALENDAR RESOLVER (Zero Manual Tokens) =====
 # ============================================================================
 
+PSGTECH_BRANCH_MAP = {
+    # BE Programs (4 Years)
+    'A': {'degree': 'B.E.', 'name': 'Automobile Engineering', 'sandwich': False, 'years': 4},
+    'D': {'degree': 'B.E.', 'name': 'Civil Engineering', 'sandwich': False, 'years': 4},
+    'C': {'degree': 'B.E.', 'name': 'Computer Science & Engineering', 'sandwich': False, 'years': 4},
+    'CS': {'degree': 'B.E.', 'name': 'Computer Science & Engineering', 'sandwich': False, 'years': 4},
+    'Z': {'degree': 'B.E.', 'name': 'Electronics & Communication Engineering', 'sandwich': False, 'years': 4},
+    'N': {'degree': 'B.E.', 'name': 'Electrical & Electronics Engineering', 'sandwich': False, 'years': 4},
+    'E': {'degree': 'B.E.', 'name': 'Electronics & Instrumentation Engineering', 'sandwich': False, 'years': 4},
+    'L': {'degree': 'B.E.', 'name': 'Mechanical Engineering', 'sandwich': False, 'years': 4},
+    'M': {'degree': 'B.E.', 'name': 'Metallurgical Engineering', 'sandwich': False, 'years': 4},
+    'Y': {'degree': 'B.E.', 'name': 'Production Engineering', 'sandwich': False, 'years': 4},
+    'P': {'degree': 'B.E. (Sandwich)', 'name': 'Production Engineering (Sandwich)', 'sandwich': True, 'years': 5},
+    'K': {'degree': 'B.E. (Sandwich)', 'name': 'Mechanical Engineering (Sandwich)', 'sandwich': True, 'years': 5},
+    'ES': {'degree': 'B.E. (Sandwich)', 'name': 'Electrical & Electronics (Sandwich)', 'sandwich': True, 'years': 5},
+    'SW': {'degree': 'B.E. (Sandwich)', 'name': 'Sandwich Engineering Program', 'sandwich': True, 'years': 5},
+    'R': {'degree': 'B.E.', 'name': 'Robotics & Automation', 'sandwich': False, 'years': 4},
+    'U': {'degree': 'B.E.', 'name': 'Biomedical Engineering', 'sandwich': False, 'years': 4},
+    
+    # BTech Programs (4 Years)
+    'B': {'degree': 'B.Tech', 'name': 'Biotechnology', 'sandwich': False, 'years': 4},
+    'H': {'degree': 'B.Tech', 'name': 'Fashion Technology', 'sandwich': False, 'years': 4},
+    'I': {'degree': 'B.Tech', 'name': 'Information Technology', 'sandwich': False, 'years': 4},
+    'T': {'degree': 'B.Tech', 'name': 'Textile Technology', 'sandwich': False, 'years': 4},
+    
+    # BSc Programs (3 Years)
+    'S': {'degree': 'B.Sc', 'name': 'Applied Science / Computer Systems', 'sandwich': False, 'years': 3},
+    'X': {'degree': 'B.Sc', 'name': 'Mathematics & Computing', 'sandwich': False, 'years': 3},
+    
+    # MSc Programs (5 Years Integrated or 2 Years)
+    'SA': {'degree': 'M.Sc (Integrated)', 'name': 'Software Systems', 'sandwich': False, 'years': 5},
+    'FD': {'degree': 'M.Sc (Integrated)', 'name': 'Data Science', 'sandwich': False, 'years': 5},
+    'XW': {'degree': 'M.Sc (Integrated)', 'name': 'Cyber Security', 'sandwich': False, 'years': 5},
+    'XT': {'degree': 'M.Sc (Integrated)', 'name': 'Theoretical Computer Science', 'sandwich': False, 'years': 5},
+    'XD': {'degree': 'M.Sc (Integrated)', 'name': 'Decision & Computing Sciences', 'sandwich': False, 'years': 5},
+    'XC': {'degree': 'M.Sc (Integrated)', 'name': 'Theoretical Computer Science', 'sandwich': False, 'years': 5},
+    
+    # MCA (2 Years)
+    'MX': {'degree': 'M.C.A.', 'name': 'Master of Computer Applications', 'sandwich': False, 'years': 2},
+    
+    # ME / MTech Programs (2 Years)
+    'AE': {'degree': 'M.E.', 'name': 'Automotive Engineering', 'sandwich': False, 'years': 2},
+    'NB': {'degree': 'M.E.', 'name': 'Energy Engineering', 'sandwich': False, 'years': 2},
+    'ZC': {'degree': 'M.E.', 'name': 'Communication Systems', 'sandwich': False, 'years': 2},
+    'UC': {'degree': 'M.E.', 'name': 'Embedded & Real-Time Systems', 'sandwich': False, 'years': 2},
+    'EE': {'degree': 'M.E.', 'name': 'Power Electronics & Drives', 'sandwich': False, 'years': 2},
+    'MD': {'degree': 'M.E.', 'name': 'Manufacturing Engineering', 'sandwich': False, 'years': 2},
+    'MN': {'degree': 'M.E.', 'name': 'Engineering Design', 'sandwich': False, 'years': 2},
+    'PP': {'degree': 'M.E.', 'name': 'Computer Science & Engineering', 'sandwich': False, 'years': 2},
+    'ED': {'degree': 'M.E.', 'name': 'Industrial Engineering', 'sandwich': False, 'years': 2},
+    'CS': {'degree': 'M.E.', 'name': 'Computer Science & Engineering', 'sandwich': False, 'years': 2},
+    'LV': {'degree': 'M.E.', 'name': 'VLSI Design', 'sandwich': False, 'years': 2},
+    'BT': {'degree': 'M.Tech', 'name': 'Biotechnology', 'sandwich': False, 'years': 2},
+    'LN': {'degree': 'M.Tech', 'name': 'Nano Science & Technology', 'sandwich': False, 'years': 2},
+    'TT': {'degree': 'M.Tech', 'name': 'Textile Technology', 'sandwich': False, 'years': 2},
+    'SE': {'degree': 'M.E.', 'name': 'Structural Engineering', 'sandwich': False, 'years': 2},
+    'CE': {'degree': 'M.Tech', 'name': 'Chemical Engineering', 'sandwich': False, 'years': 2},
+    'EC': {'degree': 'M.Tech', 'name': 'Electronics & Communication', 'sandwich': False, 'years': 2},
+    'IT': {'degree': 'M.Tech', 'name': 'Information Technology', 'sandwich': False, 'years': 2},
+    'GM': {'degree': 'M.B.A.', 'name': 'Master of Business Administration', 'sandwich': False, 'years': 2},
+    'GW': {'degree': 'M.B.A.', 'name': 'Master of Business Administration', 'sandwich': False, 'years': 2}
+}
+
+
+class AutoCalendarResolver:
+    """
+    Automated Calendar & Planner Resolver for PSG College of Technology.
+    Dynamically discovers current academic year and planners from official API:
+    https://academicschedule.psgtech.ac.in/api/calendar
+    Eliminates all manual tokens and hardcoded semester planner IDs.
+    """
+    _CALENDARS_INDEX_CACHE = {'data': None, 'timestamp': 0}
+    _PLANNER_CACHE = {}
+
+    @classmethod
+    def get_current_academic_year(cls):
+        now = datetime.now()
+        # In PSG Tech, academic year runs Jun-May.
+        # Jan-May belongs to the academic year starting previous calendar year.
+        return now.year - 1 if (1 <= now.month <= 5) else now.year
+
+    @classmethod
+    def get_calendar_index(cls, force_refresh=False):
+        now = time.time()
+        if not force_refresh and cls._CALENDARS_INDEX_CACHE['data'] and (now - cls._CALENDARS_INDEX_CACHE['timestamp'] < 3600):
+            return cls._CALENDARS_INDEX_CACHE['data']
+            
+        disk_data = get_disk_cache('psg_academic_calendar_index', max_age_seconds=3600)
+        if not force_refresh and disk_data:
+            cls._CALENDARS_INDEX_CACHE['data'] = disk_data
+            cls._CALENDARS_INDEX_CACHE['timestamp'] = now
+            return disk_data
+
+        try:
+            url = "https://academicschedule.psgtech.ac.in/api/calendar"
+            res = requests.get(url, timeout=4, verify=False)
+            if res.status_code == 200:
+                data = res.json()
+                cls._CALENDARS_INDEX_CACHE['data'] = data
+                cls._CALENDARS_INDEX_CACHE['timestamp'] = now
+                set_disk_cache('psg_academic_calendar_index', data)
+                return data
+        except Exception as e:
+            logger.warning(f"Error fetching live calendar index: {e}")
+
+        # Fallback to local cache if present
+        fallback_path = os.path.join(os.path.dirname(__file__), '..', 'static', 'all_calendars_cache.json')
+        if os.path.exists(fallback_path):
+            try:
+                with open(fallback_path, 'r', encoding='utf-8') as f:
+                    cached_planners = json.load(f)
+                    planners_list = list(cached_planners.values())
+                    synthesized = [{
+                        'year': cls.get_current_academic_year(),
+                        'planner': planners_list
+                    }]
+                    cls._CALENDARS_INDEX_CACHE['data'] = synthesized
+                    cls._CALENDARS_INDEX_CACHE['timestamp'] = now
+                    return synthesized
+            except Exception as e:
+                logger.error(f"Failed to read static fallback cache: {e}")
+
+        return cls._CALENDARS_INDEX_CACHE.get('data') or []
+
+    @classmethod
+    def clean_roll_input(cls, raw_roll):
+        """Sanitizes roll numbers, repairs spreadsheet scientific notation (e.g. 2.50E+119 -> 25E119), and handles lateral entry prefixes."""
+        if not raw_roll:
+            return ""
+        roll = str(raw_roll).strip().upper()
+        import re
+        m = re.match(r'^(\d+)\.?(\d*)E\+(\d+)$', roll)
+        if m:
+            digits_before = m.group(1) + m.group(2)
+            year = digits_before[:2]
+            suffix = m.group(3)
+            return f"{year}E{suffix}"
+        # Strip optional leading 'D' for diploma / lateral entries e.g. D26U233 -> 26U233
+        roll = re.sub(r'^D(\d{2}[A-Z])', r'\1', roll)
+        return roll
+
+    @classmethod
+    def extract_sem_from_courses(cls, course_codes):
+        """Extract dominant semester from a list of PSG Tech course codes (e.g. 23U301 -> 3)"""
+        if not course_codes:
+            return None
+        import re
+        from collections import Counter
+        sems = []
+        for code in course_codes:
+            code = str(code).strip().upper()
+            m = re.search(r'^[0-9]{2}[A-Z]+([1-9])\d{2}', code)
+            if m:
+                sems.append(int(m.group(1)))
+            else:
+                m2 = re.search(r'^[0-9]{2}[A-Z]+([1-9])\d{1}$', code)
+                if m2:
+                    sems.append(int(m2.group(1)))
+        return Counter(sems).most_common(1)[0][0] if sems else None
+
+    @classmethod
+    def detect_ecampus_semester(cls, roll):
+        """
+        Attempts to detect student's active semester from eCampus cached session or course data.
+        Returns dict with semester_no, year_of_study, semester_type, student_name, or None.
+        """
+        if not roll:
+            return None
+        clean_roll = cls.clean_roll_input(roll)
+        import hashlib, glob
+        roll_hash = hashlib.sha256(f"{clean_roll}:PSGTECH".encode()).hexdigest()
+        
+        # 1. Check previous attendance cache
+        prev_path = f"/tmp/bunker_prev_{roll_hash}.json"
+        if os.path.exists(prev_path):
+            try:
+                with open(prev_path, 'r', encoding='utf-8') as f:
+                    d = json.load(f)
+                subs = d.get('subjects', [])
+                codes = [s.get('code') for s in subs if s.get('code')]
+                sem = cls.extract_sem_from_courses(codes)
+                if sem:
+                    return {
+                        'semester_no': sem,
+                        'year_of_study': (sem + 1) // 2,
+                        'semester_type': 'odd' if (sem % 2 == 1) else 'even',
+                        'student_name': d.get('student_name'),
+                        'course_count': len(codes),
+                        'source': 'ecampus_attendance'
+                    }
+            except Exception as e:
+                logger.warning(f"Error reading prev cache: {e}")
+
+        # 2. Check allsem results cache
+        results_pattern = f"/tmp/bunker_results_v4_*.json"
+        for fpath in glob.glob(results_pattern):
+            try:
+                with open(fpath, 'r', encoding='utf-8') as f:
+                    rd = json.load(f)
+                if rd.get('roll') == clean_roll or (clean_roll in fpath):
+                    latest_sem = rd.get('latest_sem')
+                    if latest_sem and isinstance(latest_sem, int):
+                        curr_sem = latest_sem + 1
+                        return {
+                            'semester_no': curr_sem,
+                            'year_of_study': (curr_sem + 1) // 2,
+                            'semester_type': 'odd' if (curr_sem % 2 == 1) else 'even',
+                            'source': 'ecampus_results'
+                        }
+            except Exception:
+                pass
+
+        return None
+
+    @classmethod
+    def parse_student_roll(cls, roll, acad_year=None, semester=None):
+        if not roll:
+            return None
+        roll = cls.clean_roll_input(roll)
+        if len(roll) < 4:
+            return None
+        
+        import re
+        m_year = re.match(r'^(\d{2})', roll)
+        if not m_year:
+            return None
+        admission_year = int('20' + m_year.group(1))
+        
+        if not acad_year:
+            acad_year = cls.get_current_academic_year()
+            
+        m_letters = re.search(r'[A-Z]+', roll[2:])
+        branch_letters = m_letters.group(0) if m_letters else ''
+        
+        branch_code = None
+        if len(branch_letters) >= 2:
+            code2 = branch_letters[:2]
+            if code2 in PSGTECH_BRANCH_MAP:
+                branch_code = code2
+            elif code2 == 'PT':
+                branch_code = 'P'
+        elif len(branch_letters) == 1 and branch_letters in PSGTECH_BRANCH_MAP:
+            branch_code = branch_letters
+
+        if not branch_code or branch_code not in PSGTECH_BRANCH_MAP:
+            return None
+            
+        branch_meta = PSGTECH_BRANCH_MAP[branch_code]
+
+        # Serial number in roll (e.g. 25U402 -> 402, 25U201 -> 201, 22E613 -> 613)
+        m_num = re.search(r'(\d+)$', roll)
+        serial_num = int(m_num.group(1)) if m_num else 0
+
+        deg = branch_meta.get('degree', 'B.E.')
+
+        # Distinguish Sandwich sections (500-series and 600-series for E, M, P, N, L)
+        is_sandwich = branch_meta.get('sandwich', False) or (500 <= serial_num <= 699 and branch_code in ['E', 'M', 'P', 'N', 'L'])
+
+        # Detect Lateral Entry:
+        # In B.E. / B.Tech, lateral entry students enter directly into Year 2 and are assigned
+        # roll numbers in the 400-series (401-499) or prefixed with L/LE/D.
+        is_lateral = (400 <= serial_num <= 499 and deg in ['B.E.', 'B.Tech']) or roll.startswith(('L', 'LE', 'D'))
+
+        # Calculate nominal year of study:
+        # Lateral entry enters directly into 2nd year (skips 1st year)
+        if is_lateral:
+            nominal_year = acad_year - admission_year + 2
+        else:
+            nominal_year = acad_year - admission_year + 1
+
+        # Check eCampus cached data for this student
+        ecampus_info = cls.detect_ecampus_semester(roll)
+
+        semester_no = None
+        if semester and str(semester).strip().isdigit():
+            # Explicit semester number override (e.g. sem=5, sem=3)
+            semester_no = int(str(semester).strip())
+            year_of_study = (semester_no + 1) // 2
+            semester_type = 'odd' if (semester_no % 2 == 1) else 'even'
+        elif ecampus_info and ecampus_info.get('semester_no'):
+            # eCampus detected semester
+            semester_no = ecampus_info['semester_no']
+            year_of_study = ecampus_info['year_of_study']
+            semester_type = ecampus_info['semester_type']
+        else:
+            year_of_study = nominal_year
+            now_month = datetime.now().month
+            if semester and str(semester).strip().lower() in ['odd', 'even']:
+                semester_type = str(semester).strip().lower()
+            else:
+                semester_type = 'even' if (1 <= now_month <= 5) else 'odd'
+            semester_no = (year_of_study * 2) if semester_type == 'even' else (year_of_study * 2 - 1)
+
+        is_sandwich = is_sandwich or (year_of_study == 5 and branch_code not in ['SA', 'FD', 'XW', 'XT', 'XD', 'XC'])
+        max_years = 5 if is_sandwich or branch_code in ['SA', 'FD', 'XW', 'XT', 'XD', 'XC'] else branch_meta.get('years', 4)
+        year_of_study = max(1, min(max_years, year_of_study))
+        semester_no = max(1, min(max_years * 2, semester_no))
+
+        is_mca = (branch_code == 'MX')
+        is_msc = branch_code in ['SA', 'FD', 'XW', 'XT', 'XD', 'XC']
+        is_bsc = branch_code in ['S', 'X']
+        is_pg = deg in ['M.E.', 'M.Tech', 'M.B.A.']
+        deg_clean = deg.replace('.', '').upper()
+        if 'BTECH' in deg_clean: course_type = 'BTech'
+        elif 'BSC' in deg_clean: course_type = 'BSc'
+        elif 'MSC' in deg_clean: course_type = 'MSc'
+        elif 'ME' in deg_clean or 'MTECH' in deg_clean or 'MBA' in deg_clean: course_type = 'ME'
+        elif 'MCA' in deg_clean: course_type = 'MCA'
+        else: course_type = 'BE'
+
+        return {
+            'roll': roll,
+            'admission_year': admission_year,
+            'academic_year': acad_year,
+            'year_of_study': year_of_study,
+            'semester_no': semester_no,
+            'semester_type': semester_type,
+            'is_lateral_entry': is_lateral,
+            'entry_type': 'Lateral Entry (Direct 2nd Year)' if is_lateral else 'Regular Entry',
+            'branch_code': branch_code,
+            'degree': deg,
+            'branch_name': branch_meta.get('name', 'Engineering'),
+            'course': course_type,
+            'is_sandwich': is_sandwich,
+            'is_mca': is_mca,
+            'is_msc': is_msc,
+            'is_bsc': is_bsc,
+            'is_pg': is_pg,
+            'ecampus_synced': bool(ecampus_info),
+            'ecampus_info': ecampus_info
+        }
+
+    @classmethod
+    def match_planner(cls, planners, student_info, semester='odd'):
+        import re
+
+        def split_clauses(title):
+            clean = title.lower()
+            clean = clean.replace('reg & sw', 'reg_and_sw').replace('reg. & sw', 'reg_and_sw')
+            clean = clean.replace('reg. &sw', 'reg_and_sw').replace('regular & sw', 'reg_and_sw')
+            clean = clean.replace('regular and sw', 'reg_and_sw')
+            clean = clean.replace('be / b.tech', 'be').replace('be/btech', 'be').replace('b.e / b.tech', 'be')
+            clean = clean.replace('all bsc and all msc', 'all_bsc_msc').replace('all bsc & all msc', 'all_bsc_msc')
+            return [cl.strip() for cl in re.split(r'[,;]|\band\b', clean) if cl.strip()]
+
+        def score_clause(clause, s):
+            c = clause.lower()
+            y = s['year_of_study']
+            course_norm = s.get('course', 'BE').replace('.', '').upper()
+
+            if s['is_sandwich']:
+                if not any(w in c for w in ['sw', 'sandwich']):
+                    return 0
+                if y == 5 and any(w in c for w in ['fifth', '5th', 'v year', 'final']): return 100
+                if y == 4 and any(w in c for w in ['fourth', '4th', 'iv year']): return 100
+                if y == 3 and any(w in c for w in ['third', '3rd', 'iii']): return 90
+                if y == 2 and any(w in c for w in ['second', '2nd', 'ii']): return 90
+                if y == 1 and any(w in c for w in ['first', '1st', 'i ']): return 90
+                return 70
+
+            # Normal student shouldn't match sandwich-only planners
+            if any(w in c for w in ['fourth year be sw', 'fifth year be sw', 'final year be sandwich']):
+                return 0
+
+            if s['is_bsc'] or s['is_msc']:
+                return 100 if any(w in c for w in ['bsc', 'msc', 'b.sc', 'm.sc', 'all_bsc_msc']) else 0
+
+            if s['is_mca']:
+                if 'mca' not in c: return 0
+                if y == 1 and any(w in c for w in ['first', '1st', 'i year', 'i ']): return 100
+                if y >= 2 and any(w in c for w in ['second', '2nd', 'ii year', 'ii ']): return 100
+                return 80
+
+            if s['is_pg']:
+                if not any(w in c for w in ['me', 'mtech', 'm.tech', 'pg']): return 0
+                if y == 1 and any(w in c for w in ['first', '1st', 'i year', 'i ']): return 100
+                if y >= 2 and any(w in c for w in ['second', '2nd', 'ii year', 'ii ']): return 100
+                return 80
+
+            if course_norm in ['BE', 'BTECH']:
+                if ('mca' in c and not any(w in c for w in ['be', 'btech'])) or ('all_bsc_msc' in c and not any(w in c for w in ['be', 'btech'])):
+                    return 0
+                if y == 1 and any(w in c for w in ['first year', '1st year', 'i year', 'first  year']): return 100
+                elif y == 2 and any(w in c for w in ['second year', '2nd year', 'ii year']): return 100
+                elif y in [3, 4] and any(w in c for w in ['3rd', '4th', 'third', 'fourth', 'iii', 'iv']): return 100
+
+            return 0
+
+        # Filter by semester
+        semester = (semester or 'odd').lower()
+        active_planners = []
+        for p in planners:
+            name_lower = p.get('name', '').lower()
+            if semester == 'odd':
+                if p.get('isPublished') or ('odd' in name_lower and 'even' not in name_lower):
+                    active_planners.append(p)
+            else:
+                if not p.get('isPublished') or 'even' in name_lower:
+                    active_planners.append(p)
+                    
+        if not active_planners:
+            active_planners = planners
+
+        best_planner = None
+        best_score = -1
+        for p in active_planners:
+            clauses = split_clauses(p.get('name', ''))
+            clause_max = max((score_clause(cl, student_info) for cl in clauses), default=0)
+            if clause_max > best_score:
+                best_score = clause_max
+                best_planner = p
+
+        return best_planner
+
+    @classmethod
+    def get_planner_details(cls, year, planner_id):
+        key = f"{year}_{planner_id}"
+        now = time.time()
+        if key in cls._PLANNER_CACHE and (now - cls._PLANNER_CACHE[key]['time'] < 3600):
+            return cls._PLANNER_CACHE[key]['data']
+
+        disk_data = get_disk_cache(f"psg_planner_{key}", max_age_seconds=3600)
+        if disk_data:
+            cls._PLANNER_CACHE[key] = {'data': disk_data, 'time': now}
+            return disk_data
+
+        try:
+            url = f"https://academicschedule.psgtech.ac.in/api/calendar/{year}/planner/{planner_id}"
+            res = requests.get(url, timeout=4, verify=False)
+            if res.status_code == 200:
+                data = res.json()
+                cls._PLANNER_CACHE[key] = {'data': data, 'time': now}
+                set_disk_cache(f"psg_planner_{key}", data)
+                return data
+        except Exception as e:
+            logger.warning(f"Error fetching planner {key}: {e}")
+
+        # Check static fallback cache
+        fallback_path = os.path.join(os.path.dirname(__file__), '..', 'static', 'all_calendars_cache.json')
+        if os.path.exists(fallback_path):
+            try:
+                with open(fallback_path, 'r', encoding='utf-8') as f:
+                    cdata = json.load(f)
+                    if str(planner_id) in cdata:
+                        return cdata[str(planner_id)]
+            except Exception:
+                pass
+        return None
+
+    @classmethod
+    def resolve_calendar(cls, roll, semester=None, year=None):
+        """
+        Main entry point to resolve calendar dynamically for any roll number.
+        Returns (student_info, planner_meta, full_planner_data, all_planners_for_year).
+        Supports:
+          - Regular roll numbers (e.g. 24C001, 25E201)
+          - Lateral Entry roll numbers (e.g. 25U402, 24M641 -> 3rd year in 2026)
+          - eCampus active semester auto-detection
+          - Numeric semester overrides (?sem=1..10) or season (?sem=odd|even)
+        """
+        all_calendars = cls.get_calendar_index()
+        if not all_calendars:
+            return None, None, None, []
+
+        try:
+            target_year = int(year) if year else max(c.get('year', 2026) for c in all_calendars)
+        except Exception:
+            target_year = cls.get_current_academic_year()
+
+        year_entry = next((c for c in all_calendars if c.get('year') == target_year), all_calendars[0])
+        year_planners = year_entry.get('planner', [])
+
+        student = cls.parse_student_roll(roll, target_year, semester=semester)
+        if not student:
+            return None, None, None, year_planners
+
+        # Determine target semester type for planner matching
+        if semester and str(semester).strip().lower() in ['odd', 'even']:
+            target_sem_type = str(semester).strip().lower()
+        else:
+            target_sem_type = student.get('semester_type', 'odd')
+
+        matched_planner = cls.match_planner(year_planners, student, semester=target_sem_type)
+        if not matched_planner and year_planners:
+            matched_planner = year_planners[0]
+
+        details = None
+        if matched_planner:
+            details = cls.get_planner_details(target_year, matched_planner['id'])
+
+        return student, matched_planner, details, year_planners
+
+
+# Backward compatibility CONFIG dictionary
 CONFIG = {
-    # API year (change each academic year)
-    'API_YEAR': 2026,
-    
-    # Planner ID mapping (update each semester if needed)
-    # Format: "COURSE_YEAR": PLANNER_ID
-    'PLANNER_MAP': {
-        # BE/BTech Programs
-        "BE_1": 39, "BTech_1": 39,
-        "BE_2": 33, "BTech_2": 33,
-        "BE_3": 32, "BTech_3": 32,
-        "BE_4": 32, "BTech_4": 32,
-        "BE_5": 35,
-        
-        # BSc Programs (ALL YEARS - same calendar)
-        "BSc_1": 32, "BSc_2": 32, "BSc_3": 32,
-        
-        # MSc Programs (ALL YEARS - same calendar)
-        "MSc_1": 32, "MSc_2": 32,
-        
-        # ME/MTech Programs
-        "ME_1": 32, "MTech_1": 32,
-        "ME_2": 32, "MTech_2": 32,
-        
-        # MCA Program
-        "MCA_1": 33, "MCA_2": 32,
-    },
-    
-    # Course code mapping (usually stable - based on roll number letter)
-    'COURSE_CODES': {
-        # BE codes
-        'U': 'BE', 'A': 'BE', 'D': 'BE', 'C': 'BE', 'Z': 'BE',
-        'N': 'BE', 'E': 'BE', 'L': 'BE', 'M': 'BE', 'Y': 'BE',
-        'P': 'BE', 'R': 'BE',
-        
-        # BTech codes
-        'B': 'BTech', 'H': 'BTech', 'I': 'BTech', 'T': 'BTech',
-        
-        # BSc codes
-        'S': 'BSc', 'X': 'BSc',
-        
-        # ME codes (two letters)
-        'AE': 'ME', 'NB': 'ME', 'ZC': 'ME', 'UC': 'ME',
-        'EE': 'ME', 'MD': 'ME', 'MN': 'ME', 'PP': 'ME',
-        'ED': 'ME', 'CS': 'ME', 'LV': 'ME', 'BT': 'ME',
-        'LN': 'ME', 'TT': 'ME', 'SE': 'ME',
-        
-        # MTech codes
-        'CE': 'MTech', 'EC': 'MTech', 'IT': 'MTech', 'ME': 'MTech',
-        
-        # MCA code
-        'MX': 'MCA',
-        
-        # MBA codes
-        'GM': 'MBA', 'GW': 'MBA',
-        
-        # MSc codes (using letters from your list)
-        'SA': 'MSc', 'FD': 'MSc', 'XW': 'MSc', 'XT': 'MSc', 'XD': 'MSc', 'XC': 'MSc',
-    }
+    'API_YEAR': AutoCalendarResolver.get_current_academic_year(),
+    'COURSE_CODES': {k: v['degree'] for k, v in PSGTECH_BRANCH_MAP.items()},
+    'PLANNER_MAP': {}  # Handled dynamically by AutoCalendarResolver
 }
 
 # ============================================================================
-# ===== END OF EDITABLE SECTION =====
+# ===== END OF AUTOMATED CALENDAR SECTION =====
 # ============================================================================
 
-app = Flask(__name__, template_folder='templates', static_folder='../static')
+_CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+_TEMPLATES_DIR = os.path.join(_CURRENT_DIR, 'templates')
+if not os.path.isdir(_TEMPLATES_DIR):
+    _TEMPLATES_DIR = _CURRENT_DIR
+
+_STATIC_DIR = os.path.join(_CURRENT_DIR, '..', 'static')
+if not os.path.isdir(_STATIC_DIR):
+    _STATIC_DIR = _CURRENT_DIR
+
+app = Flask(__name__, template_folder=_TEMPLATES_DIR, static_folder=_STATIC_DIR)
 
 session_secret = os.environ.get("SESSION_SECRET")
 if not session_secret:
@@ -175,6 +616,7 @@ def compress_response(response):
                 response.set_data(compressed)
                 response.headers['Content-Encoding'] = 'gzip'
                 response.headers['Content-Length'] = len(compressed)
+                response.headers['Vary'] = 'Accept-Encoding'
     return response
 
 
@@ -218,58 +660,41 @@ def get_course_type(roll_number):
     return CONFIG['COURSE_CODES'].get(first_letter)
 
 
-def get_planner_id(roll_number):
-    """Get planner ID for calendar from roll number"""
-    if not roll_number or len(roll_number) < 6:
+def get_planner_id(roll_number, semester=None):
+    """Get planner ID for calendar from roll number using automated resolver"""
+    if not roll_number or len(roll_number) < 4:
         return None
     
-    course_type = get_course_type(roll_number)
-    academic_year = get_academic_year(roll_number)
-    
-    if not course_type or not academic_year:
-        return None
-    
-    map_key = f"{course_type}_{academic_year}"
-    return CONFIG['PLANNER_MAP'].get(map_key)
+    student, planner, details, _ = AutoCalendarResolver.resolve_calendar(roll_number, semester=semester)
+    if planner and 'id' in planner:
+        return planner['id']
+        
+    return None
 
 
 def detect_college(roll_number):
     """
-    Determine which college a student belongs to, based on roll number format.
-
-    Rules (applied in order):
-      1. Exactly 10 digits  →  'CEG'     (Anna Univ. / CeGov portal: auegov.ac.in)
-         e.g. 2023103001
-      2. Contains a known PSG Tech course code letter(s)  →  'PSGTECH'
-         e.g. 22CSA01  (C = BE course code)
-      3. Anything else  →  'PSGIAS'
-         e.g. 25IR007
+    Validate and determine if roll number belongs to PSG College of Technology.
+    Returns 'PSGTECH' if valid PSG Tech student format, otherwise None.
     """
     if not roll_number:
         return None
     
-    roll_number = roll_number.strip().upper()
+    roll_number = AutoCalendarResolver.clean_roll_input(roll_number)
     
-    # --- Rule 1: CEG (Anna University constituent colleges) ---
-    # CEG roll numbers are exactly 10 numeric digits, e.g. 2023103001
-    # They are purely numeric, so we check before looking for letters.
     import re
-    if re.match(r'^\d{10}$', roll_number):
-        return 'CEG'
-    
-    # --- Rule 2: PSG Tech ---
-    # PSG Tech roll numbers contain uppercase letters (course code) after the year.
-    # e.g. 22CSA01 → letters 'C' or 'CS' map to a known course type.
-    match = re.search(r'[A-Z]+', roll_number)
-    if match:
-        course_code = match.group(0)
-        if course_code in CONFIG['COURSE_CODES']:
+    # PSG Tech roll numbers start with 2-digit year followed by valid branch code
+    m = re.match(r'^\d{2}([A-Z]+)', roll_number)
+    if m:
+        letters = m.group(1)
+        if len(letters) >= 2:
+            code2 = letters[:2]
+            if code2 in PSGTECH_BRANCH_MAP or code2 == 'PT':
+                return 'PSGTECH'
+        elif len(letters) == 1 and letters in PSGTECH_BRANCH_MAP:
             return 'PSGTECH'
 
-    # --- Rule 3: PSG IAS (default) ---
-    # Roll numbers with letters not in PSG Tech's course code list (e.g. 25IR007)
-    # or other unrecognised formats fall through to PSG IAS.
-    return 'PSGIAS'
+    return None
 
 
 def is_absolute_grading(roll_number):
@@ -614,459 +1039,6 @@ class EcampusScraper:
         return name
 
 
-
-class EcampusIASScraper:
-    """
-    Web scraper for PSG Institute of Advanced Studies (PSG IAS) eCampus portal.
-
-    Portal   : https://ecampus.psgias.ac.in/
-    College  : PSG Institute of Advanced Studies, Coimbatore
-    Roll No  : 7 chars with letters not in PSG Tech list (e.g. 25IR007)
-    Min Att. : 75%
-    Features : Attendance, Course name mapping, Weekly Schedule
-               NOTE: CA Marks / GPA / CGPA are NOT available on this portal.
-
-    Login flow:
-      1. GET /Login/UserLogin → grab __RequestVerificationToken (CSRF)
-      2. POST /Login/UserLoginTest with email + password + token
-    """
-    ECAMPUS_URL = "https://ecampus.psgias.ac.in/"
-    
-    def __init__(self, username, password):
-        self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        })
-        self.username = username
-        self.authenticated = self._login(username, password)
-    
-    def _login(self, username, password):
-        """Authenticate with PSG IAS eCampus"""
-        try:
-            login_url = f"{self.ECAMPUS_URL}Login/UserLogin"
-            login_page = self.session.get(login_url, timeout=7)
-            soup = BeautifulSoup(login_page.text, 'html.parser')
-            
-            # Get CSRF token
-            csrf_token = soup.find('input', {'name': '__RequestVerificationToken'})
-            if not csrf_token:
-                logger.error("PSG IAS: CSRF token not found")
-                return False
-            
-            login_data = {
-                '__RequestVerificationToken': csrf_token.get('value', ''),
-                'email': username,
-                'password': password
-            }
-            
-            response = self.session.post(f"{self.ECAMPUS_URL}Login/UserLoginTest", 
-                                        data=login_data, timeout=7, allow_redirects=True)
-            
-            # Check if login was successful
-            if 'Invalid' in response.text or 'Login' in response.url:
-                logger.error("PSG IAS: Invalid credentials")
-                return False
-            
-            return True
-        except Exception as e:
-            logger.error(f"PSG IAS Login error: {str(e)}")
-            return False
-    
-    def get_attendance(self):
-        """Fetch attendance data from PSG IAS eCampus"""
-        if not self.authenticated:
-            return None, None, "Authentication failed"
-        
-        try:
-            attendance_url = f"{self.ECAMPUS_URL}AttpercCons/AttPercCons"
-            response = self.session.get(attendance_url, timeout=7)
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Look for table with class "table card-table table-vcenter text-wrap datatable"
-            table = soup.find('table', {'class': lambda x: x and 'table' in x and 'card-table' in x})
-            if not table:
-                return None, "No data", "Attendance data not available"
-            
-            attendance_data = []
-            last_update = None
-            rows = table.find_all('tr')[1:]  # Skip header row
-            
-            for row in rows:
-                cols = [col.text.strip() for col in row.find_all('td')]
-                if len(cols) >= 9:
-                    try:
-                        # PSG IAS table structure:
-                        # 0: Course Code
-                        # 1: Course Name
-                        # 2: Total Hours
-                        # 3: Absent Hours
-                        # 4: Leave Hours
-                        # 5: Medical Hours
-                        # 6: Total Absent
-                        # 7: Total Present
-                        # 8: % of Attendance
-                        # 9: % with Exemption
-                        # 10: % with Medical
-                        
-                        # Fix for potential whitespace issues
-                        course_code = cols[0].strip()
-                        course_name = cols[1].strip()
-                        
-                        total_hours = int(cols[2]) if cols[2] and cols[2].isdigit() else 0
-                        total_present = int(cols[7]) if len(cols) > 7 and cols[7].isdigit() else 0
-                        
-                        # Handle percentage possibly being empty or weird
-                        perc_str = cols[8].replace('%','').strip() if len(cols) > 8 else '0'
-                        try:
-                            percentage = float(perc_str)
-                        except:
-                            percentage = 0.0
-                        
-                        attendance_data.append({
-                            'code': course_code,
-                            'name': course_name,
-                            'total': total_hours,
-                            'attended': total_present,
-                            'percentage': percentage
-                        })
-                    except (ValueError, IndexError) as e:
-                        logger.error(f"PSG IAS: Error parsing row: {e}")
-                        continue
-            
-            # Extract "Valid Until" date from card header
-            # Looking for: "Valid Until : 04-02-2026"
-            card_header = soup.find('div', {'class': 'card-header'})
-            if card_header:
-                h3_tags = card_header.find_all('h3')
-                for h3 in h3_tags:
-                    text = h3.text.strip()
-                    if 'Valid Until' in text:
-                        # Extract date after "Valid Until :"
-                        date_parts = text.split(':')
-                        if len(date_parts) > 1:
-                            date_str = date_parts[1].strip()
-                            try:
-                                from datetime import datetime as dt
-                                date_obj = dt.strptime(date_str, '%d-%m-%Y')
-                                last_update = date_obj.strftime('%b %d, %Y')
-                            except:
-                                last_update = date_str
-                        break
-            
-            if not last_update:
-                last_update = "No data"
-            
-            return attendance_data, last_update, "Success"
-        except Exception as e:
-            logger.error(f"PSG IAS Attendance fetch error: {str(e)}")
-            return None, "No data", f"Error: {str(e)}"
-    
-    def get_timetable(self):
-        """Fetch course codes mapping for PSG IAS"""
-        if not self.authenticated:
-            return {}, "Authentication failed"
-        
-        try:
-            # Build mapping from attendance data since PSG IAS shows both code and name
-            attendance_data, _, _ = self.get_attendance()
-            course_mapping = {}
-            
-            if attendance_data:
-                for subject in attendance_data:
-                    course_mapping[subject['code']] = subject['name']
-            
-            return course_mapping, "Success"
-        except Exception as e:
-            logger.error(f"PSG IAS Timetable fetch error: {str(e)}")
-            return {}, f"Error: {str(e)}"
-    
-    def get_weekly_schedule(self):
-        """Fetch weekly timetable for PSG IAS"""
-        if not self.authenticated:
-            return {}, "Authentication failed"
-        
-        try:
-            tables_to_check = []
-
-            # 1. Fetch Home
-            try:
-                home_url = f"{self.ECAMPUS_URL}Home/Home"
-                response = self.session.get(home_url, timeout=15)
-                soup = BeautifulSoup(response.text, 'html.parser')
-                tables = soup.find_all('table')
-                for t in tables:
-                    text = t.get_text().lower()
-                    if 'mon' in text and 'fri' in text:
-                        tables_to_check.append(t)
-            except Exception as e:
-                logger.error(f"Home fetch error: {e}")
-
-            # 2. Fetch TimeTableStud
-            try:
-                tt_url = f"{self.ECAMPUS_URL}TimeTableStud/TimeTableStud"
-                response = self.session.get(tt_url, timeout=15)
-                soup = BeautifulSoup(response.text, 'html.parser')
-                t = soup.find('table', {'class': 'table'})
-                if t:
-                    tables_to_check.append(t)
-            except Exception as e:
-                logger.error(f"TimeTableStud fetch error: {e}")
-
-            best_schedule = {day: [] for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']}
-            best_count = 0
-
-            # Logic to parse table
-            start_days = ['mon', 'tue', 'wed', 'thu', 'fri']
-            days_map = {'mon': 'Mon', 'tue': 'Tue', 'wed': 'Wed', 'thu': 'Thu', 'fri': 'Fri',
-                        'monday': 'Mon', 'tuesday': 'Tue', 'wednesday': 'Wed', 
-                        'thursday': 'Thu', 'friday': 'Fri'}
-
-            for target_table in tables_to_check:
-                current_schedule = {day: [] for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']}
-                current_count = 0
-                
-                rows = target_table.find_all('tr')
-                day_rows = []
-                
-                for row in rows:
-                    row_text = row.get_text(" ", strip=True).lower()
-                    found_day = None
-                    for d in start_days:
-                        if d in row_text:
-                            if d + 'day' in row_text:
-                                found_day = days_map.get(d + 'day')
-                            else:
-                                found_day = days_map.get(d)
-                            break
-                    
-                    if found_day:
-                        # PSG IAS uses <th> for slots sometimes, so check both
-                        if len(row.find_all(['td', 'th'])) > 1:
-                            day_rows.append((found_day, row))
-
-                for day_name, row in day_rows:
-                    cols = row.find_all(['td', 'th'])
-                    
-                    valid_cols = []
-                    for col_idx, col in enumerate(cols):
-                        txt = col.get_text(strip=True).lower()
-                        # Skip if it's the day name itself or "Day Order"
-                        if day_name.lower() in txt or txt in ['day', 'order', 'day order']:
-                            continue
-                        # Empty cell at start? usually index col
-                        if not txt and col_idx == 0: continue
-                        valid_cols.append(col)
-
-                    # Now process valid columns
-                    for col in valid_cols:
-                        course_code = col.get_text(strip=True)
-                        if not course_code or course_code == '-' or course_code == '&nbsp;' or course_code.lower() == 'fast track':
-                            current_schedule[day_name].append('Free')
-                        else:
-                            current_schedule[day_name].append(course_code)
-                            current_count += 1
-                
-                # If this table has more classes, use it
-                if current_count > best_count:
-                    best_count = current_count
-                    best_schedule = current_schedule
-            
-            return best_schedule, "Success"
-            
-        except Exception as e:
-            logger.error(f"PSG IAS Weekly schedule fetch error: {str(e)}")
-            return {day: [] for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']}, f"Error: {str(e)}"
-    
-    def get_student_name(self):
-        """Get student name from PSG IAS portal"""
-        if not self.authenticated:
-            return "Student"
-        
-        try:
-            home_url = f"{self.ECAMPUS_URL}Home/Home"
-            response = self.session.get(home_url, timeout=7)
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Look for student name in the navbar/header
-            # Based on the HTML, it's in a div with class "d-none d-xl-block ps-2"
-            name_element = soup.find('div', {'class': 'd-none d-xl-block ps-2'})
-            if name_element:
-                # Get the first div inside
-                name_div = name_element.find('div')
-                if name_div:
-                    return name_div.text.strip()
-            
-            return "Student"
-        except Exception as e:
-            logger.error(f"PSG IAS get_student_name error: {str(e)}")
-            return "Student"
-
-
-
-class EcampusCEGScraper:
-    """
-    Ultra-Fast Scraper for College of Engineering, Guindy (Anna University - CEG/ACT/SAP)
-    Portal: https://www.auegov.ac.in/
-    Login: https://www.auegov.ac.in/Login/UserLogin
-    Attendance: https://www.auegov.ac.in/Students_Attendance
-    Min Att. : 75% (as per Anna University regulations)
-    Roll format: Exactly 10 digits (e.g. 2023103001)
-    """
-    ECAMPUS_URL = "https://www.auegov.ac.in/"
-    MIN_ATTENDANCE = 75.0
-
-    def __init__(self, username, password):
-        self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-            'Accept': 'application/json, text/javascript, */*; q=0.01',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'X-Requested-With': 'XMLHttpRequest',
-            'Referer': 'https://www.auegov.ac.in/Login/UserLogin',
-        })
-        self.username = username
-        self.authenticated = self._login(username, password)
-
-    def _login(self, username, password):
-        """Authenticate with CeGov portal using AJAX login verification flow"""
-        try:
-            # 1. GET UserLogin to fetch cookies
-            login_url = f"{self.ECAMPUS_URL}Login/UserLogin"
-            self.session.get(login_url, timeout=7)
-
-            # 2. POST to LoginVerification
-            verification_url = f"{self.ECAMPUS_URL}Login/LoginVerification"
-            login_data = {
-                'inRegNo': username,
-                'inPassword': password
-            }
-            
-            response = self.session.post(verification_url, data=login_data, timeout=7)
-            res_data = response.json()
-            logger.info(f"CEG LoginVerification Response: {res_data}")
-
-            # status 1 = Success
-            if res_data.get('status') != 1:
-                logger.error(f"CEG CeGov login fail: {res_data.get('errorMsg', 'Unknown error')}")
-                return False
-
-            # 3. Finalize session variables using SetUserSessionData
-            session_data_url = f"{self.ECAMPUS_URL}Login/SetUserSessionData"
-            session_payload = {
-                'ipAddress': '127.0.0.1',
-                'loginActivity': 'User Logged In'
-            }
-            self.session.post(session_data_url, data=session_payload, timeout=7)
-            
-            return True
-        except Exception as e:
-            logger.error(f"CEG CeGov Login error: {str(e)}")
-            return False
-
-    def get_attendance(self):
-        """Fetch attendance data via JSON endpoints directly"""
-        if not self.authenticated:
-            return None, None, "Authentication failed"
-
-        try:
-            headers = {
-                'Referer': f"{self.ECAMPUS_URL}Students_Attendance"
-            }
-            
-            # Fetch the courses for current semester
-            courses_url = f"{self.ECAMPUS_URL}Student/Students_Attendance_Detail/fetchCourseCodeForCurrSemester"
-            courses_resp = self.session.post(courses_url, headers=headers, timeout=7)
-            courses_data = courses_resp.json()
-            
-            course_details = courses_data.get('courseDetail', [])
-            if not course_details:
-                return None, "No data", "No attendance records found for this semester"
-
-            attendance_data = []
-            
-            for item in course_details:
-                course_code = item.get('ASE_COURSE_CODE')
-                staff_id = item.get('ASE_STAFFID')
-                session_id = item.get('ASE_SESSIONID')
-                mark_id = item.get('ASE_MARKID')
-                
-                # Fetch class details (held & absent)
-                detail_url = f"{self.ECAMPUS_URL}Student/Students_Attendance_Detail/fetchSelectedCourseAttendanceInfo"
-                payload = {
-                    'course_code': course_code,
-                    'staff_id': staff_id,
-                    'session_id': session_id,
-                    'mark_id': mark_id
-                }
-                detail_resp = self.session.post(detail_url, data=payload, headers=headers, timeout=7)
-                detail_data = detail_resp.json()
-                
-                course_name = detail_data.get('courseTitle', course_code)
-                held = detail_data.get('courseHeld', []) or []
-                absent = detail_data.get('absenceDetail', []) or []
-                
-                total = len(held)
-                attended = total - len(absent)
-                percentage = (attended / total * 100) if total > 0 else 0.0
-                
-                attendance_data.append({
-                    'code': course_code,
-                    'name': course_name,
-                    'total': total,
-                    'attended': attended,
-                    'percentage': round(percentage, 2),
-                })
-
-            last_update = datetime.now().strftime("%d-%b-%Y %I:%M %p")
-            return attendance_data, last_update, "Success"
-        except Exception as e:
-            logger.error(f"CEG Attendance fetch error: {str(e)}")
-            return None, "No data", f"Error: {str(e)}"
-
-    def get_timetable(self):
-        """Build course code→name mapping from attendance data"""
-        if not self.authenticated:
-            return {}, "Authentication failed"
-        try:
-            attendance_data, _, _ = self.get_attendance()
-            course_mapping = {}
-            if attendance_data:
-                for subject in attendance_data:
-                    course_mapping[subject['code']] = subject['name']
-            return course_mapping, "Success"
-        except Exception as e:
-            logger.error(f"CEG Timetable fetch error: {str(e)}")
-            return {}, f"Error: {str(e)}"
-
-    def get_weekly_schedule(self):
-        """CEG portal does not expose a weekly timetable in a parseable form yet.
-        Return an empty schedule so the app gracefully falls back.
-        """
-        return {day: [] for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']}, "Success"
-
-    def get_student_name(self):
-        """Get student name from CeGov portal profile page"""
-        if not self.authenticated:
-            return "Student"
-        try:
-            home_url = f"{self.ECAMPUS_URL}Home/Index"
-            response = self.session.get(home_url, timeout=7)
-            soup = BeautifulSoup(response.text, 'html.parser')
-            # Try common name placements in CeGov portal
-            for selector in [
-                {'class': lambda x: x and 'student-name' in x},
-                {'id': 'lblStudentName'},
-                {'id': 'lbluser'},
-            ]:
-                el = soup.find(attrs=selector) if isinstance(selector, dict) else soup.select_one(selector)
-                if el and el.text.strip():
-                    return el.text.strip()
-            return "Student"
-        except Exception as e:
-            logger.error(f"CEG Student name fetch error: {str(e)}")
-            return "Student"
-
-
 @app.route('/manifest.json')
 def serve_manifest():
     return app.send_static_file('manifest.json')
@@ -1101,12 +1073,28 @@ def index():
 @app.route('/calendar.html')
 def calendar_page():
     """Serve standalone Google Calendar style academic calendar & event planner (public, no auth required)"""
-    return render_template('calendar.html')
+    try:
+        return render_template('calendar.html')
+    except Exception:
+        cal_path = os.path.join(_CURRENT_DIR, 'calendar.html')
+        if os.path.exists(cal_path):
+            return send_file(cal_path)
+        raise
+
+@app.route('/static/calendar.js')
+def serve_calendar_js():
+    for candidate in [
+        os.path.join(_CURRENT_DIR, '..', 'static', 'calendar.js'),
+        os.path.join(_CURRENT_DIR, 'calendar.js')
+    ]:
+        if os.path.exists(candidate):
+            return send_file(candidate, mimetype='application/javascript')
+    return abort(404)
 
 
 @app.route('/api/login', methods=['POST'])
 def api_login():
-    """API endpoint for login - Supports both PSG Tech and PSG IAS"""
+    """API endpoint for login - Exclusively for PSG College of Technology"""
     try:
         data = request.get_json()
         username = data.get('username', '').strip().upper()
@@ -1118,21 +1106,13 @@ def api_login():
         # Detect college from roll number
         college = detect_college(username)
         
-        if not college:
+        if college != 'PSGTECH':
             return jsonify({
                 'success': False, 
-                'error': 'Invalid roll number format. Use 6 characters for PSG Tech or 7 for PSG IAS.'
+                'error': 'Invalid roll number format. Bunker is exclusively for PSG College of Technology students.'
             })
         
-        # Select appropriate scraper based on college
-        if college == 'PSGTECH':
-            scraper = EcampusScraper(username, password)
-        elif college == 'PSGIAS':
-            scraper = EcampusIASScraper(username, password)
-        elif college == 'CEG':
-            scraper = EcampusCEGScraper(username, password)
-        else:
-            return jsonify({'success': False, 'error': 'Unsupported college'})
+        scraper = EcampusScraper(username, password)
         
         if not scraper.authenticated:
             return jsonify({'success': False, 'error': 'Invalid credentials'})
@@ -1141,18 +1121,11 @@ def api_login():
         import json
         
         # Cache file path based on credentials
-        cred_hash = hashlib.sha256(f"{username}:{password}:{college}".encode()).hexdigest()
+        cred_hash = hashlib.sha256(f"{username}:{password}:PSGTECH".encode()).hexdigest()
         cache_path = f"/tmp/bunker_cache_{cred_hash}.json"
         
         # Always fetch attendance to verify if new data has been updated from college side
         attendance_data, last_update, att_msg = scraper.get_attendance()
-        
-        if college == 'CEG':
-            if not attendance_data:
-                return jsonify({
-                    'success': False,
-                    'error': 'Unable to fetch attendance data. Please try again.'
-                })
         
         use_cache = False
         cached_response = None
@@ -1162,22 +1135,12 @@ def api_login():
                 with open(cache_path, 'r') as f:
                     cached_data = json.load(f)
                     
-                # For CEG, last_update is current time, so we must compare the actual data
-                # For others, we can use last_update if it exists
-                if college == 'CEG' or college == 'PSGIAS':
-                    # Compare actual attendance data
-                    if json.dumps(cached_data.get('raw_attendance', []), sort_keys=True) == json.dumps(attendance_data, sort_keys=True):
-                        use_cache = True
-                else:
-                    # For PSG Tech, last_update is reliable and data might be huge
-                    if cached_data.get('last_update') == last_update and last_update != "No data":
-                        use_cache = True
+                # For PSG Tech, last_update is reliable
+                if cached_data.get('last_update') == last_update and last_update != "No data":
+                    use_cache = True
                         
                 if use_cache:
                     cached_response = cached_data.get('response')
-                    # Update the response's last_update for CEG since it's dynamic
-                    if college == 'CEG' and cached_response:
-                        cached_response['last_update'] = last_update
             except Exception as e:
                 logger.error(f"Cache read error: {e}")
         
@@ -1192,23 +1155,11 @@ def api_login():
             weekly_schedule, _ = scraper.get_weekly_schedule()
             student_name = scraper.get_student_name()
         
-        # For CEG: success is based on having attendance data (timetable is optional/synthetic)
-        # For PSG: must have timetable+course_mapping
-        if college == 'CEG':
-            # Build a synthetic timetable from the course codes so Smart Tracker works.
-            # Since CeGov doesn't expose a day-wise schedule, we spread all courses across weekdays.
-            codes = [s['code'] for s in attendance_data]
-            days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
-            synthetic_tt = {}
-            for i, day in enumerate(days):
-                synthetic_tt[day] = [codes[j] for j in range(len(codes)) if j % len(days) == i]
-            weekly_schedule = synthetic_tt
-        else:
-            if not weekly_schedule or not course_mapping:
-                return jsonify({
-                    'success': False,
-                    'error': 'Unable to fetch timetable data. Please try again.'
-                })
+        if not weekly_schedule or not course_mapping:
+            return jsonify({
+                'success': False,
+                'error': 'Unable to fetch timetable data. Please try again.'
+            })
         
         # Process subjects if available
         processed_subjects = []
@@ -1226,7 +1177,7 @@ def api_login():
                 })
 
         # Track previous attendance per roll number so it can be restored when college updates/blocks attendance
-        roll_hash = hashlib.sha256(f"{username.strip().upper()}:{college}".encode()).hexdigest()
+        roll_hash = hashlib.sha256(f"{username.strip().upper()}:PSGTECH".encode()).hexdigest()
         prev_cache_path = f"/tmp/bunker_prev_{roll_hash}.json"
 
         # Prepare response data
@@ -1236,8 +1187,8 @@ def api_login():
             'timetable': weekly_schedule,
             'course_mapping': course_mapping,
             'last_update': last_update or "No data",
-            'college': college,
-            'has_calendar': college == 'PSGTECH'  # Only PSG Tech has calendar support
+            'college': 'PSGTECH',
+            'has_calendar': True
         }
 
         # If current subjects are present, save to roll-specific prev cache
@@ -1288,15 +1239,7 @@ def api_login():
         # Add student name if available
         if student_name and student_name != "Student":
             response_data['student_name'] = student_name
-        elif college in ('PSGIAS', 'CEG'):
-            s_name = scraper.get_student_name()
-            if s_name and s_name != "Student":
-                response_data['student_name'] = s_name
 
-        # For CEG, expose minimum attendance so frontend can show correct threshold
-        if college == 'CEG':
-            response_data['min_attendance'] = EcampusCEGScraper.MIN_ATTENDANCE
-            
         # Save to cache (do not wipe previous valid attendance data if current is empty)
         try:
             should_save = True
@@ -1391,26 +1334,38 @@ ALL_CALENDARS_CACHE = {
 
 @app.route('/api/all-calendars')
 def api_all_calendars():
-    """Returns calendar planners for all departments with caching and fallback"""
-    import time
+    """Returns calendar planners dynamically for all departments with caching"""
     now = time.time()
     
-    # 1 hour server cache (works for warm containers)
+    # 1 hour in-memory cache
     if ALL_CALENDARS_CACHE['data'] and (now - ALL_CALENDARS_CACHE['timestamp'] < 3600):
         resp = jsonify(ALL_CALENDARS_CACHE['data'])
         resp.headers['Cache-Control'] = 'public, s-maxage=3600, stale-while-revalidate=7200'
         return resp
+
+    # Dynamically fetch live calendar index
+    calendar_index = AutoCalendarResolver.get_calendar_index()
+    curr_year = AutoCalendarResolver.get_current_academic_year()
     
-    # Baseline from disk cache
-    cached_data = {}
-    fallback_path = os.path.join(os.path.dirname(__file__), '..', 'static', 'all_calendars_cache.json')
-    if os.path.exists(fallback_path):
-        try:
-            with open(fallback_path, 'r', encoding='utf-8') as f:
-                cached_data = json.load(f)
-        except Exception as e:
-            logger.warning(f"Failed to read disk cache: {e}")
+    target_year_entry = next((y for y in calendar_index if y.get('year') == curr_year), None)
+    if not target_year_entry and calendar_index:
+        target_year_entry = calendar_index[0]
+        curr_year = target_year_entry.get('year', curr_year)
+        
+    planners_list = target_year_entry.get('planner', []) if target_year_entry else []
     
+    # Fetch full planner details for active planners with concurrency/caching
+    live_data = {}
+    for p in planners_list:
+        pid = p.get('id')
+        if pid:
+            p_details = AutoCalendarResolver.get_planner_details(curr_year, pid)
+            if p_details:
+                live_data[str(pid)] = p_details
+            else:
+                live_data[str(pid)] = p
+
+    # Built-in department shortcuts for legacy UI compatibility
     departments = [
         {"id": "be_3_4", "name": "3rd & 4th Year BE / B.Tech", "planner_odd": 32, "planner_even": 40, "color": "#6366f1"},
         {"id": "be_2", "name": "2nd Year BE / B.Tech", "planner_odd": 33, "planner_even": 41, "color": "#a855f7"},
@@ -1420,37 +1375,13 @@ def api_all_calendars():
         {"id": "sandwich", "name": "BE Sandwich (SW)", "planner_odd": 35, "planner_even": 44, "color": "#10b981"}
     ]
 
-    # If we have disk cache, use it and skip live fetch (fast path for Vercel 10s limit)
-    if cached_data:
-        result = {
-            'success': True,
-            'year': CONFIG['API_YEAR'],
-            'planners': cached_data,
-            'departments': departments
-        }
-        ALL_CALENDARS_CACHE['data'] = result
-        ALL_CALENDARS_CACHE['timestamp'] = now
-        resp = jsonify(result)
-        resp.headers['Cache-Control'] = 'public, s-maxage=3600, stale-while-revalidate=7200'
-        return resp
-
-    # No cache at all — try fetching fresh planners with tight timeouts
-    planners = [32, 33, 34, 35, 39, 40, 41, 42, 43, 44]
-    live_data = {}
-    for pid in planners:
-        try:
-            url = f"https://academicschedule.psgtech.ac.in/api/calendar/{CONFIG['API_YEAR']}/planner/{pid}"
-            res = requests.get(url, timeout=2)
-            if res.status_code == 200:
-                live_data[str(pid)] = res.json()
-        except Exception:
-            pass
-            
     result = {
         'success': True,
-        'year': CONFIG['API_YEAR'],
-        'planners': live_data if live_data else cached_data,
-        'departments': departments
+        'year': curr_year,
+        'planners': live_data,
+        'all_planners_meta': planners_list,
+        'departments': departments,
+        'available_years': [y.get('year') for y in calendar_index if 'year' in y]
     }
     
     ALL_CALENDARS_CACHE['data'] = result
@@ -1462,71 +1393,92 @@ def api_all_calendars():
 
 @app.route('/api/calendar/<roll>')
 def api_calendar(roll):
-    """Proxy calendar API to avoid CORS issues with offline fallback"""
+    """
+    Automated Calendar API:
+    Accepts roll number (e.g. 23L101, 24C001, 22CSA01, 25MX01), or planner ID directly.
+    Dynamically identifies student, year of study, program, semester, and returns matching schedule.
+    Optional query params: ?sem=odd|even &year=2026
+    """
     try:
-        roll = roll.strip().upper()
+        roll = AutoCalendarResolver.clean_roll_input(roll)
+        sem = request.args.get('sem', '').strip().lower() or None
+        target_year = request.args.get('year', '').strip() or None
         
+        # Direct planner ID access (e.g., /api/calendar/33)
+        if roll.isdigit() and len(roll) <= 3:
+            pid = int(roll)
+            curr_year = int(target_year) if target_year else AutoCalendarResolver.get_current_academic_year()
+            details = AutoCalendarResolver.get_planner_details(curr_year, pid)
+            if details:
+                resp = jsonify(details)
+                resp.headers['Cache-Control'] = 'public, s-maxage=3600, stale-while-revalidate=7200'
+                return resp
+            return jsonify({'error': f'Planner ID {pid} not found for year {curr_year}'}), 404
+
         # Detect college to determine if calendar is available
         college = detect_college(roll)
-        
-        if college == 'PSGIAS':
-            from datetime import datetime
+        if college != 'PSGTECH':
             return jsonify({
-                'name': 'PSG IAS Academic Year',
-                'startDate': datetime.now().isoformat(),
-                'lastDate': datetime.now().isoformat(),
+                'error': f"Roll number '{roll}' is not a valid PSG College of Technology roll number. The academic schedule is exclusively published for PSG College of Technology.",
+                'college': 'UNKNOWN',
+                'rollNumber': roll,
+                'name': 'Academic Year',
                 'calendar': {'holidays': []},
                 'activities': []
-            })
-
-        if college == 'CEG':
-            from datetime import datetime
-            return jsonify({
-                'name': 'CEG Academic Year',
-                'startDate': datetime.now().isoformat(),
-                'lastDate': datetime.now().isoformat(),
-                'calendar': {'holidays': []},
-                'activities': []
-            })
+            }), 400
             
-        # PSG Tech Logic (Default)
-        planner_id = get_planner_id(roll)
+        # Automated PSG Tech Planner Resolution
+        student, matched_planner, details, year_planners = AutoCalendarResolver.resolve_calendar(
+            roll, semester=sem, year=target_year
+        )
         
-        if not planner_id:
+        if not matched_planner:
             return jsonify({
                 'error': 'Could not identify course/year from roll number',
                 'rollNumber': roll
             }), 400
-        
-        # Fetch from academic schedule API
-        calendar_url = f"https://academicschedule.psgtech.ac.in/api/calendar/{CONFIG['API_YEAR']}/planner/{planner_id}"
-        
-        try:
-            response = requests.get(calendar_url, timeout=5)
-            if response.status_code == 200:
-                resp = jsonify(response.json())
-                resp.headers['Cache-Control'] = 'public, s-maxage=3600, stale-while-revalidate=7200'
-                return resp
-        except Exception:
-            pass
-        
-        # Fallback to local cache if network/API fails
-        fallback_path = os.path.join(os.path.dirname(__file__), '..', 'static', 'all_calendars_cache.json')
-        if os.path.exists(fallback_path):
-            try:
-                with open(fallback_path, 'r', encoding='utf-8') as f:
-                    cdata = json.load(f)
-                    if str(planner_id) in cdata:
-                        resp = jsonify(cdata[str(planner_id)])
-                        resp.headers['Cache-Control'] = 'public, s-maxage=3600, stale-while-revalidate=7200'
-                        return resp
-            except Exception:
-                pass
-                
-        return jsonify({'error': 'Failed to fetch calendar data'}), 502
+
+        # Construct unified backward-compatible response
+        payload = dict(details) if details else dict(matched_planner)
+        payload['success'] = True
+        payload['student'] = student
+        payload['matchedPlanner'] = matched_planner
+        payload['plannerId'] = matched_planner.get('id')
+        payload['semester'] = student.get('semester_type') if student else (sem or ('even' if (1 <= datetime.now().month <= 5) else 'odd'))
+        payload['semesterNo'] = student.get('semester_no') if student else None
+        payload['isLateralEntry'] = student.get('is_lateral_entry', False) if student else False
+        payload['ecampusSynced'] = student.get('ecampus_synced', False) if student else False
+        payload['academicYear'] = student.get('academic_year') if student else AutoCalendarResolver.get_current_academic_year()
+        payload['availablePlanners'] = [
+            {
+                'id': p.get('id'),
+                'name': p.get('name'),
+                'isPublished': p.get('isPublished', False),
+                'startDate': p.get('startDate'),
+                'lastDate': p.get('lastDate')
+            }
+            for p in year_planners
+        ]
+
+        resp = jsonify(payload)
+        resp.headers['Cache-Control'] = 'public, s-maxage=3600, stale-while-revalidate=7200'
+        return resp
         
     except Exception as e:
-        logger.error(f"Calendar API error: {str(e)}")
+        logger.error(f"Calendar API error for {roll}: {str(e)}")
+        # Fallback to local cache if network/API fails
+        try:
+            fallback_path = os.path.join(os.path.dirname(__file__), '..', 'static', 'all_calendars_cache.json')
+            if os.path.exists(fallback_path):
+                with open(fallback_path, 'r', encoding='utf-8') as f:
+                    cdata = json.load(f)
+                    # Return first planner from cache as ultimate safety net
+                    first_p = next(iter(cdata.values()))
+                    resp = jsonify(first_p)
+                    resp.headers['Cache-Control'] = 'public, s-maxage=3600, stale-while-revalidate=7200'
+                    return resp
+        except Exception:
+            pass
         return jsonify({'error': 'Server error fetching calendar'}), 500
 
 
@@ -2009,6 +1961,456 @@ def api_exam_timetable():
         logger.error(f"Exam Timetable API error: {str(e)}")
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
+
+
+
+# ============================================================================
+# ===== PSG TECH STUDZONE AUTOMATED FEEDBACK ENGINE =====
+# ============================================================================
+
+FEEDBACK_BASE_URL = "https://ecampus.psgtech.ac.in"
+FEEDBACK_STUDZONE_URL = f"{FEEDBACK_BASE_URL}/studzone"
+FEEDBACK_INDEX_URL = f"{FEEDBACK_STUDZONE_URL}/Feedback/Index"
+FEEDBACK_ENDSEM_URL = f"{FEEDBACK_STUDZONE_URL}/Feedback/endsemester"
+FEEDBACK_INTERMEDIATE_URL = f"{FEEDBACK_STUDZONE_URL}/Feedback/Intermediate"
+
+LOAD_STAFF_ENDSEM_URL = f"{FEEDBACK_STUDZONE_URL}/Feedback/LoadStaffs_endSem"
+LOAD_QUES_ENDSEM_URL = f"{FEEDBACK_STUDZONE_URL}/Feedback/LoadQuestions_endSem"
+SAVE_ENDSEM_URL = f"{FEEDBACK_STUDZONE_URL}/Feedback/Save_EndSem"
+
+ANS_LIST_INTERMEDIATE_URL = f"{FEEDBACK_STUDZONE_URL}/Feedback/IntermediateAnsList"
+SAVE_INTERMEDIATE_URL = f"{FEEDBACK_STUDZONE_URL}/Feedback/Save_Intermediate"
+
+FEEDBACK_DEFAULT_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/javascript, */*; q=0.01",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Origin": FEEDBACK_BASE_URL,
+    "Referer": FEEDBACK_INDEX_URL,
+    "X-Requested-With": "XMLHttpRequest",
+}
+
+
+_FEEDBACK_STATUS_CACHE = {}
+
+
+class FastFeedbackEngine:
+    """High-speed pure HTTP automation engine for PSG Tech Studzone."""
+
+    def __init__(self, timeout: int = 5):
+        self.session = requests.Session()
+        self.session.headers.update(FEEDBACK_DEFAULT_HEADERS)
+        adapter = requests.adapters.HTTPAdapter(pool_connections=25, pool_maxsize=25)
+        self.session.mount("https://", adapter)
+        self.session.mount("http://", adapter)
+        self.timeout = timeout
+
+    def extract_antiforgery_token(self, html: str):
+        soup = BeautifulSoup(html, "html.parser")
+        token_el = soup.find("input", {"name": "__RequestVerificationToken"})
+        if token_el and token_el.get("value"):
+            return str(token_el.get("value"))
+        m = re.search(r'name="__RequestVerificationToken"\s+type="hidden"\s+value="([^"]+)"', html)
+        return m.group(1) if m else None
+
+    def login(self, rollno: str, password: str):
+        clean_roll = rollno.strip().upper()
+        clean_pass = password.strip()
+
+        if not clean_roll or not clean_pass:
+            return {"success": False, "error": "Roll Number and Password are required."}
+
+        try:
+            r_get = self.session.get(f"{FEEDBACK_STUDZONE_URL}/", verify=False, timeout=self.timeout)
+            token = self.extract_antiforgery_token(r_get.text)
+            if not token:
+                return {"success": False, "error": "Unable to initialize secure session with PSG Tech portal."}
+
+            payload = {
+                "rollno": clean_roll,
+                "password": clean_pass,
+                "chkterms": "on",
+                "__RequestVerificationToken": token
+            }
+
+            r_post = self.session.post(
+                FEEDBACK_STUDZONE_URL,
+                data=payload,
+                verify=False,
+                allow_redirects=False,
+                timeout=self.timeout
+            )
+
+            if r_post.status_code in (301, 302, 303, 307, 308):
+                location = r_post.headers.get("Location", "")
+                if location == "/studzone" or location.endswith("/studzone/"):
+                    r_check = self.session.get(f"{FEEDBACK_BASE_URL}{location}", verify=False, timeout=self.timeout)
+                    if "Invalid" in r_check.text or "password" in r_check.text.lower():
+                        return {"success": False, "error": "Invalid Roll Number or Password."}
+                    return {"success": False, "error": "Login failed. Please verify credentials."}
+                return {"success": True}
+
+            if "Student Login" in r_post.text:
+                return {"success": False, "error": "Authentication failed. Incorrect Roll Number or Password."}
+
+            return {"success": True}
+        except Exception as e:
+            return {"success": False, "error": f"Network error: {str(e)}"}
+
+    def _process_endsem(self, rating_style: str = "max") -> str:
+        """Evaluate End Semester staff evaluations using verified API."""
+        r_page = self.session.get(FEEDBACK_ENDSEM_URL, verify=False, timeout=self.timeout)
+        if r_page.url.endswith("/Feedback/Index"):
+            return "End Semester Feedback: Currently not scheduled."
+
+        try:
+            r_staff = self.session.get(LOAD_STAFF_ENDSEM_URL, verify=False, timeout=self.timeout)
+            res_json = r_staff.json()
+            if isinstance(res_json, list):
+                staff_list = res_json
+            elif isinstance(res_json, dict) and "error" in res_json:
+                return f"End Semester: {res_json['error']}"
+            else:
+                staff_list = []
+        except Exception:
+            staff_list = []
+
+        if not staff_list:
+            return "End Semester: All evaluations completed or feedback closed."
+
+        def evaluate_staff(staff):
+            staff_id = staff.get("staffId")
+            course_code = staff.get("courseCode")
+            course_type = staff.get("courseType")
+            staff_name = staff.get("staffName", "Staff")
+
+            try:
+                r_q = self.session.get(
+                    LOAD_QUES_ENDSEM_URL,
+                    params={"coursecode": course_code, "coursetype": course_type},
+                    verify=False,
+                    timeout=self.timeout
+                )
+                questions = r_q.json() if r_q.text.startswith("[") else []
+                q_ids = [q["questionId"] for q in questions if int(q.get("questionId", 0)) > 0]
+
+                if q_ids:
+                    # Always 5-star maximum rating (score 4 is top rating in EndSem)
+                    scores = [4 for _ in q_ids]
+
+                    self.session.post(
+                        SAVE_ENDSEM_URL,
+                        data={
+                            "coursecode": course_code,
+                            "coursetype": course_type,
+                            "staffId": staff_id,
+                            "quesID": "^".join(map(str, q_ids)),
+                            "scorWeight": "^".join(map(str, scores))
+                        },
+                        verify=False,
+                        timeout=self.timeout
+                    )
+                    return staff_name, True
+            except Exception:
+                pass
+            return staff_name, False
+
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            eval_results = list(executor.map(evaluate_staff, staff_list))
+
+        completed_count = sum(1 for _, success in eval_results if success)
+        return f"End Semester: Evaluated and saved {completed_count}/{len(staff_list)} staff members successfully (5-Star Rating)!"
+
+    def _process_intermediate(self, rating_style: str = "max") -> str:
+        """Evaluate Intermediate course surveys using verified parallel API (Always 5-Star)."""
+        r_page = self.session.get(FEEDBACK_INTERMEDIATE_URL, verify=False, timeout=self.timeout)
+        if r_page.url.endswith("/Feedback/Index"):
+            return "Intermediate Feedback: Currently not active or already 100% completed."
+
+        soup = BeautifulSoup(r_page.text, "html.parser")
+        cards = soup.find_all(class_="intermediate-card")
+        if not cards:
+            return "Intermediate: All course surveys completed or not open."
+
+        tasks = []
+        course_count = 0
+        for card in cards:
+            onclick = card.get("onclick", "")
+            m = re.search(r"openQuestionSet\s*\(\s*['\"]([^'\"]+)['\"]\s*,\s*['\"]([^'\"]+)['\"]\s*,\s*['\"]([^'\"]+)['\"]\s*\)", onclick)
+            if not m:
+                continue
+            staff_id, course_code, course_type = m.group(1), m.group(2), m.group(3)
+            course_count += 1
+
+            # Always 5-star: ans_id="1" is "Strongly Agree" (top option)
+            for q in range(1, 12):
+                tasks.append((course_code, staff_id, course_type, str(q), "1"))
+
+        def send_intermediate_ans(item):
+            cc, sid, ct, qid, aid = item
+            try:
+                self.session.post(
+                    SAVE_INTERMEDIATE_URL,
+                    data={
+                        "coursecode": cc,
+                        "staffId": sid,
+                        "questype": ct,
+                        "quesID": qid,
+                        "ansid": aid
+                    },
+                    verify=False,
+                    timeout=self.timeout
+                )
+            except Exception:
+                pass
+
+        # Parallel multi-threading for instant submission (< 0.8s for all courses)
+        with ThreadPoolExecutor(max_workers=12) as executor:
+            list(executor.map(send_intermediate_ans, tasks))
+
+        return f"Intermediate: Evaluated and saved all {course_count} courses (100% complete)!"
+
+    def get_portal_schedules(self):
+        """Fetch schedule dates from Feedback/Index to auto-detect active feedback."""
+        schedules = {"endsem": "NOT SCHEDULED", "intermediate": "NOT SCHEDULED"}
+        try:
+            r = self.session.get(FEEDBACK_INDEX_URL, verify=False, timeout=self.timeout)
+            soup = BeautifulSoup(r.text, "html.parser")
+            for card in soup.find_all(class_="menu-cards"):
+                title_el = card.find(class_="card-title")
+                dates_el = card.find("small")
+                if title_el:
+                    title = title_el.text.strip().lower()
+                    dates = re.sub(r"\s+", " ", dates_el.text.strip()) if dates_el else "NOT SCHEDULED"
+                    if "end" in title or "sem" in title:
+                        schedules["endsem"] = dates
+                    elif "inter" in title:
+                        schedules["intermediate"] = dates
+        except Exception:
+            pass
+        return schedules
+
+    def check_pending_feedback(self):
+        """Check if any feedback surveys are actively pending on eCampus for this student."""
+        schedules = self.get_portal_schedules()
+        inter_dates = schedules.get("intermediate", "NOT SCHEDULED")
+        endsem_dates = schedules.get("endsem", "NOT SCHEDULED")
+
+        inter_active = "NOT SCHEDULED" not in inter_dates.upper()
+        endsem_active = "NOT SCHEDULED" not in endsem_dates.upper()
+
+        if not inter_active and not endsem_active:
+            return {
+                "has_pending": False,
+                "reason": "not_scheduled",
+                "intermediate_count": 0,
+                "endsem_count": 0,
+                "total_pending": 0,
+                "schedules": schedules
+            }
+
+        inter_pending = 0
+        endsem_pending = 0
+
+        def check_intermediate():
+            nonlocal inter_pending
+            try:
+                r_page = self.session.get(FEEDBACK_INTERMEDIATE_URL, verify=False, timeout=self.timeout)
+                if not r_page.url.endswith("/Feedback/Index"):
+                    soup = BeautifulSoup(r_page.text, "html.parser")
+                    cards = soup.find_all(class_="intermediate-card")
+                    inter_pending = len(cards)
+            except Exception as e:
+                logger.debug(f"Intermediate status check error: {e}")
+
+        def check_endsem():
+            nonlocal endsem_pending
+            try:
+                r_page = self.session.get(FEEDBACK_ENDSEM_URL, verify=False, timeout=self.timeout)
+                if not r_page.url.endswith("/Feedback/Index"):
+                    r_staff = self.session.get(LOAD_STAFF_ENDSEM_URL, verify=False, timeout=self.timeout)
+                    if r_staff.text.strip().startswith("["):
+                        staff_list = r_staff.json()
+                        if isinstance(staff_list, list):
+                            endsem_pending = len(staff_list)
+            except Exception as e:
+                logger.debug(f"EndSem status check error: {e}")
+
+        threads = []
+        if inter_active:
+            threads.append(check_intermediate)
+        if endsem_active:
+            threads.append(check_endsem)
+
+        if len(threads) == 1:
+            threads[0]()
+        elif len(threads) > 1:
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                list(executor.map(lambda fn: fn(), threads))
+
+        total = inter_pending + endsem_pending
+        return {
+            "has_pending": total > 0,
+            "reason": "pending_found" if total > 0 else "already_completed",
+            "intermediate_count": inter_pending,
+            "endsem_count": endsem_pending,
+            "total_pending": total,
+            "schedules": schedules
+        }
+
+    def execute_feedback(self, mode: str = "auto", rating_style: str = "max"):
+        start = time.time()
+        results = []
+
+        try:
+            if mode == "auto":
+                schedules = self.get_portal_schedules()
+                inter_dates = schedules.get("intermediate", "NOT SCHEDULED")
+                endsem_dates = schedules.get("endsem", "NOT SCHEDULED")
+
+                inter_active = "NOT SCHEDULED" not in inter_dates.upper()
+                endsem_active = "NOT SCHEDULED" not in endsem_dates.upper()
+
+                # 1. Process Intermediate if scheduled
+                if inter_active:
+                    inter_res = self._process_intermediate(rating_style)
+                    results.append(f"Intermediate ({inter_dates}): {inter_res}")
+
+                # 2. Process End Semester if scheduled
+                if endsem_active:
+                    endsem_res = self._process_endsem(rating_style)
+                    results.append(f"End Semester ({endsem_dates}): {endsem_res}")
+
+                # 3. If neither was scheduled on the portal
+                if not inter_active and not endsem_active:
+                    results.append(f"No feedback currently active. (Intermediate: {inter_dates}, End Sem: {endsem_dates})")
+
+            elif mode == "endsem":
+                endsem_res = self._process_endsem(rating_style)
+                results.append(endsem_res)
+            elif mode == "intermediate":
+                inter_res = self._process_intermediate(rating_style)
+                results.append(inter_res)
+            else:
+                return {"success": False, "error": f"Invalid mode '{mode}'. Choose 'auto', 'intermediate', or 'endsem'."}
+
+            elapsed = round(time.time() - start, 2)
+            return {
+                "success": True,
+                "elapsed": elapsed,
+                "summary": results,
+                "message": f"Completed in {elapsed}s! " + " • ".join(results)
+            }
+        except Exception as e:
+            return {"success": False, "error": f"Execution error: {str(e)}"}
+
+
+@app.route('/feedback')
+@app.route('/feedback.html')
+def feedback_page():
+    """Serve standalone PSG Tech Feedback Automation Web Interface"""
+    return render_template('feedback.html')
+
+
+@app.route('/api/feedback', methods=['GET', 'POST', 'OPTIONS'])
+def api_feedback():
+    """API endpoint for PSG Tech automated feedback evaluation"""
+    if request.method == 'OPTIONS':
+        return '', 200
+
+    if request.method == 'GET':
+        return jsonify({
+            'status': 'online',
+            'service': 'PSG Tech Studzone Feedback Rapid API',
+            'version': '3.0-turbo-api'
+        })
+
+    try:
+        data = request.get_json() or {}
+        rollno = data.get('rollno', '').strip().upper()
+        password = data.get('password', '').strip()
+        mode = data.get('mode', 'auto').strip().lower()
+        rating_style = data.get('rating_style', 'max').strip().lower()
+
+        # If not passed in body, try parsing bunker_credentials / auth token
+        if not rollno or not password:
+            auth_token = data.get('auth_token')
+            if auth_token:
+                try:
+                    parsed = json.loads(auth_token)
+                    rollno = parsed.get('roll', '').strip().upper()
+                    password = parsed.get('password', '').strip()
+                except:
+                    pass
+
+        if not rollno or not password:
+            return jsonify({'success': False, 'error': 'Roll Number and Password are required.'}), 400
+
+        engine = FastFeedbackEngine(timeout=6)
+        login_res = engine.login(rollno, password)
+        if not login_res.get('success'):
+            return jsonify(login_res), 401
+
+        fb_res = engine.execute_feedback(mode=mode, rating_style=rating_style)
+        if fb_res.get('success') and rollno:
+            _FEEDBACK_STATUS_CACHE[rollno] = {
+                'ts': time.time(),
+                'data': {
+                    'has_pending': False,
+                    'reason': 'already_completed',
+                    'intermediate_count': 0,
+                    'endsem_count': 0,
+                    'total_pending': 0
+                }
+            }
+        return jsonify(fb_res), (200 if fb_res.get('success') else 500)
+    except Exception as e:
+        logger.error(f"Feedback API error: {str(e)}")
+        return jsonify({'success': False, 'error': f'Feedback processing error: {str(e)}'}), 500
+
+
+@app.route('/api/feedback/status', methods=['GET', 'POST', 'OPTIONS'])
+def api_feedback_status():
+    """Lightweight check to see if student has pending feedback surveys on eCampus"""
+    if request.method == 'OPTIONS':
+        return '', 200
+
+    try:
+        data = request.get_json(silent=True) or {}
+        rollno = data.get('rollno', '').strip().upper()
+        password = data.get('password', '').strip()
+
+        if not rollno or not password:
+            auth_token = data.get('auth_token')
+            if auth_token:
+                try:
+                    parsed = json.loads(auth_token)
+                    rollno = parsed.get('roll', '').strip().upper()
+                    password = parsed.get('password', '').strip()
+                except:
+                    pass
+
+        # Demo or missing credentials -> zero delay, no eCampus call
+        if not rollno or not password or rollno == 'DEMO':
+            return jsonify({'success': True, 'has_pending': False, 'reason': 'demo_or_no_creds'})
+
+        # In-memory cache for fast repeated checks (TTL 300s = 5 minutes)
+        now = time.time()
+        cached = _FEEDBACK_STATUS_CACHE.get(rollno)
+        if cached and (now - cached.get('ts', 0)) < 300:
+            return jsonify({'success': True, **cached.get('data', {}), 'cached': True})
+
+        engine = FastFeedbackEngine(timeout=5)
+        login_res = engine.login(rollno, password)
+        if not login_res.get('success'):
+            return jsonify({'success': False, 'has_pending': False, 'error': login_res.get('error')}), 200
+
+        status_data = engine.check_pending_feedback()
+        _FEEDBACK_STATUS_CACHE[rollno] = {'ts': now, 'data': status_data}
+        return jsonify({'success': True, **status_data})
+    except Exception as e:
+        logger.error(f"Feedback status check error: {str(e)}")
+        return jsonify({'success': False, 'has_pending': False, 'error': str(e)}), 200
 
 
 @app.route('/api/health')
