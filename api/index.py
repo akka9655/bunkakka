@@ -1063,6 +1063,10 @@ def serve_sitemap():
 def serve_llms():
     return app.send_static_file('llms.txt')
 
+@app.route('/google824b5c1fd4aa93e7.html')
+def serve_google_verification():
+    return "google-site-verification: google824b5c1fd4aa93e7.html", 200, {'Content-Type': 'text/html; charset=utf-8'}
+
 @app.route('/')
 def index():
     """Serve main application"""

@@ -37,6 +37,10 @@
       "destination": "/static/llms.txt"
     },
     {
+      "source": "/google824b5c1fd4aa93e7.html",
+      "destination": "/google824b5c1fd4aa93e7.html"
+    },
+    {
       "source": "/",
       "destination": "/index.html"
     },
